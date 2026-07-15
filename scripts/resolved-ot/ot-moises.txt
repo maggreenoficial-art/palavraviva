@@ -1,0 +1,24 @@
+A Intercessão de Moisés.
+<break time="0.6s" />
+Quem orou: Moisés.
+<break time="0.8s" />
+Texto bíblico. Êxodo 32:11-14.
+<break time="1.2s" />
+Versículo 11.
+<break time="0.4s" />
+Então Moisés orou à face do SENHOR seu Deus, e disse: Ó SENHOR, por que se acenderá teu furor em teu povo, que tu tiraste da terra do Egito com grande força, e com mão forte?
+<break time="1.1s" />
+Versículo 12.
+<break time="0.4s" />
+Por que hão de falar os egípcios, dizendo: Para o mal os tirou, para matá-los nos montes, e para exterminá-los de sobre a face da terra? Volta-te do furor de tua ira, e arrepende-te do mal de teu povo.
+<break time="1.1s" />
+Versículo 13.
+<break time="0.4s" />
+Lembra-te de Abraão, de Isaque, e de Israel teus servos, aos quais juraste por ti mesmo, e disse-lhes: Eu multiplicarei vossa semente como as estrelas do céu; e darei a vossa semente toda esta terra que disse, e a tomarão por herança para sempre.
+<break time="1.1s" />
+Versículo 14.
+<break time="0.4s" />
+Então o SENHOR se arrependeu do mal que disse que havia de fazer a seu povo.
+<break time="1.1s" />
+<break time="1.0s" />
+Fim da passagem.

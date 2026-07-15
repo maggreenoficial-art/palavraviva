@@ -1,0 +1,54 @@
+{
+  "amor-acalma-01": {
+    "title": "O Amor que Acalma",
+    "subtitle": "Meditação em 1 Coríntios 13",
+    "summary": "Uma meditação acolhedora sobre o amor que permanece, com a Palavra de 1 Coríntios 13.",
+    "voiceHint": "acolhedora, suave, calorosa — como um abraço",
+    "coverColor": "#2A2438",
+    "biblicalPrayerIds": [
+      "1CORINTHIANS_13_1_3",
+      "1CORINTHIANS_13_4_7",
+      "1CORINTHIANS_13_13"
+    ],
+    "ambientVolume": 0.12,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.24,
+      "speed": 0.88
+    },
+    "devotionalScript": "Respire fundo. Desacelere os seus pensamentos.\n<break time=\"2.5s\" />\nHoje vamos meditar sobre o maior de todos os sentimentos: o amor. Não um sentimento inventado — a Palavra que Deus já entregou.\n<break time=\"2.0s\" />\nO apóstolo Paulo, na primeira carta aos Coríntios, capítulo treze, descreve o amor com clareza e beleza.\n<break time=\"1.5s\" />\n{{BIBLE:1CORINTHIANS_13_1_3}}\n<break time=\"2.5s\" />\nO amor, na sua essência, não é só emoção passageira. Ele se revela no jeito de viver.\n<break time=\"1.5s\" />\n{{BIBLE:1CORINTHIANS_13_4_7}}\n<break time=\"2.5s\" />\nEm um mundo de tantas pressões, o amor nos convida a parar. A ser pacientes conosco e com quem está ao nosso redor.\n<break time=\"2.0s\" />\nLembre-se: as dificuldades passam. Os dias difíceis ficam para trás. Mas o amor permanece.\n<break time=\"1.5s\" />\n{{BIBLE:1CORINTHIANS_13_13}}\n<break time=\"2.5s\" />\nQue o seu coração descanse nessa verdade. Descanse no amor que nunca falha. Vá em paz."
+  },
+  "ordem-caos-01": {
+    "title": "Ordem no Caos",
+    "subtitle": "Meditação em Gênesis 1",
+    "summary": "Uma meditação lenta sobre a criação: onde havia trevas, Deus disse haja luz.",
+    "voiceHint": "lenta, profunda, contemplativa — quase sussurro",
+    "coverColor": "#1A2E28",
+    "biblicalPrayerIds": ["GENESIS_1_1_5"],
+    "ambientVolume": 0.14,
+    "settings": {
+      "stability": 0.9,
+      "similarity_boost": 0.68,
+      "style": 0.08,
+      "speed": 0.78
+    },
+    "devotionalScript": "Feche os olhos por um momento. Imagine o silêncio.\n<break time=\"3.0s\" />\nAntes de qualquer preocupação, antes de qualquer ansiedade que hoje pesa no peito, havia o princípio.\n<break time=\"2.5s\" />\nO livro de Gênesis, no primeiro capítulo, conta como tudo começou.\n<break time=\"1.5s\" />\n{{BIBLE:GENESIS_1_1_5}}\n<break time=\"3.0s\" />\nPense nessa imagem. Onde havia vazio e escuridão, a voz de Deus trouxe luz, ordem e vida.\n<break time=\"2.5s\" />\nMuitas vezes a nossa mente se parece com esse estado: confusa, coberta pelas trevas da preocupação. Sentimos que perdemos o controle.\n<break time=\"2.5s\" />\nMas o mesmo Deus que organizou o universo e separou a luz da escuridão pode trazer ordem ao caos da sua vida.\n<break time=\"2.0s\" />\nO poder que criou a terra é o mesmo que sustenta você a cada respiração. Você não está sozinho.\n<break time=\"2.5s\" />\nQuando a ansiedade tentar convencer você de que o caos vai vencer, lembre-se do princípio. Entregue os pensamentos desordenados ao Criador.\n<break time=\"2.5s\" />\nQue a luz dEle brilhe na sua mente hoje, trazendo clareza, calma e uma paz profunda. Respire. Descanse."
+  },
+  "certeza-fe-01": {
+    "title": "A Certeza no Meio da Incerteza",
+    "subtitle": "Meditação em Hebreus 11",
+    "summary": "Uma meditação inspiradora sobre a fé como certeza do que se espera, mesmo sem ver.",
+    "voiceHint": "inspiradora, firme e suave — transmite segurança",
+    "coverColor": "#243448",
+    "biblicalPrayerIds": ["HEBREWS_11_1"],
+    "ambientVolume": 0.11,
+    "settings": {
+      "stability": 0.72,
+      "similarity_boost": 0.74,
+      "style": 0.32,
+      "speed": 0.92
+    },
+    "devotionalScript": "Em momentos de incerteza, quando não conseguimos enxergar o que está à frente, o coração naturalmente se enche de medo.\n<break time=\"2.5s\" />\nA ansiedade tenta nos dominar porque queremos ter o controle de tudo — das pessoas, dos prazos, do amanhã. Mas a Palavra apresenta um caminho diferente.\n<break time=\"2.0s\" />\nO livro de Hebreus, no capítulo onze, traz uma das definições mais poderosas sobre a fé.\n<break time=\"1.5s\" />\n{{BIBLE:HEBREWS_11_1}}\n<break time=\"2.5s\" />\nA fé não é fechar os olhos para a realidade. É abrir o coração para confiar em quem governa a realidade.\n<break time=\"2.0s\" />\nÉ a profunda convicção de que, mesmo quando não entendemos o processo, podemos descansar em Deus. Não porque o caminho seja fácil, mas porque Ele é fiel.\n<break time=\"2.5s\" />\nHoje você talvez não saiba como o problema será resolvido. Talvez o amanhã pareça uma montanha impossível de escalar. Talvez a mente queira antecipar cada detalhe.\n<break time=\"2.0s\" />\nOuça com atenção: você não precisa ter todas as respostas agora. Você só precisa dar o passo de hoje. Um passo. Com calma. Com confiança.\n<break time=\"2.5s\" />\nSolte o peso da necessidade de controlar tudo. Imagine entregando essa mochila pesada nas mãos de Deus. Respire fundo pelo nariz... e solte pela boca, bem devagar.\n<break time=\"3.0s\" />\nRenove a sua esperança. A fé não elimina a incerteza — ela sustenta você no meio dela. O amanhã pertence a Deus.\n<break time=\"2.5s\" />\nDescanse o coração. Vá em paz."
+  }
+}

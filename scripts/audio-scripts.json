@@ -1,0 +1,46 @@
+{
+  "sos-paz": {
+    "title": "SOS (Alívio Imediato)",
+    "voiceHint": "extremamente calma, acolhedora",
+    "settings": {
+      "stability": 0.82,
+      "similarity_boost": 0.7,
+      "style": 0.15,
+      "speed": 0.85
+    },
+    "text": "Feche os olhos. Onde quer que você esteja agora, apenas feche os olhos.\n<break time=\"3.0s\" />\nEu sei que a sua mente está acelerada e o seu peito pode estar apertado. Mas você está seguro. Nada de ruim vai acontecer com você agora.\n<break time=\"3.0s\" />\nVamos desacelerar o seu corpo juntos. Puxe o ar pelo nariz, bem devagar, sentindo o seu pulmão encher... e solte pela boca, como se estivesse apagando uma vela.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nMais uma vez. Puxe o ar, trazendo paz... e solte, esvaziando toda essa tensão acumulada.\n<break time=\"3.0s\" />\nA ansiedade faz a gente acreditar que estamos sozinhos e que perdemos o controle. Mas você não precisa ter o controle de tudo. Deus tem.\n<break time=\"3.0s\" />\nO Salmo 94, versículo 19, diz: Quando a ansiedade já me dominava no íntimo, o teu consolo trouxe alívio à minha alma.\n<break time=\"3.0s\" />\nPermita que esse consolo envolva você agora. Sinta os seus ombros pesarem e relaxarem. Solte a musculatura do seu maxilar. Tire a língua do céu da boca.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nO Senhor diz a você neste exato momento, lá em Isaías 41: Não tenha medo, pois eu estou com você. Não se apavore, pois eu sou o seu Deus. Eu te fortaleço, eu te ajudo e te seguro com a minha mão direita.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nVocê está sendo segurado pela mão de Deus. Essa crise vai passar. Ela já está passando. Respire mais uma vez. Fique o tempo que precisar aqui. Você está em paz."
+  },
+  "manha-01": {
+    "title": "Começando o Dia — Despertar em Gratidão",
+    "voiceHint": "suave, encorajadora, amanhecer tranquilo",
+    "settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.9
+    },
+    "text": "Bom dia. Antes de olhar para as mensagens, antes de pensar na sua agenda de hoje, pare por um instante.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nSinta a sua respiração. Sinta o peso do seu corpo sobre a cama. Você acordou. O fôlego de vida que está nos seus pulmões agora é um presente. É um milagre que se repete todos os dias e que muitas vezes esquecemos de notar.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nTalvez ontem tenha sido um dia difícil. Talvez você tenha ido dormir com preocupações. Mas a palavra de Deus, em Lamentações, capítulo 3, nos lembra de algo poderoso: As misericórdias do Senhor são a causa de não sermos consumidos. Elas se renovam a cada manhã.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nOuça isso novamente: elas se renovam a cada manhã. O dia de hoje é uma página em branco. A misericórdia de Deus sobre a sua vida foi zerada e recarregada para hoje. Você não precisa carregar o peso de ontem.\n<break time=\"3.0s\" />\nJesus nos ensinou no Sermão do Monte: Não andem ansiosos pelo dia de amanhã, pois o amanhã trará as suas próprias preocupações.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nFoque apenas no hoje. O que você tem para resolver hoje, Deus te dará a capacidade para enfrentar. Puxe o ar profundamente, enchendo o peito de coragem... e solte, esvaziando qualquer medo.\n<break time=\"3.0s\" />\nEntregue este dia nas mãos do Criador. Peça a Ele sabedoria para as decisões e calma para os imprevistos. Que a sua mente seja guardada pela paz que excede todo entendimento. Levante-se no seu tempo. Vá em paz e tenha um dia abençoado."
+  },
+  "noite-01": {
+    "title": "Descompressão Noturna — Entrega do Dia",
+    "voiceHint": "baixa, lenta, sussurrada",
+    "settings": {
+      "stability": 0.88,
+      "similarity_boost": 0.68,
+      "style": 0.1,
+      "speed": 0.8
+    },
+    "text": "O dia acabou. Tudo o que você tinha que fazer, foi feito. E o que não pôde ser feito, ficará para depois.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nAcomode o seu corpo. Encontre a posição mais confortável. Comece a perceber se você está segurando alguma tensão. Solte os ombros. Relaxe o pescoço. Deixe os braços pesados ao lado do corpo.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nMuitas vezes deitamos a cabeça no travesseiro, mas a nossa mente continua trabalhando. Continuamos tentando resolver problemas. Mas agora não é hora de trabalhar. É hora de confiar.\n<break time=\"3.0s\" />\nA primeira carta de Pedro, capítulo 5, versículo 7, nos dá uma instrução muito clara: Lancem sobre Ele toda a sua ansiedade, porque Ele tem cuidado de vocês.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nLançar significa jogar para longe. Pegue todas as pendências da sua mente agora. As finanças, o trabalho, os problemas familiares... imagine tudo isso como uma mochila pesada que você carregou o dia todo. Agora, tire essa mochila das costas.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nEntregue nas mãos de Deus. Ele não dorme. O Salmo 121 diz que o guarda de Israel não cochila nem dorme. Deus continua cuidando do universo e da sua vida enquanto você descansa.\n<break time=\"3.0s\" />\nVocê tem permissão para descansar. Jesus disse: Venham a mim, todos os que estão cansados e sobrecarregados, e eu lhes darei descanso. Aceite esse descanso. Deixe que o seu corpo se recupere. Respire fundo mais uma vez... solte o ar devagar... e sinta a presença invisível dAquele que guarda a sua casa e a sua mente."
+  },
+  "noite-02": {
+    "title": "Descompressão Noturna — Silêncio Sagrado",
+    "voiceHint": "extremamente lenta, quase sussurro",
+    "settings": {
+      "stability": 0.9,
+      "similarity_boost": 0.65,
+      "style": 0.05,
+      "speed": 0.75
+    },
+    "text": "Este é o seu momento de silêncio. O mundo lá fora não importa mais. O seu celular não importa mais.\n<break time=\"3.0s\" /><break time=\"2.0s\" />\nApenas preste atenção no som do ar entrando e saindo de você. Entrando... e saindo. Bem devagar.\n<break time=\"3.0s\" /><break time=\"2.0s\" />\nImagine uma luz muito suave e morna descendo sobre o seu corpo. Ela começa na sua testa, desfazendo qualquer linha de preocupação.\n<break time=\"3.0s\" />\nEla desce para os seus olhos... que pesam e relaxam. Desce para o seu maxilar, relaxando a sua boca.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nEssa paz desce pelo seu peito... e a sua respiração fica cada vez mais tranquila. Desce pelos seus braços, até a ponta dos seus dedos. Desce pelas suas pernas. O seu corpo inteiro está afundando levemente no colchão. Seguro. Acolhido.\n<break time=\"3.0s\" /><break time=\"2.0s\" />\nA palavra de Deus nos garante no Salmo 4, versículo 8: Em paz também me deitarei e dormirei, porque só tu, Senhor, me fazes habitar em segurança.\n<break time=\"3.0s\" /><break time=\"1.0s\" />\nEm paz eu me deito. Em paz eu durmo.\n<break time=\"3.0s\" /><break time=\"2.0s\" />\nNão há nada a temer. Aquele que habita no abrigo do Altíssimo, e descansa à sombra do Todo-Poderoso, pode dizer: O Senhor é o meu refúgio e a minha fortaleza.\n<break time=\"3.0s\" /><break time=\"3.0s\" />\nDescanse nessa sombra. Deixe o sono chegar. Deus está cuidando de você. Boa noite... e durma em paz."
+  }
+}

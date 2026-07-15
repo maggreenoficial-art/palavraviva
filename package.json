@@ -1,12 +1,31 @@
 {
   "name": "palavraviva",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo/metro-runtime": "^57.0.3",
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "babel-preset-expo": "^57.0.2",
     "expo": "~57.0.4",
+    "expo-av": "^16.0.8",
+    "expo-constants": "~57.0.3",
+    "expo-file-system": "~57.0.0",
+    "expo-font": "~57.0.0",
+    "expo-image": "~57.0.0",
+    "expo-linking": "~57.0.2",
+    "expo-router": "~57.0.4",
+    "expo-splash-screen": "^57.0.2",
     "expo-status-bar": "~57.0.0",
-    "react": "19.2.3",
-    "react-native": "0.86.0"
+    "react": "^19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "^4.25.2",
+    "react-native-web": "^0.21.2",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -16,7 +35,20 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:web": "expo export -p web",
+    "serve:web": "expo serve",
+    "generate:audio": "node scripts/generate-audios.mjs",
+    "generate:ambient": "node scripts/generate-ambients.mjs",
+    "generate:all": "node scripts/generate-audios.mjs && node scripts/generate-ambients.mjs",
+    "fetch:prayers": "node scripts/fetch-prayers.mjs",
+    "validate:bible": "node scripts/validate-biblical-catalog.mjs",
+    "export:journey": "node scripts/export-journey-templates.mjs",
+    "generate:journey": "node scripts/export-journey-templates.mjs && node scripts/generate-journey-audios.mjs",
+    "generate:meditation": "node scripts/generate-meditation-audios.mjs",
+    "generate:ecosystem": "node scripts/generate-ecosystem-audios.mjs",
+    "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }

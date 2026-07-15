@@ -1,0 +1,44 @@
+O Clamor no Ventre do Peixe.
+<break time="0.6s" />
+Quem orou: Profeta Jonas.
+<break time="0.8s" />
+Texto bíblico. Jonas 2:1-9.
+<break time="1.2s" />
+Versículo 1.
+<break time="0.4s" />
+E Jonas orou ao SENHOR seu Deus, desde as entranhas do peixe,
+<break time="1.1s" />
+Versículo 2.
+<break time="0.4s" />
+E disse: Clamei da minha angústia ao SENHOR, e ele me respondeu; do ventre do Xeol gritei, [e] tu ouviste minha voz.
+<break time="1.1s" />
+Versículo 3.
+<break time="0.4s" />
+Pois tu me lançaste no profundo, no meio dos mares, e a correnteza me cercou; todas as tuas ondas e tuas vagas passaram sobre mim.
+<break time="1.1s" />
+Versículo 4.
+<break time="0.4s" />
+E eu disse: Lançado estou de diante de teus olhos; porém voltarei a ver o teu santo templo.
+<break time="1.1s" />
+Versículo 5.
+<break time="0.4s" />
+As águas me cercaram até a alma, o abismo me rodeou; as algas se enrolaram à minha cabeça.
+<break time="1.1s" />
+Versículo 6.
+<break time="0.4s" />
+Desci aos fundamentos dos montes; a terra trancou suas fechaduras a mim para sempre; porém tu tiraste minha vida da destruição, ó SENHOR meu Deus.
+<break time="1.1s" />
+Versículo 7.
+<break time="0.4s" />
+Quando minha alma desfalecia em mim, eu me lembrei do SENHOR; e minha oração chegou a ti em teu santo templo.
+<break time="1.1s" />
+Versículo 8.
+<break time="0.4s" />
+Os que dão atenção a coisas inúteis e ilusórias abandonam sua própria misericórdia.
+<break time="1.1s" />
+Versículo 9.
+<break time="0.4s" />
+Mas eu porém sacrificarei a ti com voz de gratidão; pagarei o que prometi. A salvação [vem] do SENHOR.
+<break time="1.1s" />
+<break time="1.0s" />
+Fim da passagem.

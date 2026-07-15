@@ -1,0 +1,44 @@
+A Dedicação do Templo.
+<break time="0.6s" />
+Quem orou: Rei Salomão.
+<break time="0.8s" />
+Texto bíblico. 1 Reis 8:22-30.
+<break time="1.2s" />
+Versículo 22.
+<break time="0.4s" />
+Logo Salomão se pôs diante do altar do SENHOR, na presença de toda a congregação de Israel; e estendeu suas mãos para os céus,
+<break time="1.1s" />
+Versículo 23.
+<break time="0.4s" />
+Disse: Ó SENHOR, Deus de Israel, não há Deus como tu, nem acima nos céus nem abaixo na terra, que guardas o pacto e a misericórdia aos teus servos que andam com todo o seu coração diante de ti;
+<break time="1.1s" />
+Versículo 24.
+<break time="0.4s" />
+que guardaste ao teu servo Davi, meu pai, o que lhe disseste: pois com a tua boca o disseste, e com a tua mão o cumpriste, como hoje se sucede.
+<break time="1.1s" />
+Versículo 25.
+<break time="0.4s" />
+Agora, pois, ó SENHOR Deus de Israel, guarda ao teu servo Davi, meu pai, o que lhe prometeste, dizendo: Não te faltará sucessor diante de mim que se assente no trono de Israel; contanto que os teus descendentes guardem o seu caminho para andarem diante de mim como tu andaste diante de mim.
+<break time="1.1s" />
+Versículo 26.
+<break time="0.4s" />
+Portanto agora, ó Deus de Israel, cumpra-se a tua palavra que disseste ao teu servo Davi, meu pai.
+<break time="1.1s" />
+Versículo 27.
+<break time="0.4s" />
+Mas, na verdade, haveria Deus de habitar na terra? Eis que os céus, e até o céu dos céus, não te podem conter; quanto menos esta casa que eu edifiquei!
+<break time="1.1s" />
+Versículo 28.
+<break time="0.4s" />
+Contudo, volta-te à oração do teu servo, e à sua súplica, ó SENHOR, meu Deus, para ouvires o clamor e a oração que o teu servo faz hoje diante de ti.
+<break time="1.1s" />
+Versículo 29.
+<break time="0.4s" />
+Que teus olhos noite e dia estejam abertos sobre esta casa, sobre este lugar do qual disseste: Meu nome estará ali; e que ouças a oração que teu servo fizer neste lugar.
+<break time="1.1s" />
+Versículo 30.
+<break time="0.4s" />
+Ouve, pois, a oração do teu servo, e do teu povo Israel; quando orarem neste lugar, também tu ouve no lugar da tua habitação nos céus; que ouças e perdoes.
+<break time="1.1s" />
+<break time="1.0s" />
+Fim da passagem.

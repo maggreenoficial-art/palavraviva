@@ -1,0 +1,48 @@
+O Cântico de Ana.
+<break time="0.6s" />
+Quem orou: Ana.
+<break time="0.8s" />
+Texto bíblico. 1 Samuel 2:1-10.
+<break time="1.2s" />
+Versículo 1.
+<break time="0.4s" />
+E Ana orou e disse: Meu coração se regozija no SENHOR, Meu poder é exaltado no SENHOR; Minha boca fala triunfante sobre meus inimigos, Porquanto me alegrei em tua salvação.
+<break time="1.1s" />
+Versículo 2.
+<break time="0.4s" />
+Não há santo como o SENHOR: Porque não há ninguém além de ti; E não há refúgio como o nosso Deus.
+<break time="1.1s" />
+Versículo 3.
+<break time="0.4s" />
+Não faleis tantas coisas soberbas; Cessem as palavras arrogantes de vossa boca; Porque o Deus de todo conhecimento é o SENHOR, E a ele cabe pesar as ações.
+<break time="1.1s" />
+Versículo 4.
+<break time="0.4s" />
+Os arcos dos fortes foram quebrados, E os fracos se cingiram de força.
+<break time="1.1s" />
+Versículo 5.
+<break time="0.4s" />
+Os fartos se alugaram por pão: E cessaram os famintos; até a estéril deu à luz sete, e a que tinha muitos filhos se enfraqueceu.
+<break time="1.1s" />
+Versículo 6.
+<break time="0.4s" />
+O SENHOR mata e dá vida; ele faz descer ao Xeol, e faz [de lá] subir.
+<break time="1.1s" />
+Versículo 7.
+<break time="0.4s" />
+O SENHOR empobrece e enriquece; abate e exalta.
+<break time="1.1s" />
+Versículo 8.
+<break time="0.4s" />
+Ele levanta do pó ao pobre, e ao necessitado ergue do esterco, para assentá-lo com os príncipes; e faz que tenham por propriedade assento de honra; porque do SENHOR são os alicerces da terra, e assentou o mundo sobre eles.
+<break time="1.1s" />
+Versículo 9.
+<break time="0.4s" />
+Ele guarda os pés de seus santos, Mas os ímpios perecem em trevas; Porque ninguém será forte por sua força.
+<break time="1.1s" />
+Versículo 10.
+<break time="0.4s" />
+Diante do SENHOR serão quebrantados seus adversários, E sobre eles trovejará desde os céus: o SENHOR julgará os termos da terra, E dará força a seu Rei, E exaltará o poder de seu ungido.
+<break time="1.1s" />
+<break time="1.0s" />
+Fim da passagem.

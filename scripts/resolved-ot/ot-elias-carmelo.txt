@@ -1,0 +1,24 @@
+O Desafio no Monte Carmelo.
+<break time="0.6s" />
+Quem orou: Profeta Elias.
+<break time="0.8s" />
+Texto bíblico. 1 Reis 18:36-39.
+<break time="1.2s" />
+Versículo 36.
+<break time="0.4s" />
+E quando chegou a hora de oferecer-se o holocausto, chegou-se o profeta Elias, e disse: SENHOR Deus de Abraão, de Isaque, e de Israel, seja hoje manifesto que tu és Deus em Israel, e que eu sou teu servo, e que por mandado teu fiz todas estas coisas.
+<break time="1.1s" />
+Versículo 37.
+<break time="0.4s" />
+Responde-me, SENHOR, responde-me; para que conheça este povo que tu, ó SENHOR, és o Deus, e que tu voltaste atrás o coração deles.
+<break time="1.1s" />
+Versículo 38.
+<break time="0.4s" />
+Então caiu fogo do SENHOR, o qual consumiu o holocausto, e a lenha, e as pedras, e o pó, e ainda sugou as águas que estavam no sulco.
+<break time="1.1s" />
+Versículo 39.
+<break time="0.4s" />
+E vendo-o todo o povo, caíram sobre seus rostos, e disseram: o SENHOR é o Deus! o SENHOR é o Deus!
+<break time="1.1s" />
+<break time="1.0s" />
+Fim da passagem.

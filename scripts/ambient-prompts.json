@@ -1,0 +1,72 @@
+{
+  "sos-paz": {
+    "title": "Ambiente SOS — Refúgio",
+    "prompt": "Soft warm ambient drone for anxiety relief meditation, gentle breathing atmosphere, sparse soft pad tones, peaceful sanctuary feeling, very calm low frequency warmth, no percussion, no melody competing with voice, seamless atmospheric loop",
+    "volume": 0.12
+  },
+  "manha-01": {
+    "title": "Ambiente Manhã — Amanhecer",
+    "prompt": "Soft sunrise ambient pad for morning meditation, distant gentle birds far away, warm hopeful light atmosphere, airy peaceful texture, no drums, no strong melody, calm spiritual morning background seamless loop",
+    "volume": 0.12
+  },
+  "noite-01": {
+    "title": "Ambiente Noite — Entrega",
+    "prompt": "Soft evening wind with warm low ambient pad, gentle distant rain, restful night atmosphere for releasing stress, quiet contemplative soundscape, no percussion, no melody, seamless calming loop",
+    "volume": 0.12
+  },
+  "noite-02": {
+    "title": "Ambiente Noite — Sono profundo",
+    "prompt": "Ultra soft deep sleep ambient, very quiet distant ocean waves, warm dark drone, sparse lullaby-like pad barely audible, extremely calming bedtime atmosphere, no percussion, seamless loop for sleep induction",
+    "volume": 0.1
+  },
+  "ansiedade-01": {
+    "title": "Ambiente Jornada Dia 1",
+    "prompt": "Very soft calming ambient drone for anxiety support, warm low pad, gentle breath-like texture, peaceful sanctuary, no melody, no percussion, seamless loop",
+    "volume": 0.12
+  },
+  "ansiedade-02": {
+    "title": "Ambiente Jornada Dia 2",
+    "prompt": "Soft contemplative ambient pad, quiet prayer atmosphere, warm low tones, no drums, seamless calming loop",
+    "volume": 0.12
+  },
+  "ansiedade-03": {
+    "title": "Ambiente Jornada Dia 3",
+    "prompt": "Soft present-moment ambient atmosphere, light airy pad, calm and grounded, no melody, seamless loop",
+    "volume": 0.12
+  },
+  "sobrecarga-01": {
+    "title": "Ambiente Jornada Dia 4",
+    "prompt": "Soft restful ambient for exhaustion and overload, warm dark pad, gentle stillness, no percussion, seamless loop",
+    "volume": 0.12
+  },
+  "medo-01": {
+    "title": "Ambiente Jornada Dia 5",
+    "prompt": "Soft protective ambient atmosphere, steady warm drone, safe and grounded feeling, no melody, seamless loop",
+    "volume": 0.12
+  },
+  "noite-ansiedade-01": {
+    "title": "Ambiente Jornada Dia 6",
+    "prompt": "Ultra soft nighttime ambient, quiet distant rain, warm low drone for rest, no drums, seamless sleep-friendly loop",
+    "volume": 0.1
+  },
+  "manha-esperanca-01": {
+    "title": "Ambiente Jornada Dia 7",
+    "prompt": "Soft hopeful morning ambient pad, gentle light texture, peaceful renewal atmosphere, no percussion, seamless loop",
+    "volume": 0.12
+  },
+  "amor-acalma-01": {
+    "title": "Ambiente — Amor que Acalma",
+    "prompt": "Soft warm piano and gentle string pad atmosphere for love meditation, tender intimate sanctuary feeling, no melody competing with voice, seamless calming loop",
+    "volume": 0.12
+  },
+  "ordem-caos-01": {
+    "title": "Ambiente — Ordem no Caos",
+    "prompt": "Soft nature ambient with distant gentle water and warm drone for creation meditation, peaceful dawn atmosphere, no percussion, seamless loop",
+    "volume": 0.14
+  },
+  "certeza-fe-01": {
+    "title": "Ambiente — Certeza na Fé",
+    "prompt": "Soft hopeful ambient pad with light airy texture for faith meditation, calm confident atmosphere, no drums, seamless loop",
+    "volume": 0.11
+  }
+}

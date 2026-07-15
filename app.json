@@ -1,25 +1,46 @@
 {
   "expo": {
-    "name": "palavraviva",
+    "name": "Palavra Viva",
     "slug": "palavraviva",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "scheme": "palavraviva",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121A21"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.palavraviva.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#121A21",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "package": "com.palavraviva.app",
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Palavra Viva",
+      "shortName": "Palavra Viva",
+      "description": "A Palavra de Cristo, viva em você. Áudios para ansiedade, oração e paz.",
+      "themeColor": "#121A21",
+      "backgroundColor": "#121A21",
+      "lang": "pt-BR"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image"
+    ]
   }
 }
