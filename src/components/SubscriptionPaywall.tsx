@@ -12,6 +12,11 @@ import {
   TRIAL_HOURS,
   useUserStore,
 } from '../store/useUserStore';
+import {
+  createWivenCheckout,
+  openWivenCheckout,
+  syncSubscriptionAccess,
+} from '../services/wivenCheckout';
 import { colors, radius, spacing, typography } from '../theme';
 
 interface SubscriptionPaywallProps {
@@ -30,24 +35,76 @@ export function SubscriptionPaywall({
 }: SubscriptionPaywallProps) {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
+  const whatsapp = useUserStore((s) => s.whatsapp);
   const firstName = (displayName ?? '').trim().split(/\s+/)[0] ?? '';
-  const activateSubscription = useUserStore((s) => s.activateSubscription);
+  const setSubscriptionExpiresAt = useUserStore(
+    (s) => s.setSubscriptionExpiresAt,
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  async function refreshAccess() {
+    if (!userId) return false;
+    return syncSubscriptionAccess(userId, setSubscriptionExpiresAt);
+  }
+
   async function handleSubscribe() {
+    if (!userId) {
+      setMessage('Faça o onboarding novamente para gerar seu ID de assinante.');
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
     try {
-      // Ponto de integração futura (Stripe/Pix/Play Billing).
-      // Por enquanto libera o mês localmente pelo ID do usuário.
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      activateSubscription(30);
-      setMessage('Assinatura ativada por 30 dias. Obrigado por apoiar a missão.');
-      setTimeout(() => {
-        setMessage(null);
-        onClose();
-      }, 900);
+      const session = await createWivenCheckout({
+        userId,
+        displayName,
+        whatsapp,
+      });
+      setMessage('Abrindo checkout seguro da Wiven…');
+      await openWivenCheckout(session.checkoutUrl);
+
+      const unlocked = await refreshAccess();
+      if (unlocked) {
+        setMessage('Pagamento confirmado. Assinatura ativa. Obrigado!');
+        setTimeout(() => {
+          setMessage(null);
+          onClose();
+        }, 900);
+      } else {
+        setMessage(
+          'Conclua o pagamento na Wiven. Ao voltar, toque em “Já paguei” para liberar o acesso.',
+        );
+      }
+    } catch (error) {
+      const text =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível abrir o checkout.';
+      setMessage(text);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAlreadyPaid() {
+    if (!userId) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const unlocked = await refreshAccess();
+      if (unlocked) {
+        setMessage('Assinatura ativa. Bem-vindo de volta à Missão+.');
+        setTimeout(() => {
+          setMessage(null);
+          onClose();
+        }, 900);
+      } else {
+        setMessage(
+          'Ainda não encontramos o pagamento. Se acabou de pagar, aguarde alguns segundos e tente de novo.',
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -89,7 +146,9 @@ export function SubscriptionPaywall({
 
           <View style={styles.card}>
             <Text style={styles.price}>{SUBSCRIPTION_PRICE_LABEL}</Text>
-            <Text style={styles.benefit}>Biblioteca completa · Novos áudios no mês</Text>
+            <Text style={styles.benefit}>
+              Biblioteca completa · Novos áudios no mês
+            </Text>
             <Text style={styles.benefit}>Offline nas sessões · Sem anúncios</Text>
             {userId ? (
               <Text style={styles.idLine}>Seu ID: {userId}</Text>
@@ -118,6 +177,16 @@ export function SubscriptionPaywall({
             )}
           </Pressable>
 
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Já paguei, verificar assinatura"
+            onPress={() => void handleAlreadyPaid()}
+            disabled={loading}
+            style={styles.secondaryBtn}
+          >
+            <Text style={styles.secondaryText}>Já paguei — verificar acesso</Text>
+          </Pressable>
+
           {onDonate ? (
             <Pressable
               accessibilityRole="button"
@@ -144,9 +213,8 @@ export function SubscriptionPaywall({
           </Pressable>
 
           <Text style={styles.footnote}>
-            Após o pagamento, este ID libera o acesso mensal. Enquanto a
-            integração de pagamento é finalizada, o botão ativa a liberação
-            local para testes.
+            O pagamento é processado com segurança pela Wiven. Após a
+            confirmação, seu ID libera o acesso mensal automaticamente.
           </Text>
         </Pressable>
       </Pressable>

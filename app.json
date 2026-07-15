@@ -40,10 +40,12 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-image"
+      "expo-image",
+      "expo-web-browser"
     ],
     "extra": {
-      "analyticsUrl": "http://localhost:8787"
+      "analyticsUrl": "http://localhost:8787",
+      "paymentsUrl": "http://localhost:8788"
     }
   }
 }

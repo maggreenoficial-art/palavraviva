@@ -4,19 +4,28 @@ import {
   startPresenceHeartbeat,
   trackAnalytics,
 } from '../services/analytics';
+import { syncSubscriptionAccess } from '../services/wivenCheckout';
 import { useUserStore } from '../store/useUserStore';
 import { usePathname } from 'expo-router';
 
-/** Inicializa analytics, presença online e pageviews. */
+/** Inicializa analytics, presença online, pageviews e sync de assinatura. */
 export function AnalyticsBootstrap() {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
+  const setSubscriptionExpiresAt = useUserStore(
+    (s) => s.setSubscriptionExpiresAt,
+  );
   const pathname = usePathname();
 
   useEffect(() => {
     void bootstrapAnalytics();
     return startPresenceHeartbeat();
   }, [userId, displayName]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void syncSubscriptionAccess(userId, setSubscriptionExpiresAt);
+  }, [userId, setSubscriptionExpiresAt]);
 
   useEffect(() => {
     if (!pathname) return;

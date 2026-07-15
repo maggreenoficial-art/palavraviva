@@ -33,6 +33,8 @@ interface UserState {
   setFeeling: (feeling: Feeling) => void;
   clearFeeling: () => void;
   activateSubscription: (days?: number) => void;
+  /** Sincroniza expiração vinda do servidor de pagamentos (Wiven). */
+  setSubscriptionExpiresAt: (expiresAt: string | null) => void;
   resetOnboarding: () => void;
   getFirstName: () => string;
   getAccessKind: () => AccessKind;
@@ -108,6 +110,20 @@ export const useUserStore = create<UserState>()(
         set({
           subscriptionExpiresAt: new Date(base + ms).toISOString(),
         });
+      },
+
+      setSubscriptionExpiresAt: (expiresAt) => {
+        if (!expiresAt) {
+          set({ subscriptionExpiresAt: null });
+          return;
+        }
+        const parsed = Date.parse(expiresAt);
+        if (!Number.isFinite(parsed)) return;
+        const current = get().subscriptionExpiresAt;
+        const currentMs = current ? Date.parse(current) : 0;
+        if (!currentMs || parsed > currentMs) {
+          set({ subscriptionExpiresAt: new Date(parsed).toISOString() });
+        }
       },
 
       resetOnboarding: () =>

@@ -18,6 +18,7 @@
     "expo-router": "~57.0.4",
     "expo-splash-screen": "^57.0.2",
     "expo-status-bar": "~57.0.0",
+    "expo-web-browser": "~57.0.1",
     "react": "^19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "playwright": "^1.61.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -49,6 +51,8 @@
     "generate:ecosystem": "node scripts/generate-ecosystem-audios.mjs",
     "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
     "analytics:server": "node server/analytics-server.mjs",
+    "payments:server": "node server/payments-server.mjs",
+    "capture:creatives": "node scripts/capture-creatives.mjs",
     "typecheck": "tsc --noEmit"
   },
   "private": true
