@@ -1,18 +1,44 @@
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { clearSensitiveLocalData } from '../store/usePrivacyActions';
+import {
+  SUBSCRIPTION_PRICE_LABEL,
+  computeAccessKind,
+  computeTrialRemainingMs,
+  useUserStore,
+} from '../store/useUserStore';
 import { colors, radius, spacing, typography } from '../theme';
 
 interface SettingsSheetProps {
   visible: boolean;
   onClose: () => void;
   onChangeFeeling: () => void;
+  onOpenSubscription?: () => void;
 }
 
 export function SettingsSheet({
   visible,
   onClose,
   onChangeFeeling,
+  onOpenSubscription,
 }: SettingsSheetProps) {
+  const displayName = useUserStore((s) => s.displayName);
+  const userId = useUserStore((s) => s.userId);
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
+  const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
+  const trialRemainingMs = computeTrialRemainingMs(trialStartedAt);
+
+  const accessLabel =
+    accessKind === 'subscribed'
+      ? `Missão+ ativo${
+          subscriptionExpiresAt
+            ? ` · até ${new Date(subscriptionExpiresAt).toLocaleDateString('pt-BR')}`
+            : ''
+        }`
+      : accessKind === 'trial'
+        ? `Acesso gratuito · ~${Math.ceil(trialRemainingMs / (60 * 60 * 1000))}h restantes`
+        : 'Acesso gratuito encerrado';
+
   function handleClear() {
     Alert.alert(
       'Apagar dados sensíveis?',
@@ -48,6 +74,16 @@ export function SettingsSheet({
           <View style={styles.handle} />
           <Text style={styles.title}>Configurações</Text>
 
+          {displayName ? (
+            <View style={styles.profileBox}>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileMeta}>{accessLabel}</Text>
+              {userId ? (
+                <Text style={styles.profileId}>ID: {userId}</Text>
+              ) : null}
+            </View>
+          ) : null}
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Alterar como estou me sentindo"
@@ -59,6 +95,22 @@ export function SettingsSheet({
           >
             <Text style={styles.rowText}>Alterar como estou me sentindo</Text>
           </Pressable>
+
+          {onOpenSubscription ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Assinatura Missão Plus"
+              style={styles.row}
+              onPress={() => {
+                onClose();
+                onOpenSubscription();
+              }}
+            >
+              <Text style={styles.rowText}>
+                Assinatura Missão+ · {SUBSCRIPTION_PRICE_LABEL}
+              </Text>
+            </Pressable>
+          ) : null}
 
           <Pressable
             accessibilityRole="button"
@@ -117,6 +169,27 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.textPrimary,
     marginBottom: spacing.lg,
+  },
+  profileBox: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundSoft,
+    gap: 4,
+  },
+  profileName: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  profileMeta: {
+    ...typography.caption,
+    color: colors.accent,
+  },
+  profileId: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   row: {
     minHeight: 52,

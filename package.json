@@ -48,6 +48,7 @@
     "generate:meditation": "node scripts/generate-meditation-audios.mjs",
     "generate:ecosystem": "node scripts/generate-ecosystem-audios.mjs",
     "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
+    "analytics:server": "node server/analytics-server.mjs",
     "typecheck": "tsc --noEmit"
   },
   "private": true

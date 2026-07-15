@@ -12,6 +12,7 @@ import {
 import { Audio } from 'expo-av';
 import type { BiblicalText } from '../services/biblicalContent';
 import { colors, radius, spacing, typography } from '../theme';
+import { trackAnalytics } from '../services/analytics';
 import { formatTime } from '../utils/formatTime';
 import { getActiveVerseIndex } from '../utils/verseSync';
 import { resolvePlaybackSource } from '../utils/audioSource';
@@ -21,17 +22,27 @@ interface SyncedScriptureReaderProps {
   passage: BiblicalText;
   audioSource: AudioSource;
   subtitle?: string;
+  analyticsId?: string;
+  analyticsTitle?: string;
 }
 
 export function SyncedScriptureReader({
   passage,
   audioSource,
   subtitle,
+  analyticsId,
+  analyticsTitle,
 }: SyncedScriptureReaderProps) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const verseY = useRef<Record<number, number>>({});
   const userScrolling = useRef(false);
+  const listenTrackedRef = useRef(false);
+
+  useEffect(() => {
+    listenTrackedRef.current = false;
+  }, [passage.id, analyticsId]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -39,6 +50,7 @@ export function SyncedScriptureReader({
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [followReading, setFollowReading] = useState(true);
+  const [textExpanded, setTextExpanded] = useState(false);
 
   const activeIndex = getActiveVerseIndex(
     passage.verses,
@@ -105,13 +117,30 @@ export function SyncedScriptureReader({
     });
   }, [activeIndex, followReading]);
 
+  useEffect(() => {
+    if (playing) setTextExpanded(true);
+  }, [playing]);
+
   async function togglePlay() {
     const sound = soundRef.current;
     if (!sound || !ready) return;
     const status = await sound.getStatusAsync();
     if (!status.isLoaded) return;
-    if (status.isPlaying) await sound.pauseAsync();
-    else await sound.playAsync();
+    if (status.isPlaying) {
+      await sound.pauseAsync();
+      return;
+    }
+    await sound.playAsync();
+    if (!listenTrackedRef.current) {
+      listenTrackedRef.current = true;
+      void trackAnalytics({
+        name: 'listen_start',
+        contentId: analyticsId || passage.id,
+        contentTitle: analyticsTitle || passage.reference,
+        contentKind: 'ot',
+        path: `/leitura/${analyticsId || passage.id}`,
+      });
+    }
   }
 
   function onScrollBeginDrag() {
@@ -124,13 +153,40 @@ export function SyncedScriptureReader({
     }, 1200);
   }
 
-  const progress = durationMs > 0 ? positionMs / durationMs : 0;
+  const displayDurationMs = durationMs > 0 ? durationMs : 0;
+  const progress =
+    displayDurationMs > 0 ? Math.min(1, positionMs / displayDurationMs) : 0;
+  const longPassage = passage.verses.length > 4;
+  const visibleVerses =
+    longPassage && !textExpanded && !playing
+      ? passage.verses.slice(0, 2)
+      : passage.verses;
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.badge}>Texto bíblico</Text>
-      <Text style={styles.reference}>{passage.reference}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <View style={styles.headerRow}>
+        <View style={styles.headerText}>
+          <Text style={styles.badge}>Texto bíblico</Text>
+          <Text style={styles.reference}>{passage.reference}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+        {longPassage ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              textExpanded || playing
+                ? 'Recolher texto'
+                : 'Ver texto completo'
+            }
+            onPress={() => setTextExpanded((v) => !v)}
+            style={styles.expandBtn}
+          >
+            <Text style={styles.expandText}>
+              {textExpanded || playing ? 'Recolher' : 'Ver texto'}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       {loading ? (
         <View style={styles.loadingRow}>
@@ -148,7 +204,7 @@ export function SyncedScriptureReader({
         onScrollBeginDrag={onScrollBeginDrag}
         onScrollEndDrag={onScrollEndDrag}
       >
-        {passage.verses.map((verse, index) => {
+        {visibleVerses.map((verse, index) => {
           const active = index === activeIndex && (playing || positionMs > 0);
           return (
             <View
@@ -167,6 +223,12 @@ export function SyncedScriptureReader({
             </View>
           );
         })}
+        {longPassage && !textExpanded && !playing ? (
+          <Text style={styles.moreHint}>
+            +{passage.verses.length - 2} versículos — toque em Ver texto ou
+            Ouvir para acompanhar
+          </Text>
+        ) : null}
       </ScrollView>
 
       <View style={styles.controls}>
@@ -175,7 +237,7 @@ export function SyncedScriptureReader({
         </View>
         <View style={styles.timeRow}>
           <Text style={styles.time}>{formatTime(positionMs)}</Text>
-          <Text style={styles.time}>{formatTime(durationMs)}</Text>
+          <Text style={styles.time}>{formatTime(displayDurationMs)}</Text>
         </View>
 
         <View style={styles.actions}>
@@ -211,25 +273,51 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.screen,
+    marginBottom: spacing.sm,
+  },
+  headerText: {
+    flex: 1,
+    gap: 2,
+  },
   badge: {
     ...typography.caption,
     color: colors.accentMuted,
     fontFamily: 'DMSans_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    paddingHorizontal: spacing.screen,
   },
   reference: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
-    paddingHorizontal: spacing.screen,
     marginTop: spacing.xs,
   },
   subtitle: {
     ...typography.caption,
     color: colors.textSecondary,
-    paddingHorizontal: spacing.screen,
-    marginBottom: spacing.sm,
+  },
+  expandBtn: {
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.accentMuted,
+    justifyContent: 'center',
+  },
+  expandText: {
+    ...typography.caption,
+    color: colors.accent,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  moreHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    paddingTop: spacing.sm,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -296,6 +384,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     backgroundColor: colors.backgroundElevated,
     gap: spacing.sm,
+    // Mantém o player sempre visível; o texto rola acima.
+    flexShrink: 0,
   },
   progressTrack: {
     height: 8,

@@ -37,6 +37,9 @@ yarn-error.*
 secrets/
 **/credentials*.json
 
+# analytics local data
+server/data/
+
 # typescript
 *.tsbuildinfo
 

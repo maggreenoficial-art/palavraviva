@@ -14,7 +14,7 @@ export const baseSessions: Session[] = [
     summary:
       'Um momento curto para respirar, orar e acolher o coração com a Palavra.',
     category: 'sos',
-    durationSeconds: 240,
+    durationSeconds: 102,
     audioSource: require('../../assets/audio/sos-paz.mp3'),
     ambientSource: require('../../assets/audio/ambient/sos-paz.mp3'),
     ambientVolume: 0.12,
@@ -30,7 +30,7 @@ export const baseSessions: Session[] = [
     summary:
       'Comece o dia com gratidão e entrega, pedindo sabedoria e paz para o caminho.',
     category: 'manha',
-    durationSeconds: 240,
+    durationSeconds: 112,
     audioSource: require('../../assets/audio/manha-01.mp3'),
     ambientSource: require('../../assets/audio/ambient/manha-01.mp3'),
     ambientVolume: 0.12,
@@ -45,7 +45,7 @@ export const baseSessions: Session[] = [
     summary:
       'Solte o peso da rotina e entregue ao Senhor o que ainda inquieta a mente.',
     category: 'noite',
-    durationSeconds: 240,
+    durationSeconds: 113,
     audioSource: require('../../assets/audio/noite-01.mp3'),
     ambientSource: require('../../assets/audio/ambient/noite-01.mp3'),
     ambientVolume: 0.12,
@@ -60,7 +60,7 @@ export const baseSessions: Session[] = [
     summary:
       'Um momento mais lento para quietude, confiança e descanso na presença de Deus.',
     category: 'noite',
-    durationSeconds: 300,
+    durationSeconds: 99,
     audioSource: require('../../assets/audio/noite-02.mp3'),
     ambientSource: require('../../assets/audio/ambient/noite-02.mp3'),
     ambientVolume: 0.1,
@@ -131,7 +131,7 @@ const meditationMeta = [
     ],
     coverColor: '#2A2438',
     ambientVolume: 0.12,
-    durationSeconds: 180,
+    durationSeconds: 132,
   },
   {
     id: 'ordem-caos-01',
@@ -142,7 +142,7 @@ const meditationMeta = [
     biblicalPrayerIds: ['GENESIS_1_1_5'],
     coverColor: '#1A2E28',
     ambientVolume: 0.14,
-    durationSeconds: 180,
+    durationSeconds: 107,
   },
   {
     id: 'certeza-fe-01',
@@ -153,7 +153,7 @@ const meditationMeta = [
     biblicalPrayerIds: ['HEBREWS_11_1'],
     coverColor: '#243448',
     ambientVolume: 0.11,
-    durationSeconds: 180,
+    durationSeconds: 111,
   },
 ] as const;
 
@@ -227,7 +227,7 @@ const ecosystemMeta = [
     biblicalPrayerIds: ['MATTHEW_6_31_34', 'PROVERBS_16_3'],
     coverColor: '#243448',
     ambientVolume: 0.1,
-    durationSeconds: 330,
+    durationSeconds: 278,
     day: 3,
     ambientKey: 'manha-esperanca-01',
   },

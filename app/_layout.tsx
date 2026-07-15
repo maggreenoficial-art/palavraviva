@@ -11,6 +11,7 @@ import {
   useFonts,
 } from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
+import { AnalyticsBootstrap } from '../src/components/AnalyticsBootstrap';
 import { colors } from '../src/theme';
 
 const splashLogo = require('../assets/brand/logo.png');
@@ -61,6 +62,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <View style={styles.root}>
+        <AnalyticsBootstrap />
         <Stack
           screenOptions={{
             headerShown: false,

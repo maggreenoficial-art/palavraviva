@@ -12,6 +12,7 @@ import { SessionRow } from '../../src/components/SessionRow';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { SosButton } from '../../src/components/SosButton';
+import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import {
   ecosystemSessions,
   getRecommendedSessions,
@@ -23,9 +24,14 @@ import {
 } from '../../src/constants/sessions';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
 import { useContinueStore } from '../../src/store/useContinueStore';
-import { useUserStore } from '../../src/store/useUserStore';
+import {
+  computeAccessKind,
+  computeTrialRemainingMs,
+  useUserStore,
+} from '../../src/store/useUserStore';
 import { TAB_BAR_OFFSET, colors, radius, spacing, typography } from '../../src/theme';
 import { formatTime } from '../../src/utils/formatTime';
+import { firstNameFrom } from '../../src/utils/userId';
 import type { Feeling, Session } from '../../src/types';
 
 const greetingByFeeling: Record<Feeling, string> = {
@@ -55,12 +61,22 @@ function isEvening() {
 export default function HomeScreen() {
   const feeling = useUserStore((state) => state.feeling);
   const setFeeling = useUserStore((state) => state.setFeeling);
+  const displayName = useUserStore((state) => state.displayName);
+  const trialStartedAt = useUserStore((state) => state.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore(
+    (state) => state.subscriptionExpiresAt,
+  );
+  const firstName = firstNameFrom(displayName ?? '');
+  const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
+  const hasContentAccess = accessKind !== 'locked';
+  const trialRemainingMs = computeTrialRemainingMs(trialStartedAt);
   const continueId = useContinueStore((s) => s.sessionId);
   const positionMs = useContinueStore((s) => s.positionMs);
   const durationMs = useContinueStore((s) => s.durationMs);
   const [donationVisible, setDonationVisible] = useState(false);
   const [feelingVisible, setFeelingVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [paywallVisible, setPaywallVisible] = useState(false);
 
   const continueSession = continueId ? getSessionById(continueId) : undefined;
   const continueProgress =
@@ -98,9 +114,19 @@ export default function HomeScreen() {
     return (filtered.length ? filtered : all).slice(0, 3);
   }, [feeling]);
 
-  function openSession(session: Session) {
-    router.push(`/player/${session.id}`);
+  function requireAccess(action: () => void) {
+    if (!hasContentAccess) {
+      setPaywallVisible(true);
+      return;
+    }
+    action();
   }
+
+  function openSession(session: Session) {
+    requireAccess(() => router.push(`/player/${session.id}`));
+  }
+
+  const trialHoursLeft = Math.ceil(trialRemainingMs / (60 * 60 * 1000));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -122,7 +148,8 @@ export default function HomeScreen() {
             </Pressable>
           </View>
           <Text style={styles.greeting}>
-            {timeGreeting()}.{' '}
+            {timeGreeting()}
+            {firstName ? `, ${firstName}` : ''}.{' '}
             {feeling
               ? greetingByFeeling[feeling]
               : 'Como está o seu coração agora?'}
@@ -130,11 +157,29 @@ export default function HomeScreen() {
           <Text style={styles.tagline}>
             Um momento de paz na presença de Deus.
           </Text>
+          {accessKind === 'trial' && trialHoursLeft <= 24 ? (
+            <Text style={styles.trialHint}>
+              Restam cerca de {trialHoursLeft}h do seu acesso gratuito.
+            </Text>
+          ) : null}
+          {accessKind === 'locked' ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPaywallVisible(true)}
+              style={styles.trialLocked}
+            >
+              <Text style={styles.trialLockedText}>
+                Acesso gratuito encerrado · Toque para assinar Missão+
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.sosWrap}>
           <InstallPwaBanner />
-          <SosButton onPress={() => router.push('/sos')} />
+          <SosButton
+            onPress={() => requireAccess(() => router.push('/sos'))}
+          />
         </View>
 
         {continueSession && positionMs > 0 ? (
@@ -194,7 +239,11 @@ export default function HomeScreen() {
           onSelect={openSession}
         />
 
-        <OtPrayerRow onSelect={(id) => router.push(`/leitura/${id}`)} />
+        <OtPrayerRow
+          onSelect={(id) =>
+            requireAccess(() => router.push(`/leitura/${id}`))
+          }
+        />
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Para o seu dia</Text>
@@ -228,7 +277,9 @@ export default function HomeScreen() {
               key={prayer.id}
               accessibilityRole="button"
               accessibilityLabel={`${prayer.title}. ${prayer.referenceLabel}`}
-              onPress={() => router.push(`/oracao/${prayer.id}`)}
+              onPress={() =>
+                requireAccess(() => router.push(`/oracao/${prayer.id}`))
+              }
               style={({ pressed }) => [styles.prayerLink, pressed && styles.pressed]}
             >
               <Text style={styles.prayerTitle}>
@@ -270,6 +321,13 @@ export default function HomeScreen() {
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         onChangeFeeling={() => setFeelingVisible(true)}
+        onOpenSubscription={() => setPaywallVisible(true)}
+      />
+      <SubscriptionPaywall
+        visible={paywallVisible}
+        blocking={accessKind === 'locked'}
+        onClose={() => setPaywallVisible(false)}
+        onDonate={() => setDonationVisible(true)}
       />
     </SafeAreaView>
   );
@@ -312,6 +370,25 @@ const styles = StyleSheet.create({
   tagline: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  trialHint: {
+    ...typography.caption,
+    color: colors.accentMuted,
+    marginTop: spacing.sm,
+  },
+  trialLocked: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(240, 113, 103, 0.45)',
+    backgroundColor: 'rgba(240, 113, 103, 0.12)',
+  },
+  trialLockedText: {
+    ...typography.caption,
+    color: colors.sos,
+    fontFamily: 'DMSans_600SemiBold',
   },
   sosWrap: {
     paddingHorizontal: spacing.screen,

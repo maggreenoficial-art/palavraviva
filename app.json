@@ -41,6 +41,9 @@
       "expo-router",
       "expo-font",
       "expo-image"
-    ]
+    ],
+    "extra": {
+      "analyticsUrl": "http://localhost:8787"
+    }
   }
 }

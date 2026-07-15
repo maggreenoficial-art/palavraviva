@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,22 +10,31 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BiblicalPassage } from '../../src/components/BiblicalPassage';
+import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
+import { trackAnalytics } from '../../src/services/analytics';
 import {
   getBiblicalTextById,
   listValidBiblicalPrayers,
 } from '../../src/services/biblicalContent';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
+import {
+  computeAccessKind,
+  useUserStore,
+} from '../../src/store/useUserStore';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function OracaoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
+  const hasContentAccess =
+    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
   const passage = useMemo(
     () => (id ? getBiblicalTextById(id) : null),
     [id],
   );
   const isFavorite = useFavoritesStore((s) => s.isFavorite('prayer', id ?? ''));
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
-
   const related = useMemo(() => {
     if (!passage) return [];
     return listValidBiblicalPrayers()
@@ -35,6 +44,29 @@ export default function OracaoDetailScreen() {
       )
       .slice(0, 3);
   }, [passage]);
+
+  useEffect(() => {
+    if (!hasContentAccess || !passage) return;
+    void trackAnalytics({
+      name: 'read_open',
+      contentId: passage.id,
+      contentTitle: passage.reference,
+      contentKind: 'oracao',
+      path: `/oracao/${passage.id}`,
+    });
+  }, [hasContentAccess, passage?.id, passage?.reference]);
+
+  if (!hasContentAccess) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <SubscriptionPaywall
+          visible
+          blocking
+          onClose={() => router.replace('/(tabs)/home')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (!passage) {
     return (

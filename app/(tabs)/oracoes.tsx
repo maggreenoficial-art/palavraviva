@@ -16,7 +16,12 @@ import {
   type PrayerTheme,
 } from '../../src/constants/biblicalPrayers';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
+import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
+import {
+  computeAccessKind,
+  useUserStore,
+} from '../../src/store/useUserStore';
 import {
   TAB_BAR_OFFSET,
   colors,
@@ -43,6 +48,11 @@ export default function OracoesScreen() {
   const [theme, setTheme] = useState<FilterId>('todas');
   const [query, setQuery] = useState('');
   const [showMore, setShowMore] = useState(false);
+  const [paywallVisible, setPaywallVisible] = useState(false);
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
+  const hasContentAccess =
+    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
   const favorites = useFavoritesStore((s) => s.items);
   const isFavorite = useFavoritesStore((s) => s.isFavorite);
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
@@ -96,7 +106,13 @@ export default function OracoesScreen() {
       <View style={styles.row}>
         <Pressable
           style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
-          onPress={() => router.push(`/oracao/${item.id}`)}
+          onPress={() => {
+            if (!hasContentAccess) {
+              setPaywallVisible(true);
+              return;
+            }
+            router.push(`/oracao/${item.id}`);
+          }}
           accessibilityRole="button"
           accessibilityLabel={`${item.title}. ${item.referenceLabel}. Texto bíblico.`}
         >
@@ -217,6 +233,11 @@ export default function OracoesScreen() {
             Nenhuma passagem encontrada. Tente outro termo ou filtro.
           </Text>
         }
+      />
+
+      <SubscriptionPaywall
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
       />
     </SafeAreaView>
   );

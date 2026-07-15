@@ -1,21 +1,54 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { SyncedScriptureReader } from '../../src/components/SyncedScriptureReader';
 import { getOldTestamentPrayerById } from '../../src/constants/oldTestamentPrayers';
 import { getOtPrayerAudioSource } from '../../src/constants/otPrayerAudio';
 import { getBiblicalTextById } from '../../src/services/biblicalContent';
+import { trackAnalytics } from '../../src/services/analytics';
+import {
+  computeAccessKind,
+  useUserStore,
+} from '../../src/store/useUserStore';
 import { colors, spacing, typography } from '../../src/theme';
 
 export default function LeituraGuiadaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
+  const hasContentAccess =
+    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
   const otPrayer = id ? getOldTestamentPrayerById(id) : undefined;
   const passage = useMemo(
     () => (otPrayer ? getBiblicalTextById(otPrayer.passageId) : null),
     [otPrayer],
   );
   const audioSource = otPrayer ? getOtPrayerAudioSource(otPrayer.id) : undefined;
+
+  useEffect(() => {
+    if (!hasContentAccess || !otPrayer) return;
+    void trackAnalytics({
+      name: 'read_open',
+      contentId: otPrayer.id,
+      contentTitle: otPrayer.title,
+      contentKind: 'ot',
+      path: `/leitura/${otPrayer.id}`,
+    });
+  }, [hasContentAccess, otPrayer?.id, otPrayer?.title]);
+
+  if (!hasContentAccess) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <SubscriptionPaywall
+          visible
+          blocking
+          onClose={() => router.replace('/(tabs)/home')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (!otPrayer || !passage || !audioSource) {
     return (
@@ -64,6 +97,8 @@ export default function LeituraGuiadaScreen() {
         passage={passage}
         audioSource={audioSource}
         subtitle="Acompanhe o texto enquanto a narração avança"
+        analyticsId={otPrayer.id}
+        analyticsTitle={otPrayer.title}
       />
     </SafeAreaView>
   );

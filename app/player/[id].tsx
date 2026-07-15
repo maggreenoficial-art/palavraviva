@@ -4,8 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AudioPlayer } from '../../src/components/AudioPlayer';
 import { CheckInSheet } from '../../src/components/CheckInSheet';
+import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { getSessionById } from '../../src/constants/sessions';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
+import {
+  computeAccessKind,
+  useUserStore,
+} from '../../src/store/useUserStore';
 import { useWellbeingStore } from '../../src/store/useWellbeingStore';
 import { colors, spacing, typography } from '../../src/theme';
 import type { CheckInScore } from '../../src/types';
@@ -13,12 +18,28 @@ import type { CheckInScore } from '../../src/types';
 export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const session = getSessionById(id);
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
+  const hasContentAccess =
+    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
   const saveAfterOnly = useWellbeingStore((s) => s.saveAfterOnly);
   const isFavorite = useFavoritesStore((s) =>
     s.isFavorite('session', id ?? ''),
   );
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const [checkInVisible, setCheckInVisible] = useState(false);
+
+  if (!hasContentAccess) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <SubscriptionPaywall
+          visible
+          blocking
+          onClose={() => router.replace('/(tabs)/home')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (!session) {
     return (

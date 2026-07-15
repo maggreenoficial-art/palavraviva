@@ -15,8 +15,17 @@ import { useContinueStore } from '../store/useContinueStore';
 import { useDownloadStore } from '../store/useDownloadStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { colors, radius, spacing, typography } from '../theme';
+import { trackAnalytics, type ContentKind } from '../services/analytics';
 import { formatTime } from '../utils/formatTime';
 import { isRemoteAudio, resolvePlaybackSource } from '../utils/audioSource';
+
+function contentKindFromSession(category: Session['category']): ContentKind {
+  if (category === 'jornada') return 'jornada';
+  if (category === 'serie') return 'serie';
+  if (category === 'reflexao') return 'meditacao';
+  if (category === 'sos') return 'sos';
+  return 'session';
+}
 
 interface AudioPlayerProps {
   session: Session;
@@ -48,6 +57,11 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
   const [ambientEnabled, setAmbientEnabled] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
   const finishedRef = useRef(false);
+  const listenTrackedRef = useRef(false);
+
+  useEffect(() => {
+    listenTrackedRef.current = false;
+  }, [session.id]);
 
   const { isPlaying, positionMs, durationMs, setPlaying, setProgress, reset } =
     usePlayerStore();
@@ -63,9 +77,12 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
     .map((passageId) => getBiblicalTextById(passageId))
     .filter((item): item is NonNullable<typeof item> => item != null);
 
-  const canSeek = Boolean(voice) && !loading && durationMs > 0;
-  const progress = durationMs > 0 ? positionMs / durationMs : 0;
-  const minutes = Math.round(session.durationSeconds / 60);
+  const displayDurationMs =
+    durationMs > 0 ? durationMs : Math.max(0, session.durationSeconds * 1000);
+  const canSeek = Boolean(voice) && !loading && displayDurationMs > 0;
+  const progress =
+    displayDurationMs > 0 ? Math.min(1, positionMs / displayDurationMs) : 0;
+  const minutes = Math.max(1, Math.round(displayDurationMs / 60_000));
 
   useEffect(() => {
     let mounted = true;
@@ -89,7 +106,10 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
         { shouldPlay: false, volume: voiceVolume },
         (status) => {
           if (!status.isLoaded) return;
-          const nextDuration = status.durationMillis ?? 0;
+          const nextDuration =
+            status.durationMillis && status.durationMillis > 0
+              ? status.durationMillis
+              : session.durationSeconds * 1000;
           setProgress(status.positionMillis, nextDuration);
           setPlaying(status.isPlaying);
 
@@ -123,6 +143,14 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
         await voiceSound.unloadAsync();
         await ambientSound?.unloadAsync();
         return;
+      }
+
+      const loadedStatus = await voiceSound.getStatusAsync();
+      if (mounted && loadedStatus.isLoaded) {
+        setProgress(
+          loadedStatus.positionMillis,
+          loadedStatus.durationMillis ?? session.durationSeconds * 1000,
+        );
       }
 
       setVoice(voiceSound);
@@ -194,225 +222,244 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
       ambientEnabled && ambient ? ambient.playAsync() : Promise.resolve(),
     ]);
     await fadeVolume(voice, 0.2, voiceVolume);
+
+    if (!listenTrackedRef.current) {
+      listenTrackedRef.current = true;
+      void trackAnalytics({
+        name: 'listen_start',
+        contentId: session.id,
+        contentTitle: session.title,
+        contentKind: contentKindFromSession(session.category),
+        path: `/player/${session.id}`,
+      });
+    }
   }
 
   async function seekBy(deltaMs: number) {
     if (!voice || !canSeek) return;
-    const next = Math.max(0, Math.min(durationMs, positionMs + deltaMs));
+    const next = Math.max(0, Math.min(displayDurationMs, positionMs + deltaMs));
     await voice.setPositionAsync(next);
-    saveProgress(session.id, next, durationMs);
+    saveProgress(session.id, next, displayDurationMs);
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.type}>
-        {session.category === 'jornada'
-          ? `Dia ${session.journeyDay} de 7`
-          : session.category === 'serie'
-            ? `Dia ${session.journeyDay} de 3`
-            : 'Sessão guiada'}{' '}
-        · {minutes} min
-      </Text>
-      <Text style={styles.title}>{session.title}</Text>
-      <Text style={styles.contentLabel}>Reflexão devocional</Text>
-      <Text style={styles.summary}>{session.summary}</Text>
-
-      {biblicalPassages.map((passage) => (
-        <BiblicalPassage key={passage.id} passage={passage} />
-      ))}
-      {biblicalPassages.length === 0 && session.biblicalPrayerId ? (
-        <Text style={styles.error}>
-          Texto bíblico temporariamente indisponível.
-        </Text>
-      ) : null}
-
-      {loading ? (
-        <View
-          style={styles.loadingRow}
-          accessibilityLiveRegion="polite"
-          accessibilityLabel="Carregando áudio"
-        >
-          <ActivityIndicator color={colors.accent} />
-          <Text style={styles.loadingText}>Carregando áudio…</Text>
-        </View>
-      ) : null}
-
-      {loadError ? (
-        <Text style={styles.error} accessibilityLiveRegion="assertive">
-          Não foi possível carregar o áudio. Tente novamente.
-        </Text>
-      ) : null}
-
-      <Text style={styles.offline}>
-        {offlineReady
-          ? '✓ Disponível offline'
-          : 'Baixe esta sessão para ouvir offline.'}
-      </Text>
-
-      <Pressable
-        accessibilityRole="adjustable"
-        accessibilityLabel={`Progresso do áudio, ${formatTime(positionMs)} de ${formatTime(durationMs)}`}
-        accessibilityValue={{
-          min: 0,
-          max: 100,
-          now: Math.round(progress * 100),
-        }}
-        disabled={!canSeek}
-        onPress={() => {
-          if (canSeek) void seekBy(15_000);
-        }}
-        style={[styles.progressTrack, !canSeek && styles.disabled]}
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-      </Pressable>
-      <View style={styles.timeRow}>
-        <Text style={styles.time}>{formatTime(positionMs)}</Text>
-        <Text style={styles.time}>{formatTime(durationMs)}</Text>
-      </View>
-
-      <View style={styles.controls}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar 15 segundos"
-          onPress={() => void seekBy(-15_000)}
-          disabled={!canSeek}
-          style={({ pressed }) => [
-            styles.seekButton,
-            pressed && styles.pressed,
-            !canSeek && styles.disabled,
-          ]}
-        >
-          <Text style={styles.seekLabel}>−15</Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isPlaying ? 'Pausar' : 'Reproduzir'}
-          style={({ pressed }) => [
-            styles.playButton,
-            pressed && styles.pressed,
-            (!voice || loading) && styles.disabled,
-          ]}
-          onPress={() => void togglePlayback()}
-          disabled={!voice || loading}
-        >
-          <Text style={styles.playLabel}>{isPlaying ? 'Pausar' : 'Ouvir'}</Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Avançar 15 segundos"
-          onPress={() => void seekBy(15_000)}
-          disabled={!canSeek}
-          style={({ pressed }) => [
-            styles.seekButton,
-            pressed && styles.pressed,
-            !canSeek && styles.disabled,
-          ]}
-        >
-          <Text style={styles.seekLabel}>+15</Text>
-        </Pressable>
-      </View>
-
-      {session.ambientSource != null ? (
-        <View style={styles.ambientRow}>
-          <Text style={styles.ambientLabel}>♪ Ambiente suave</Text>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: ambientEnabled }}
-            accessibilityLabel="Áudio ambiente"
-            onPress={() => setAmbientEnabled((value) => !value)}
-            style={[styles.toggle, ambientEnabled && styles.toggleOn]}
-          >
-            <Text style={styles.toggleText}>
-              {ambientEnabled ? 'Ligado' : 'Desligado'}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          showOptions ? 'Ocultar opções de áudio' : 'Opções de áudio'
-        }
-        onPress={() => setShowOptions((value) => !value)}
-        style={styles.optionsToggle}
-      >
-        <Text style={styles.optionsToggleText}>
-          Opções de áudio {showOptions ? '▴' : '▾'}
+        <Text style={styles.type}>
+          {session.category === 'jornada'
+            ? `Dia ${session.journeyDay} de 7`
+            : session.category === 'serie'
+              ? `Dia ${session.journeyDay} de 3`
+              : 'Sessão guiada'}{' '}
+          · {minutes} min
         </Text>
-      </Pressable>
+        <Text style={styles.title}>{session.title}</Text>
+        <Text style={styles.contentLabel}>Reflexão devocional</Text>
+        <Text style={styles.summary}>{session.summary}</Text>
 
-      {showOptions ? (
-        <View style={styles.options}>
-          <View style={styles.volumeRow}>
-            <Text style={styles.volumeLabel}>
-              Voz {Math.round(voiceVolume * 100)}%
-            </Text>
-            <View style={styles.volumeActions}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Diminuir volume da voz"
-                onPress={() => setVoiceVolume((v) => Math.max(0.2, v - 0.1))}
-                style={styles.volumeBtn}
-              >
-                <Text style={styles.volumeBtnText}>−</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Aumentar volume da voz"
-                onPress={() => setVoiceVolume((v) => Math.min(1, v + 0.1))}
-                style={styles.volumeBtn}
-              >
-                <Text style={styles.volumeBtnText}>+</Text>
-              </Pressable>
-            </View>
-          </View>
+        {biblicalPassages.map((passage) => (
+          <BiblicalPassage key={passage.id} passage={passage} collapsible />
+        ))}
+        {biblicalPassages.length === 0 && session.biblicalPrayerId ? (
+          <Text style={styles.error}>
+            Texto bíblico temporariamente indisponível.
+          </Text>
+        ) : null}
 
-          {session.ambientSource != null ? (
+        <Text style={styles.offline}>
+          {offlineReady
+            ? '✓ Disponível offline'
+            : 'Baixe esta sessão para ouvir offline.'}
+        </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            showOptions ? 'Ocultar opções de áudio' : 'Opções de áudio'
+          }
+          onPress={() => setShowOptions((value) => !value)}
+          style={styles.optionsToggle}
+        >
+          <Text style={styles.optionsToggleText}>
+            Opções de áudio {showOptions ? '▴' : '▾'}
+          </Text>
+        </Pressable>
+
+        {showOptions ? (
+          <View style={styles.options}>
             <View style={styles.volumeRow}>
               <Text style={styles.volumeLabel}>
-                Ambiente{' '}
-                {ambientEnabled
-                  ? `${Math.round(ambientVolume * 100)}%`
-                  : 'desligado'}
+                Voz {Math.round(voiceVolume * 100)}%
               </Text>
               <View style={styles.volumeActions}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Diminuir volume do ambiente"
-                  onPress={() =>
-                    setAmbientVolume((v) =>
-                      Math.max(0.05, Math.min(voiceVolume, v - 0.05)),
-                    )
-                  }
+                  accessibilityLabel="Diminuir volume da voz"
+                  onPress={() => setVoiceVolume((v) => Math.max(0.2, v - 0.1))}
                   style={styles.volumeBtn}
-                  disabled={!ambientEnabled}
                 >
                   <Text style={styles.volumeBtnText}>−</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Aumentar volume do ambiente"
-                  onPress={() =>
-                    setAmbientVolume((v) => Math.min(voiceVolume * 0.5, v + 0.05))
-                  }
+                  accessibilityLabel="Aumentar volume da voz"
+                  onPress={() => setVoiceVolume((v) => Math.min(1, v + 0.1))}
                   style={styles.volumeBtn}
-                  disabled={!ambientEnabled}
                 >
                   <Text style={styles.volumeBtnText}>+</Text>
                 </Pressable>
               </View>
             </View>
-          ) : null}
+
+            {session.ambientSource != null ? (
+              <View style={styles.volumeRow}>
+                <Text style={styles.volumeLabel}>
+                  Ambiente{' '}
+                  {ambientEnabled
+                    ? `${Math.round(ambientVolume * 100)}%`
+                    : 'desligado'}
+                </Text>
+                <View style={styles.volumeActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Diminuir volume do ambiente"
+                    onPress={() =>
+                      setAmbientVolume((v) =>
+                        Math.max(0.05, Math.min(voiceVolume, v - 0.05)),
+                      )
+                    }
+                    style={styles.volumeBtn}
+                    disabled={!ambientEnabled}
+                  >
+                    <Text style={styles.volumeBtnText}>−</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Aumentar volume do ambiente"
+                    onPress={() =>
+                      setAmbientVolume((v) =>
+                        Math.min(voiceVolume * 0.5, v + 0.05),
+                      )
+                    }
+                    style={styles.volumeBtn}
+                    disabled={!ambientEnabled}
+                  >
+                    <Text style={styles.volumeBtnText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View style={styles.playerDock}>
+        {loading ? (
+          <View
+            style={styles.loadingRow}
+            accessibilityLiveRegion="polite"
+            accessibilityLabel="Carregando áudio"
+          >
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.loadingText}>Carregando áudio…</Text>
+          </View>
+        ) : null}
+
+        {loadError ? (
+          <Text style={styles.error} accessibilityLiveRegion="assertive">
+            Não foi possível carregar o áudio. Tente novamente.
+          </Text>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="adjustable"
+          accessibilityLabel={`Progresso do áudio, ${formatTime(positionMs)} de ${formatTime(displayDurationMs)}`}
+          accessibilityValue={{
+            min: 0,
+            max: 100,
+            now: Math.round(progress * 100),
+          }}
+          disabled={!canSeek}
+          onPress={() => {
+            if (canSeek) void seekBy(15_000);
+          }}
+          style={[styles.progressTrack, !canSeek && styles.disabled]}
+        >
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </Pressable>
+        <View style={styles.timeRow}>
+          <Text style={styles.time}>{formatTime(positionMs)}</Text>
+          <Text style={styles.time}>{formatTime(displayDurationMs)}</Text>
         </View>
-      ) : null}
-    </ScrollView>
+
+        <View style={styles.controls}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Voltar 15 segundos"
+            onPress={() => void seekBy(-15_000)}
+            disabled={!canSeek}
+            style={({ pressed }) => [
+              styles.seekButton,
+              pressed && styles.pressed,
+              !canSeek && styles.disabled,
+            ]}
+          >
+            <Text style={styles.seekLabel}>−15</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isPlaying ? 'Pausar' : 'Reproduzir'}
+            style={({ pressed }) => [
+              styles.playButton,
+              pressed && styles.pressed,
+              (!voice || loading) && styles.disabled,
+            ]}
+            onPress={() => void togglePlayback()}
+            disabled={!voice || loading}
+          >
+            <Text style={styles.playLabel}>
+              {isPlaying ? 'Pausar' : 'Ouvir'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Avançar 15 segundos"
+            onPress={() => void seekBy(15_000)}
+            disabled={!canSeek}
+            style={({ pressed }) => [
+              styles.seekButton,
+              pressed && styles.pressed,
+              !canSeek && styles.disabled,
+            ]}
+          >
+            <Text style={styles.seekLabel}>+15</Text>
+          </Pressable>
+        </View>
+
+        {session.ambientSource != null ? (
+          <View style={styles.ambientRow}>
+            <Text style={styles.ambientLabel}>♪ Ambiente suave</Text>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: ambientEnabled }}
+              accessibilityLabel="Áudio ambiente"
+              onPress={() => setAmbientEnabled((value) => !value)}
+              style={[styles.toggle, ambientEnabled && styles.toggleOn]}
+            >
+              <Text style={styles.toggleText}>
+                {ambientEnabled ? 'Ligado' : 'Desligado'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -420,10 +467,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scroll: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: spacing.screen,
-    paddingBottom: spacing.section,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.lg,
     gap: spacing.sm,
+  },
+  playerDock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.backgroundElevated,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.xs,
   },
   type: {
     ...typography.caption,

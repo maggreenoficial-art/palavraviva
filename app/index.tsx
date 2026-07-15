@@ -3,8 +3,10 @@ import { useUserStore } from '../src/store/useUserStore';
 
 export default function Index() {
   const hasOnboarded = useUserStore((state) => state.hasOnboarded);
+  const displayName = useUserStore((state) => state.displayName);
+  const userId = useUserStore((state) => state.userId);
 
-  if (hasOnboarded) {
+  if (hasOnboarded && displayName && userId) {
     return <Redirect href="/(tabs)/home" />;
   }
 
