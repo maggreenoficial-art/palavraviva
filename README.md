@@ -14,7 +14,7 @@ npm start
 npm run web
 ```
 
-## Build web (produção)
+## Build web (produção / PWA)
 
 ```bash
 npm run build:web
@@ -22,6 +22,8 @@ npm run serve:web
 ```
 
 Abra `http://localhost:8081`. A pasta `dist/` é o site estático para hospedar (Vercel, Netlify, EAS Hosting, etc.).
+
+O site é um **PWA**: no Chrome/Edge (HTTPS ou localhost) aparece a opção de instalar; no iPhone, use Safari → Compartilhar → Adicionar à Tela de Início.
 
 ## Scripts úteis
 

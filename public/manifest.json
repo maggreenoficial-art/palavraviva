@@ -1,0 +1,35 @@
+{
+  "id": "/",
+  "name": "Palavra Viva",
+  "short_name": "Palavra Viva",
+  "description": "A Palavra de Cristo, viva em você. Áudios para ansiedade, oração e paz.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121A21",
+  "theme_color": "#121A21",
+  "categories": ["lifestyle", "health"],
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

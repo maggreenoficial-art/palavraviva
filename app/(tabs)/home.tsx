@@ -10,6 +10,7 @@ import { JourneyRow } from '../../src/components/JourneyRow';
 import { OtPrayerRow } from '../../src/components/OtPrayerRow';
 import { SessionRow } from '../../src/components/SessionRow';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { SosButton } from '../../src/components/SosButton';
 import {
   ecosystemSessions,
@@ -132,6 +133,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.sosWrap}>
+          <InstallPwaBanner />
           <SosButton onPress={() => router.push('/sos')} />
         </View>
 
