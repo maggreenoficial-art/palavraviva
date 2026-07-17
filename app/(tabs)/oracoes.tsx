@@ -16,6 +16,7 @@ import {
   type PrayerTheme,
 } from '../../src/constants/biblicalPrayers';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
+import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
 import {
@@ -222,6 +223,8 @@ export default function OracoesScreen() {
           </ScrollView>
         ) : null}
       </View>
+
+      <InstallPwaBanner />
 
       <FlatList
         data={filtered}

@@ -27,6 +27,8 @@ export function OtPrayerCard({ prayer, coverImage, onPress }: OtPrayerCardProps)
           contentFit="cover"
           contentPosition="center"
           recyclingKey={prayer.id}
+          cachePolicy="memory-disk"
+          transition={120}
           accessibilityIgnoresInvertColors
         />
         <View style={styles.coverOverlay} pointerEvents="none">

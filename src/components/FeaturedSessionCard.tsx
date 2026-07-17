@@ -31,6 +31,8 @@ export function FeaturedSessionCard({
             contentFit="cover"
             contentPosition="center"
             recyclingKey={session.id}
+            cachePolicy="memory-disk"
+            transition={120}
             accessibilityIgnoresInvertColors
           />
         ) : null}

@@ -81,6 +81,8 @@ export function JourneyRow({
                     contentFit="cover"
                     contentPosition="center"
                     recyclingKey={item.id}
+                    cachePolicy="memory-disk"
+                    transition={120}
                     accessibilityIgnoresInvertColors
                   />
                 ) : null}

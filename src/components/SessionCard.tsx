@@ -45,6 +45,8 @@ export function SessionCard({ session, onPress }: SessionCardProps) {
             contentFit="cover"
             contentPosition="center"
             recyclingKey={session.id}
+            cachePolicy="memory-disk"
+            transition={120}
             accessibilityIgnoresInvertColors
           />
         ) : (

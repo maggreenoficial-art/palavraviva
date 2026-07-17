@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
 
-const sosCover = require('../../assets/thumbnails/sos-paz.png');
+const sosCover = require('../../assets/thumbnails/sos-paz.jpg');
 const COVER_HEIGHT = 132;
 
 interface SosButtonProps {
@@ -23,6 +23,8 @@ export function SosButton({ onPress }: SosButtonProps) {
         style={styles.coverImage}
         contentFit="cover"
         contentPosition="center"
+        cachePolicy="memory-disk"
+        transition={120}
         accessibilityIgnoresInvertColors
       />
       <View style={styles.body}>

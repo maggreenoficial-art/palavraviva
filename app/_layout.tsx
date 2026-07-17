@@ -61,25 +61,39 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <View style={styles.root}>
-        <AnalyticsBootstrap />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'fade',
-          }}
-        />
+      <View style={styles.shell}>
+        <View style={styles.root}>
+          <AnalyticsBootstrap />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'fade',
+            }}
+          />
+        </View>
       </View>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  shell: {
     flex: 1,
     backgroundColor: colors.background,
     minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
+    alignItems: Platform.OS === 'web' ? 'center' : undefined,
+    width: Platform.OS === 'web' ? ('100%' as unknown as number) : undefined,
+  },
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 480 : undefined,
+    minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderRightWidth: Platform.OS === 'web' ? 1 : 0,
+    borderColor: colors.border,
   },
   loading: {
     flex: 1,
@@ -90,8 +104,8 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
   },
   loadingLogo: {
-    width: 300,
-    height: 78,
+    width: 240,
+    height: 62,
   },
 });
 

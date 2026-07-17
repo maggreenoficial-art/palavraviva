@@ -21,7 +21,7 @@ export const baseSessions: Session[] = [
     biblicalPrayerId: 'PHILIPPIANS_4_6_7',
     biblicalPrayerIds: ['PHILIPPIANS_4_6_7'],
     coverColor: '#1B2E3A',
-    coverImage: require('../../assets/thumbnails/sos-paz.png'),
+    coverImage: require('../../assets/thumbnails/sos-paz.jpg'),
   },
   {
     id: 'manha-01',
@@ -91,13 +91,13 @@ const journeyAmbientRequires: Record<string, number> = {
 };
 
 const journeyCoverRequires: Record<string, number> = {
-  'ansiedade-01': require('../../assets/thumbnails/ansiedade-01.png'),
-  'ansiedade-02': require('../../assets/thumbnails/ansiedade-02.png'),
-  'ansiedade-03': require('../../assets/thumbnails/ansiedade-03.png'),
-  'sobrecarga-01': require('../../assets/thumbnails/sobrecarga-01.png'),
-  'medo-01': require('../../assets/thumbnails/medo-01.png'),
-  'noite-ansiedade-01': require('../../assets/thumbnails/noite-ansiedade-01.png'),
-  'manha-esperanca-01': require('../../assets/thumbnails/manha-esperanca-01.png'),
+  'ansiedade-01': require('../../assets/thumbnails/ansiedade-01.jpg'),
+  'ansiedade-02': require('../../assets/thumbnails/ansiedade-02.jpg'),
+  'ansiedade-03': require('../../assets/thumbnails/ansiedade-03.jpg'),
+  'sobrecarga-01': require('../../assets/thumbnails/sobrecarga-01.jpg'),
+  'medo-01': require('../../assets/thumbnails/medo-01.jpg'),
+  'noite-ansiedade-01': require('../../assets/thumbnails/noite-ansiedade-01.jpg'),
+  'manha-esperanca-01': require('../../assets/thumbnails/manha-esperanca-01.jpg'),
 };
 
 export const journeySessions: Session[] = anxietyJourney.map((item) => ({
@@ -170,9 +170,9 @@ const meditationAmbientRequires: Record<string, number> = {
 };
 
 const meditationCoverRequires: Record<string, number> = {
-  'amor-acalma-01': require('../../assets/thumbnails/amor-acalma-01.png'),
-  'ordem-caos-01': require('../../assets/thumbnails/ordem-caos-01.png'),
-  'certeza-fe-01': require('../../assets/thumbnails/certeza-fe-01.png'),
+  'amor-acalma-01': require('../../assets/thumbnails/amor-acalma-01.jpg'),
+  'ordem-caos-01': require('../../assets/thumbnails/ordem-caos-01.jpg'),
+  'certeza-fe-01': require('../../assets/thumbnails/certeza-fe-01.jpg'),
 };
 
 export const meditationSessions: Session[] = meditationMeta.map((item) => ({
@@ -246,9 +246,9 @@ const ecosystemAmbientRequires: Record<string, number> = {
 };
 
 const ecosystemCoverRequires: Record<string, number> = {
-  'eco-ansiedade-01': require('../../assets/thumbnails/eco-ansiedade-01.png'),
-  'eco-controle-01': require('../../assets/thumbnails/eco-controle-01.png'),
-  'eco-ordem-01': require('../../assets/thumbnails/eco-ordem-01.png'),
+  'eco-ansiedade-01': require('../../assets/thumbnails/eco-ansiedade-01.jpg'),
+  'eco-controle-01': require('../../assets/thumbnails/eco-controle-01.jpg'),
+  'eco-ordem-01': require('../../assets/thumbnails/eco-ordem-01.jpg'),
 };
 
 export const ecosystemSessions: Session[] = ecosystemMeta.map((item) => ({

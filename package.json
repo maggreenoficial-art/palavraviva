@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "playwright": "^1.61.1",
+    "sharp": "^0.35.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -53,6 +54,7 @@
     "analytics:server": "node server/analytics-server.mjs",
     "payments:server": "node server/payments-server.mjs",
     "capture:creatives": "node scripts/capture-creatives.mjs",
+    "optimize:thumbnails": "node scripts/optimize-thumbnails.mjs",
     "typecheck": "tsc --noEmit"
   },
   "private": true
