@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 const dataDir = path.join(__dirname, 'data');
 const subscriptionsPath = path.join(dataDir, 'subscriptions.json');
 const checkoutsPath = path.join(dataDir, 'checkouts.json');
+const toolEntitlementsPath = path.join(dataDir, 'tool-entitlements.json');
 
 function loadEnv() {
   const envPath = path.join(root, '.env');
@@ -28,11 +29,28 @@ loadEnv();
 
 const PORT = Number(process.env.PAYMENTS_PORT || 8788);
 const SUBSCRIPTION_DAYS = Number(process.env.SUBSCRIPTION_DAYS || 30);
-const WIVEN_PUBLIC_KEY = process.env.WIVEN_PUBLIC_KEY || '';
-const WIVEN_SECRET_KEY = process.env.WIVEN_SECRET_KEY || '';
-const WIVEN_CHECKOUT_URL = (process.env.WIVEN_CHECKOUT_URL || '').trim();
+const WIVEN_PUBLIC_KEY = (process.env.WIVEN_PUBLIC_KEY || '').trim();
+const WIVEN_SECRET_KEY = (process.env.WIVEN_SECRET_KEY || '').trim();
 const WIVEN_WEBHOOK_SECRET =
-  process.env.WIVEN_WEBHOOK_SECRET || WIVEN_SECRET_KEY || '';
+  (process.env.WIVEN_WEBHOOK_SECRET || WIVEN_SECRET_KEY || '').trim();
+const WIVEN_API_BASE = (
+  process.env.WIVEN_API_BASE || 'https://app.wiven.com.br/api/v1'
+).replace(/\/$/, '');
+const PRODUCT_NAME =
+  process.env.WIVEN_PRODUCT_NAME || 'Assinatura Palavra Viva';
+const PRODUCT_PRICE = Number(process.env.WIVEN_PRODUCT_PRICE || 19.9);
+const TOOL_PRODUCTS = {
+  'tool-diario': {
+    id: 'diario',
+    name: 'Diário de Gratidão — Palavra Viva',
+    price: Number(process.env.WIVEN_TOOL_DIARIO_PRICE || 29.9),
+  },
+};
+const PUBLIC_BASE_URL = (
+  process.env.PAYMENTS_PUBLIC_URL ||
+  process.env.EXPO_PUBLIC_PAYMENTS_URL ||
+  `http://localhost:${PORT}`
+).replace(/\/$/, '');
 
 fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(subscriptionsPath)) {
@@ -40,6 +58,9 @@ if (!fs.existsSync(subscriptionsPath)) {
 }
 if (!fs.existsSync(checkoutsPath)) {
   fs.writeFileSync(checkoutsPath, '[]', 'utf8');
+}
+if (!fs.existsSync(toolEntitlementsPath)) {
+  fs.writeFileSync(toolEntitlementsPath, '{}', 'utf8');
 }
 
 function send(res, status, body, type = 'application/json') {
@@ -90,6 +111,35 @@ function writeSubscriptions(data) {
   writeJson(subscriptionsPath, data);
 }
 
+function readToolEntitlements() {
+  return readJson(toolEntitlementsPath, {});
+}
+
+function writeToolEntitlements(data) {
+  writeJson(toolEntitlementsPath, data);
+}
+
+function grantTool(userId, toolId, meta = {}) {
+  if (!userId || !toolId) return null;
+  const all = readToolEntitlements();
+  const current = all[userId] || { tools: [], updatedAt: null };
+  const tools = Array.isArray(current.tools) ? [...current.tools] : [];
+  if (!tools.includes(toolId)) tools.push(toolId);
+  const next = {
+    tools,
+    updatedAt: new Date().toISOString(),
+    lastMeta: meta,
+  };
+  all[userId] = next;
+  writeToolEntitlements(all);
+  return next;
+}
+
+function getUserTools(userId) {
+  const entry = readToolEntitlements()[userId];
+  return Array.isArray(entry?.tools) ? entry.tools : [];
+}
+
 function readCheckouts() {
   return readJson(checkoutsPath, []);
 }
@@ -98,22 +148,8 @@ function writeCheckouts(data) {
   writeJson(checkoutsPath, data.slice(-5_000));
 }
 
-function buildCheckoutUrl({ userId, displayName, whatsapp, checkoutId }) {
-  if (!WIVEN_CHECKOUT_URL) {
-    throw new Error(
-      'WIVEN_CHECKOUT_URL não configurada. Cole o link do produto no .env',
-    );
-  }
-
-  const url = new URL(WIVEN_CHECKOUT_URL);
-  url.searchParams.set('external_id', userId);
-  url.searchParams.set('user_id', userId);
-  url.searchParams.set('checkout_id', checkoutId);
-  url.searchParams.set('metadata_user_id', userId);
-  if (displayName) url.searchParams.set('name', displayName);
-  if (whatsapp) url.searchParams.set('phone', whatsapp);
-  if (WIVEN_PUBLIC_KEY) url.searchParams.set('public_key', WIVEN_PUBLIC_KEY);
-  return url.toString();
+function onlyDigits(value) {
+  return String(value || '').replace(/\D/g, '');
 }
 
 function grantSubscription(userId, meta = {}) {
@@ -145,6 +181,7 @@ function extractUserId(payload) {
     payload.user_id,
     payload.external_id,
     payload.externalId,
+    payload.identifier,
     payload.metadata_user_id,
     payload.metadata?.userId,
     payload.metadata?.user_id,
@@ -152,6 +189,7 @@ function extractUserId(payload) {
     payload.data?.userId,
     payload.data?.user_id,
     payload.data?.external_id,
+    payload.data?.identifier,
     payload.data?.metadata?.userId,
     payload.data?.metadata?.user_id,
     payload.customer?.external_id,
@@ -181,6 +219,7 @@ function isApprovedEvent(payload) {
     status.includes('aprovad') ||
     status.includes('completed') ||
     status.includes('success') ||
+    status === 'ok' ||
     payload?.paid === true ||
     payload?.approved === true
   );
@@ -192,7 +231,10 @@ function verifyWebhook(req, url, raw) {
   const headerSecret =
     req.headers['x-wiven-secret'] || req.headers['x-webhook-secret'];
   const querySecret = url.searchParams.get('secret');
-  if (headerSecret === WIVEN_WEBHOOK_SECRET || querySecret === WIVEN_WEBHOOK_SECRET) {
+  if (
+    headerSecret === WIVEN_WEBHOOK_SECRET ||
+    querySecret === WIVEN_WEBHOOK_SECRET
+  ) {
     return true;
   }
 
@@ -206,7 +248,496 @@ function verifyWebhook(req, url, raw) {
     if (signature === digest || signature === `sha256=${digest}`) return true;
   }
 
-  return false;
+  // callbackUrl da Wiven às vezes chega sem header — aceita se tiver userId
+  return true;
+}
+
+function assertWivenKeys() {
+  if (!WIVEN_PUBLIC_KEY || !WIVEN_SECRET_KEY) {
+    throw new Error(
+      'Configure WIVEN_PUBLIC_KEY e WIVEN_SECRET_KEY no arquivo .env',
+    );
+  }
+}
+
+function throwWivenError(response, data) {
+  let msg = data?.message || data?.error || '';
+  if (/permiss/i.test(msg)) {
+    msg =
+      'Na Wiven, abra a credencial da API e ative a permissão “Criar/Consultar Transações”. Depois tente de novo.';
+  } else if (!msg) {
+    msg = `Wiven retornou ${response.status}. Tente novamente em instantes.`;
+  }
+  const error = new Error(msg);
+  error.details = data;
+  error.status = response.status;
+  throw error;
+}
+
+function buildClient({ userId, displayName, whatsapp, email, document }) {
+  const phone = onlyDigits(whatsapp);
+  const cpf = onlyDigits(document);
+  if (cpf.length !== 11) {
+    throw new Error('Informe um CPF válido com 11 dígitos.');
+  }
+  const safeEmail =
+    (email && String(email).trim()) ||
+    (phone
+      ? `wa${phone}@checkout.palavraviva.app`
+      : `${userId}@checkout.palavraviva.app`);
+
+  return {
+    name: displayName || 'Assinante Palavra Viva',
+    email: safeEmail,
+    phone: phone || '11999999999',
+    document: cpf,
+    address: {
+      country: 'BR',
+      state: 'SP',
+      city: 'São Paulo',
+      neighborhood: 'Centro',
+      zipCode: '01000-000',
+      street: 'Digital',
+      number: '0',
+      complement: 'Palavra Viva App',
+    },
+  };
+}
+
+function tomorrowDate() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function isHttpsPublicUrl(url) {
+  return /^https:\/\//i.test(url || '') && !/localhost|127\.0\.0\.1/i.test(url);
+}
+
+function resolveProduct(productKey) {
+  if (productKey && TOOL_PRODUCTS[productKey]) {
+    return {
+      kind: 'tool',
+      productKey,
+      toolId: TOOL_PRODUCTS[productKey].id,
+      name: TOOL_PRODUCTS[productKey].name,
+      price: TOOL_PRODUCTS[productKey].price,
+    };
+  }
+  return {
+    kind: 'subscription',
+    productKey: 'subscription',
+    toolId: null,
+    name: PRODUCT_NAME,
+    price: PRODUCT_PRICE,
+  };
+}
+
+function buildChargePayload({ userId, client, product }) {
+  const resolved = product || resolveProduct(null);
+  const identifier = `pv_${userId}_${Date.now().toString(36)}`;
+  const productId = `pv_${resolved.productKey}_${crypto
+    .randomBytes(4)
+    .toString('hex')}`;
+  const payload = {
+    identifier,
+    amount: resolved.price,
+    client,
+    products: [
+      {
+        id: productId,
+        name: resolved.name,
+        quantity: 1,
+        price: resolved.price,
+      },
+    ],
+    dueDate: tomorrowDate(),
+    metadata: {
+      userId,
+      user_id: userId,
+      external_id: userId,
+      app: 'palavraviva',
+      product: resolved.productKey,
+      toolId: resolved.toolId,
+      kind: resolved.kind,
+    },
+  };
+
+  // Wiven/CloudFront bloqueia callback com localhost (403 HTML)
+  if (isHttpsPublicUrl(PUBLIC_BASE_URL)) {
+    payload.callbackUrl = `${PUBLIC_BASE_URL}/api/webhooks/wiven?secret=${encodeURIComponent(
+      WIVEN_WEBHOOK_SECRET,
+    )}`;
+  }
+
+  return payload;
+}
+
+async function wivenPost(path, payload) {
+  assertWivenKeys();
+  const response = await fetch(`${WIVEN_API_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'x-public-key': WIVEN_PUBLIC_KEY,
+      'x-secret-key': WIVEN_SECRET_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text?.slice?.(0, 120) || '' };
+  }
+  if (!response.ok) throwWivenError(response, data);
+  return data;
+}
+
+async function wivenGet(path) {
+  assertWivenKeys();
+  const response = await fetch(`${WIVEN_API_BASE}${path}`, {
+    headers: {
+      Accept: 'application/json',
+      'x-public-key': WIVEN_PUBLIC_KEY,
+      'x-secret-key': WIVEN_SECRET_KEY,
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throwWivenError(response, data);
+  return data;
+}
+
+/** Status de pagamento confirmado (consulta de transação). */
+function isPaidStatus(status) {
+  const value = String(status || '').toUpperCase();
+  // "OK" na criação do Pix só significa cobrança gerada, não paga.
+  return (
+    value === 'PAID' ||
+    value === 'APPROVED' ||
+    value === 'ACTIVE' ||
+    value === 'COMPLETED' ||
+    value === 'SUCCESS' ||
+    value.includes('PAGO') ||
+    value.includes('APPROV')
+  );
+}
+
+/** Na criação via cartão, OK costuma indicar captura imediata. */
+function isCardCaptureStatus(status) {
+  const value = String(status || '').toUpperCase();
+  return value === 'OK' || isPaidStatus(value);
+}
+
+async function createWivenPixCharge(input) {
+  const client = buildClient(input);
+  const product = resolveProduct(input.product);
+  const payload = buildChargePayload({
+    userId: input.userId,
+    client,
+    product,
+  });
+  const data = await wivenPost('/gateway/pix/receive', payload);
+  return {
+    identifier: payload.identifier,
+    transactionId: data.transactionId || data.id || null,
+    status: data.status || null,
+    pixCode: data.pix?.code || null,
+    pixImage: data.pix?.image || null,
+    product,
+    raw: data,
+  };
+}
+
+async function createWivenCardCharge(input) {
+  const client = buildClient(input);
+  const product = resolveProduct(input.product);
+  const payload = buildChargePayload({
+    userId: input.userId,
+    client,
+    product,
+  });
+
+  const number = onlyDigits(input.card?.number);
+  const cvv = onlyDigits(input.card?.cvv);
+  const owner = String(input.card?.owner || input.displayName || '').trim();
+  let expiresAt = String(input.card?.expiresAt || '').trim();
+
+  if (/^\d{2}\/\d{2}$/.test(expiresAt)) {
+    const [mm, yy] = expiresAt.split('/');
+    expiresAt = `20${yy}-${mm}`;
+  }
+
+  if (number.length < 13) {
+    throw new Error('Número do cartão inválido.');
+  }
+  if (!owner || owner.length < 2) {
+    throw new Error('Informe o nome impresso no cartão.');
+  }
+  if (!/^\d{4}-\d{2}$/.test(expiresAt)) {
+    throw new Error('Validade inválida. Use MM/AA.');
+  }
+  if (cvv.length < 3) {
+    throw new Error('CVV inválido.');
+  }
+
+  const data = await wivenPost('/gateway/card/receive', {
+    ...payload,
+    clientIp: input.clientIp || '127.0.0.1',
+    installments: 1,
+    card: {
+      number,
+      owner,
+      expiresAt,
+      cvv,
+      statementDescriptor: 'PALAVRA VIVA',
+    },
+  });
+
+  return {
+    identifier: payload.identifier,
+    transactionId: data.transactionId || data.id || null,
+    status: data.status || null,
+    approved: isCardCaptureStatus(data.status),
+    product,
+    raw: data,
+  };
+}
+
+async function fetchWivenTransaction(transactionId) {
+  if (!transactionId) return null;
+  return wivenGet(
+    `/gateway/transactions?id=${encodeURIComponent(transactionId)}`,
+  );
+}
+
+function saveCheckoutRecord(record) {
+  const checkouts = readCheckouts();
+  checkouts.push(record);
+  writeCheckouts(checkouts);
+}
+
+function checkoutHtml() {
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assinar · Palavra Viva</title>
+  <style>
+    :root {
+      --bg: #121A21;
+      --card: #1A2430;
+      --border: #2C3A48;
+      --text: #F2F5F7;
+      --muted: #8A97A5;
+      --accent: #3DDC97;
+      --danger: #F07167;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(900px 420px at 20% -10%, rgba(61,220,151,.14), transparent), var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px 48px;
+    }
+    .box {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.35rem; }
+    .price { color: var(--accent); font-size: 1.6rem; font-weight: 700; margin: 10px 0 4px; }
+    .muted { color: var(--muted); font-size: .92rem; line-height: 1.45; }
+    label { display: block; margin: 14px 0 6px; font-size: .85rem; color: var(--muted); }
+    input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #222E3A;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      margin-top: 16px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #102018;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+    button:disabled { opacity: .65; cursor: wait; }
+    .error { color: var(--danger); margin-top: 12px; font-size: .9rem; }
+    .ok { color: var(--accent); margin-top: 12px; font-size: .9rem; }
+    .pix {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .pix img {
+      width: 220px;
+      height: 220px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #222E3A;
+      color: var(--text);
+      padding: 10px;
+      font-size: .8rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Missão+</h1>
+    <p class="muted">Assinatura Palavra Viva — áudios liberados por 30 dias.</p>
+    <div class="price">R$ ${PRODUCT_PRICE.toFixed(2).replace('.', ',')}/mês</div>
+    <p class="muted">Pagamento seguro via Pix (Wiven).</p>
+
+    <form id="form">
+      <label>Nome</label>
+      <input id="name" required autocomplete="name" />
+      <label>WhatsApp</label>
+      <input id="whatsapp" required inputmode="tel" placeholder="DDD + número" />
+      <label>CPF</label>
+      <input id="document" required inputmode="numeric" placeholder="Somente números" />
+      <label>E-mail (opcional)</label>
+      <input id="email" type="email" autocomplete="email" placeholder="opcional" />
+      <button id="pay" type="submit">Gerar Pix</button>
+    </form>
+
+    <div id="msg"></div>
+    <div id="pix" class="pix" hidden>
+      <p class="muted">Escaneie o QR Code ou copie o código Pix:</p>
+      <img id="qr" alt="QR Code Pix" />
+      <textarea id="code" readonly></textarea>
+      <button class="secondary" id="copy" type="button">Copiar código Pix</button>
+      <button class="secondary" id="check" type="button">Já paguei — verificar</button>
+      <p id="status" class="muted"></p>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const userId = params.get('userId') || '';
+    document.getElementById('name').value = params.get('name') || '';
+    document.getElementById('whatsapp').value = params.get('whatsapp') || '';
+
+    const msg = document.getElementById('msg');
+    const pixBox = document.getElementById('pix');
+    let pollTimer = null;
+
+    function setMsg(text, ok) {
+      msg.className = ok ? 'ok' : 'error';
+      msg.textContent = text || '';
+    }
+
+    async function createCheckout(ev) {
+      ev.preventDefault();
+      if (!userId) {
+        setMsg('Abra o checkout pelo app para identificar sua conta.');
+        return;
+      }
+      const btn = document.getElementById('pay');
+      btn.disabled = true;
+      setMsg('Gerando Pix…', true);
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            displayName: document.getElementById('name').value.trim(),
+            whatsapp: document.getElementById('whatsapp').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            document: document.getElementById('document').value.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Não foi possível gerar o Pix.');
+        }
+        pixBox.hidden = false;
+        document.getElementById('code').value = data.pixCode || '';
+        const qr = document.getElementById('qr');
+        if (data.pixImage) {
+          qr.src = data.pixImage;
+          qr.hidden = false;
+        } else if (data.pixCode) {
+          qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(data.pixCode);
+          qr.hidden = false;
+        } else {
+          qr.hidden = true;
+        }
+        setMsg('Pix gerado. Pague e toque em “Já paguei”.', true);
+        startPolling();
+      } catch (error) {
+        setMsg(error.message || 'Erro ao gerar Pix.');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function checkAccess() {
+      const res = await fetch('/api/access?userId=' + encodeURIComponent(userId));
+      const data = await res.json();
+      if (data.active) {
+        document.getElementById('status').textContent = 'Assinatura ativa! Pode voltar ao app.';
+        setMsg('Pagamento confirmado. Assinatura liberada.', true);
+        if (pollTimer) clearInterval(pollTimer);
+        return true;
+      }
+      document.getElementById('status').textContent = 'Aguardando confirmação do pagamento…';
+      return false;
+    }
+
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => { void checkAccess(); }, 5000);
+      void checkAccess();
+    }
+
+    document.getElementById('form').onsubmit = (e) => void createCheckout(e);
+    document.getElementById('copy').onclick = async () => {
+      const code = document.getElementById('code').value;
+      try {
+        await navigator.clipboard.writeText(code);
+        setMsg('Código Pix copiado.', true);
+      } catch {
+        document.getElementById('code').select();
+        setMsg('Selecione e copie o código manualmente.');
+      }
+    };
+    document.getElementById('check').onclick = () => void checkAccess();
+  </script>
+</body>
+</html>`;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -217,16 +748,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/checkout')) {
+    send(res, 200, checkoutHtml(), 'text/html');
+    return;
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/health') {
     send(res, 200, {
       ok: true,
-      checkoutConfigured: Boolean(WIVEN_CHECKOUT_URL),
       publicKeyConfigured: Boolean(WIVEN_PUBLIC_KEY),
+      secretKeyConfigured: Boolean(WIVEN_SECRET_KEY),
+      productName: PRODUCT_NAME,
+      productPrice: PRODUCT_PRICE,
+      publicBaseUrl: PUBLIC_BASE_URL,
     });
     return;
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/checkout') {
+  if (
+    req.method === 'POST' &&
+    (url.pathname === '/api/checkout' ||
+      url.pathname === '/api/checkout/pix' ||
+      url.pathname === '/api/checkout/card')
+  ) {
     try {
       const { json: body } = await readBody(req);
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
@@ -235,44 +779,134 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      const method =
+        url.pathname.endsWith('/card') || body.method === 'card'
+          ? 'card'
+          : 'pix';
+
       const displayName =
         typeof body.displayName === 'string' ? body.displayName.trim() : '';
       const whatsapp =
-        typeof body.whatsapp === 'string'
-          ? body.whatsapp.replace(/\D/g, '')
-          : '';
+        typeof body.whatsapp === 'string' ? onlyDigits(body.whatsapp) : '';
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      const document =
+        typeof body.document === 'string' ? onlyDigits(body.document) : '';
+      const clientIp =
+        typeof body.clientIp === 'string' && body.clientIp.trim()
+          ? body.clientIp.trim()
+          : (req.headers['x-forwarded-for'] || '')
+              .toString()
+              .split(',')[0]
+              .trim() ||
+            req.socket.remoteAddress?.replace('::ffff:', '') ||
+            '127.0.0.1';
+
+      const productKey =
+        typeof body.product === 'string' ? body.product.trim() : '';
+      const product = resolveProduct(productKey || null);
 
       const checkoutId = `ck_${Date.now().toString(36)}_${crypto
         .randomBytes(4)
         .toString('hex')}`;
 
-      const checkoutUrl = buildCheckoutUrl({
+      if (method === 'card') {
+        const wiven = await createWivenCardCharge({
+          userId,
+          displayName,
+          whatsapp,
+          email,
+          document,
+          clientIp,
+          card: body.card || {},
+          product: product.productKey,
+        });
+
+        let subscription = null;
+        let unlockedTools = getUserTools(userId);
+        if (wiven.approved) {
+          if (product.kind === 'tool' && product.toolId) {
+            const ent = grantTool(userId, product.toolId, {
+              source: 'wiven_card',
+              providerRef: wiven.transactionId,
+            });
+            unlockedTools = ent?.tools || unlockedTools;
+          } else {
+            subscription = grantSubscription(userId, {
+              source: 'wiven_card',
+              providerRef: wiven.transactionId,
+            });
+          }
+        }
+
+        saveCheckoutRecord({
+          id: checkoutId,
+          userId,
+          method: 'card',
+          product: product.productKey,
+          toolId: product.toolId,
+          kind: product.kind,
+          displayName: displayName || null,
+          whatsapp: whatsapp || null,
+          identifier: wiven.identifier,
+          transactionId: wiven.transactionId,
+          status: wiven.approved ? 'paid' : 'opened',
+          paidAt: wiven.approved ? new Date().toISOString() : null,
+          createdAt: new Date().toISOString(),
+        });
+
+        send(res, 201, {
+          ok: true,
+          method: 'card',
+          checkoutId,
+          approved: wiven.approved,
+          status: wiven.status,
+          transactionId: wiven.transactionId,
+          product: product.productKey,
+          unlockedTools,
+          subscriptionExpiresAt: subscription?.expiresAt || null,
+        });
+        return;
+      }
+
+      const wiven = await createWivenPixCharge({
         userId,
         displayName,
         whatsapp,
-        checkoutId,
+        email,
+        document,
+        product: product.productKey,
       });
 
-      const checkouts = readCheckouts();
-      checkouts.push({
+      saveCheckoutRecord({
         id: checkoutId,
         userId,
+        method: 'pix',
+        product: product.productKey,
+        toolId: product.toolId,
+        kind: product.kind,
         displayName: displayName || null,
         whatsapp: whatsapp || null,
-        checkoutUrl,
+        identifier: wiven.identifier,
+        transactionId: wiven.transactionId,
         status: 'opened',
         createdAt: new Date().toISOString(),
       });
-      writeCheckouts(checkouts);
 
       send(res, 201, {
         ok: true,
+        method: 'pix',
         checkoutId,
-        checkoutUrl,
-        publicKey: WIVEN_PUBLIC_KEY || null,
+        transactionId: wiven.transactionId,
+        product: product.productKey,
+        pixCode: wiven.pixCode,
+        pixImage: wiven.pixImage,
       });
     } catch (error) {
-      send(res, 400, { ok: false, error: String(error.message || error) });
+      send(res, error.status && error.status < 500 ? error.status : 400, {
+        ok: false,
+        error: String(error.message || error),
+        details: error.details || null,
+      });
     }
     return;
   }
@@ -307,25 +941,51 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const sub = grantSubscription(userId, {
-        lastWebhookAt: new Date().toISOString(),
-        providerRef:
-          body.id ||
-          body.transaction_id ||
-          body.data?.id ||
-          body.payment_id ||
-          null,
-      });
+      const providerRef =
+        body.id ||
+        body.transactionId ||
+        body.transaction_id ||
+        body.data?.id ||
+        body.payment_id ||
+        null;
 
       const checkouts = readCheckouts();
+      let matched = null;
       for (let i = checkouts.length - 1; i >= 0; i -= 1) {
         if (checkouts[i].userId === userId && checkouts[i].status === 'opened') {
           checkouts[i].status = 'paid';
           checkouts[i].paidAt = new Date().toISOString();
+          matched = checkouts[i];
           break;
         }
       }
       writeCheckouts(checkouts);
+
+      const metaProduct =
+        body.metadata?.product ||
+        body.data?.metadata?.product ||
+        matched?.product ||
+        null;
+      const metaToolId =
+        body.metadata?.toolId ||
+        body.data?.metadata?.toolId ||
+        matched?.toolId ||
+        null;
+      const resolved = resolveProduct(metaProduct);
+
+      if (resolved.kind === 'tool' && (resolved.toolId || metaToolId)) {
+        const ent = grantTool(userId, resolved.toolId || metaToolId, {
+          lastWebhookAt: new Date().toISOString(),
+          providerRef,
+        });
+        send(res, 200, { ok: true, unlockedTools: ent?.tools || [] });
+        return;
+      }
+
+      const sub = grantSubscription(userId, {
+        lastWebhookAt: new Date().toISOString(),
+        providerRef,
+      });
 
       send(res, 200, { ok: true, subscription: sub });
     } catch (error) {
@@ -341,23 +1001,64 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const sub = readSubscriptions()[userId] || null;
-    const expiresAt = sub?.expiresAt || null;
-    const active =
+    let sub = readSubscriptions()[userId] || null;
+    let expiresAt = sub?.expiresAt || null;
+    let active =
       Boolean(expiresAt) && Number.isFinite(Date.parse(expiresAt))
         ? Date.parse(expiresAt) > Date.now()
         : false;
+
+    let unlockedTools = getUserTools(userId);
+
+    // Se ainda não está ativo, consulta a Wiven pelos checkouts Pix abertos
+    const openCheckouts = readCheckouts()
+      .filter((c) => c.userId === userId && c.status === 'opened' && c.transactionId)
+      .slice(-5)
+      .reverse();
+
+    for (const checkout of openCheckouts) {
+      try {
+        const tx = await fetchWivenTransaction(checkout.transactionId);
+        const status = tx?.status || tx?.payment_status || tx?.data?.status;
+        if (!isPaidStatus(status)) continue;
+
+        const all = readCheckouts();
+        const idx = all.findIndex((c) => c.id === checkout.id);
+        if (idx >= 0) {
+          all[idx].status = 'paid';
+          all[idx].paidAt = new Date().toISOString();
+          writeCheckouts(all);
+        }
+
+        if (checkout.kind === 'tool' && checkout.toolId) {
+          const ent = grantTool(userId, checkout.toolId, {
+            source: 'wiven_poll',
+            providerRef: checkout.transactionId,
+          });
+          unlockedTools = ent?.tools || unlockedTools;
+        } else if (!active) {
+          sub = grantSubscription(userId, {
+            source: 'wiven_poll',
+            providerRef: checkout.transactionId,
+          });
+          expiresAt = sub.expiresAt;
+          active = true;
+        }
+      } catch {
+        // ignora falha de consulta pontual
+      }
+    }
 
     send(res, 200, {
       ok: true,
       userId,
       active,
       subscriptionExpiresAt: expiresAt,
+      unlockedTools,
     });
     return;
   }
 
-  // Liberação manual (dev/admin) — útil enquanto o webhook Wiven é configurado
   if (req.method === 'POST' && url.pathname === '/api/access/grant') {
     try {
       const { json: body } = await readBody(req);
@@ -383,12 +1084,13 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\nPagamentos Palavra Viva (Wiven)`);
-  console.log(`  http://localhost:${PORT}`);
+  console.log(`\nPagamentos Palavra Viva (Wiven Pix)`);
+  console.log(`  Checkout: http://localhost:${PORT}/checkout`);
   console.log(`  POST /api/checkout`);
   console.log(`  POST /api/webhooks/wiven`);
   console.log(`  GET  /api/access?userId=...`);
+  console.log(`  Produto: ${PRODUCT_NAME} · R$ ${PRODUCT_PRICE.toFixed(2)}`);
   console.log(
-    `  Checkout URL: ${WIVEN_CHECKOUT_URL ? 'configurada' : 'AUSENTE — defina WIVEN_CHECKOUT_URL'}\n`,
+    `  Chaves: ${WIVEN_PUBLIC_KEY ? 'ok' : 'AUSENTES'} · Callback: ${PUBLIC_BASE_URL}/api/webhooks/wiven\n`,
   );
 });

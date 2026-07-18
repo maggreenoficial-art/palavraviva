@@ -37,14 +37,8 @@ export default function SosScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.lead}>Você está aqui.</Text>
         <Text style={styles.body}>
-          Vamos passar pelos próximos minutos juntos. Respire. Não há pressa.
+          Vamos passar pelos próximos minutos juntos. Não há pressa.
         </Text>
-
-        <View style={styles.breathBox} accessibilityLabel="Respiração guiada">
-          <View style={styles.breathCircle} />
-          <Text style={styles.breathHint}>Inspire</Text>
-          <Text style={styles.breathHintSoft}>Solte devagar</Text>
-        </View>
 
         {passage ? (
           <BiblicalPassage passage={passage} compact />
@@ -62,6 +56,17 @@ export default function SosScreen() {
         >
           <Text style={styles.primaryText}>
             Iniciar sessão de {minutes} minutos
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Aprofunde sua paz no Diário de Gratidão"
+          onPress={() => router.push('/diario')}
+          style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+        >
+          <Text style={styles.secondaryText}>
+            Aprofunde sua paz no Diário de Gratidão
           </Text>
         </Pressable>
 
@@ -116,29 +121,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  breathBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.sm,
-  },
-  breathCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    borderColor: colors.sos,
-    backgroundColor: colors.sosSoft,
-    marginBottom: spacing.sm,
-  },
-  breathHint: {
-    ...typography.section,
-    color: colors.textPrimary,
-  },
-  breathHintSoft: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
   primary: {
     minHeight: 56,
     borderRadius: radius.lg,
@@ -150,6 +132,21 @@ const styles = StyleSheet.create({
   primaryText: {
     ...typography.button,
     color: colors.background,
+  },
+  secondary: {
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.accentMuted,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  secondaryText: {
+    ...typography.bodyMedium,
+    color: colors.accent,
+    textAlign: 'center',
   },
   fallback: {
     ...typography.caption,

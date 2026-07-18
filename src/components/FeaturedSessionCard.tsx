@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Session } from '../types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, MIN_TAP, radius, spacing, useTypography } from '../theme';
 
 const COVER_HEIGHT = 148;
 
@@ -14,7 +15,66 @@ export function FeaturedSessionCard({
   session,
   onPress,
 }: FeaturedSessionCardProps) {
+  const type = useTypography();
   const minutes = Math.round(session.durationSeconds / 60);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.backgroundElevated,
+          minHeight: MIN_TAP,
+        },
+        pressed: {
+          opacity: 0.85,
+        },
+        cover: {
+          width: '100%',
+          height: COVER_HEIGHT,
+        },
+        coverImage: {
+          width: '100%',
+          height: COVER_HEIGHT,
+        },
+        body: {
+          padding: spacing.lg,
+          gap: spacing.xs,
+        },
+        kicker: {
+          ...type.caption,
+          color: colors.accent,
+          fontFamily: 'DMSans_600SemiBold',
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+        },
+        title: {
+          ...type.section,
+          color: colors.textPrimary,
+        },
+        meta: {
+          ...type.caption,
+          color: colors.textSecondary,
+          marginBottom: spacing.sm,
+        },
+        cta: {
+          alignSelf: 'flex-start',
+          backgroundColor: colors.accent,
+          borderRadius: radius.sm,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.sm,
+          minHeight: MIN_TAP,
+          justifyContent: 'center',
+        },
+        ctaText: {
+          ...type.button,
+          color: colors.onAccent,
+        },
+      }),
+    [type],
+  );
 
   return (
     <Pressable
@@ -52,58 +112,3 @@ export function FeaturedSessionCard({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundElevated,
-  },
-  pressed: {
-    opacity: 0.92,
-  },
-  cover: {
-    width: '100%',
-    height: COVER_HEIGHT,
-  },
-  coverImage: {
-    width: '100%',
-    height: COVER_HEIGHT,
-  },
-  body: {
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  kicker: {
-    ...typography.caption,
-    color: colors.accent,
-    fontFamily: 'DMSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  title: {
-    ...typography.section,
-    color: colors.textPrimary,
-  },
-  meta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  cta: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accent,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  ctaText: {
-    ...typography.caption,
-    color: colors.background,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-});

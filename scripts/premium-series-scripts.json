@@ -1,0 +1,794 @@
+{
+  "prem-paz-01": {
+    "title": "A Paz que o Mundo Não Dá",
+    "subtitle": "Dia 1 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: paz de Cristo e respiração consciente. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "joao-14-27"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Respire comigo. Devagar.\n<break time=\"2.5s\" />\nHoje começamos a série Paz que Excede Todo Entendimento.\n<break time=\"2.0s\" />\nTalvez o seu dia esteja barulhento por fora — e ainda mais por dentro. Notificações. Prazos. Uma conversa que não saiu da cabeça. A paz do mundo costuma depender de tudo ficar quieto. A paz de Cristo é diferente: ela pode habitar você mesmo quando a tempestade ainda não passou.\n<break time=\"2.5s\" />\nVamos ancorar no presente. Sinta o ar entrar pelo nariz... e sair pela boca. Sem forçar. Só receber o próximo fôlego como um presente.\n<break time=\"2.5s\" />\nOuça as palavras de Jesus em João, capítulo quatorze, versículo vinte e sete.\n<break time=\"1.5s\" />\n{{BIBLE:joao-14-27}}\n<break time=\"3.5s\" />\nPrática de hoje: mindfulness da respiração com Cristo.\n<break time=\"2.0s\" />\nColoque a mão no peito, se puder. Inspire contando quatro. Segure um instante. Solte em seis.\n<break time=\"1.5s\" />\nInspira... dois... três... quatro.\n<break time=\"2.0s\" />\nSolta... dois... três... quatro... cinco... seis.\n<break time=\"2.5s\" />\nEnquanto solta, diga por dentro: “Jesus, a Tua paz habita em mim.”\n<break time=\"2.5s\" />\nRepita mais uma vez. Não para apagar o problema — para lembrar que você não precisa carregá-lo sozinho.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor Jesus, eu recebo a paz que o mundo não pode dar. Aquieta o meu peito. Ensina o meu coração a descansar em Ti, mesmo com a mente ainda aprendendo a desacelerar. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: A paz de Cristo habita em mim, agora.\n<break time=\"2.5s\" />\nAmanhã vamos entregar preocupações, uma por vez. Por agora, respire mais uma vez e siga com leveza.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-paz-02": {
+    "title": "Entregando as Preocupações",
+    "subtitle": "Dia 2 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: reavaliação cognitiva e entrega. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "PHILIPPIANS_4_6_7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Bem-vindo de volta.\n<break time=\"2.0s\" />\nOntem você praticou receber a paz. Hoje vamos praticar entregar o que ocupa a mente.\n<break time=\"2.0s\" />\nA preocupação costuma se multiplicar quando vira lista sem nome. Tudo parece urgente. Tudo parece seu. Mas a Palavra convida a um movimento diferente: orar, agradecer e entregar.\n<break time=\"2.5s\" />\nOuça Filipenses, capítulo quatro, versículos seis e sete.\n<break time=\"1.5s\" />\n{{BIBLE:PHILIPPIANS_4_6_7}}\n<break time=\"3.5s\" />\nPrática: escolha uma preocupação — só uma.\n<break time=\"2.5s\" />\nNomeie em silêncio. Em seguida diga: “Deus, isto está comigo demais. Eu coloco nas Tuas mãos.”\n<break time=\"3.0s\" />\nAgora separe: o que depende de um passo seu hoje, e o que não depende. O que depende pode virar uma ação pequena depois. O que não depende pode ser entregue — mesmo que a emoção ainda demore a baixar.\n<break time=\"2.5s\" />\nIsso é reavaliação cognitiva com fé: você troca o looping por uma direção.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nPai, eu trago a Ti a preocupação que mais pesa agora. Guarda o meu coração e a minha mente em Cristo Jesus. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Uma preocupação por vez, nas mãos de Deus.\n<break time=\"2.5s\" />\nAmanhã: oração contemplativa — aprender a aquietar e escutar."
+  },
+  "prem-paz-03": {
+    "title": "O Poder da Oração Contemplativa",
+    "subtitle": "Dia 3 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: atenção plena e escuta. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "salmo-46-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Hoje a prática é simples e profunda: aquietar.\n<break time=\"2.0s\" />\nOração contemplativa não é performance. É presença. É ficar diante de Deus sem precisar resolver tudo em palavras perfeitas.\n<break time=\"2.5s\" />\nOuça o Salmo quarenta e seis, versículo dez.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-46-10}}\n<break time=\"3.5s\" />\nSente-se confortável. Feche os olhos, se puder.\n<break time=\"2.0s\" />\nRepita devagar: “Aquieta-te.”\n<break time=\"2.5s\" />\nQuando um pensamento surgir, não lute. Observe e volte à frase.\n<break time=\"3.0s\" />\nDois minutos de escuta já mudam o ritmo interno. Deus não precisa do seu barulho para chegar perto — Ele já está.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, ensina-me a aquietar. Que a minha mente descanse e o meu coração Te escute. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Aquieta-te — e conhece que Ele é Deus.\n<break time=\"2.5s\" />\nAmanhã: confiança em meio à tempestade."
+  },
+  "prem-paz-04": {
+    "title": "Confiança em Meio à Tempestade",
+    "subtitle": "Dia 4 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: resiliência emocional. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "MATTHEW_11_28_30"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Há dias em que a vida balança como barco no vento.\n<break time=\"2.0s\" />\nConfiança não é negar o medo. É lembrar Quem está no barco com você.\n<break time=\"2.5s\" />\nOuça o convite de Jesus em Mateus, capítulo onze, versículos vinte e oito a trinta.\n<break time=\"1.5s\" />\n{{BIBLE:MATTHEW_11_28_30}}\n<break time=\"3.5s\" />\nVisualize a situação difícil do momento.\n<break time=\"2.5s\" />\nAgora imagine entregar o remo a Cristo. Diga: “Eu não preciso remar sozinho.”\n<break time=\"3.0s\" />\nNote o corpo. Ombros. Mandíbula. Solte um pouco. A resiliência começa quando você para de fingir que controla a tempestade inteira.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nJesus, na tempestade eu venho a Ti. Troca o meu peso pelo Teu jugo suave. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Na tempestade, eu confio em Cristo.\n<break time=\"2.5s\" />\nAmanhã: contentamento e gratidão nas circunstâncias."
+  },
+  "prem-paz-05": {
+    "title": "A Graça do Contentamento",
+    "subtitle": "Dia 5 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: gratidão. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "filipenses-4-4-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Contentamento não é acomodação. É graça para viver o hoje sem ser escravo do que falta.\n<break time=\"2.0s\" />\nA gratidão não apaga a dor — ela ilumina o que ainda sustenta você.\n<break time=\"2.5s\" />\nOuça Filipenses, capítulo quatro, versículos quatro a nove.\n<break time=\"1.5s\" />\n{{BIBLE:filipenses-4-4-9}}\n<break time=\"3.5s\" />\nListe mentalmente três coisas pelas quais é grato agora.\n<break time=\"3.5s\" />\nPequenas contam: um fôlego, um teto, alguém que ora por você, a Palavra que você está ouvindo.\n<break time=\"2.5s\" />\nAgradeça a Deus por cada uma, sem pressa.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, ensina-me o contentamento. Abre meus olhos para as misericórdias deste dia. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Hoje eu escolho gratidão com Cristo.\n<break time=\"2.5s\" />\nAmanhã: viver um dia de cada vez."
+  },
+  "prem-paz-06": {
+    "title": "Vivendo um Dia de Cada Vez",
+    "subtitle": "Dia 6 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: foco no presente. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "MATTHEW_6_31_34"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "A ansiedade ama o futuro. A fé aprende a cuidar do hoje.\n<break time=\"2.0s\" />\nVocê não precisa viver todos os amanhãs nesta tarde.\n<break time=\"2.5s\" />\nOuça Jesus em Mateus, capítulo seis, versículos trinta e um a trinta e quatro.\n<break time=\"1.5s\" />\n{{BIBLE:MATTHEW_6_31_34}}\n<break time=\"3.5s\" />\nPergunte: “Qual é o próximo passo fiel de hoje — só um?”\n<break time=\"3.0s\" />\nEscreva mentalmente. Se a mente fugir para daqui a um mês, traga de volta: hoje. Este passo. Esta graça.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nPai, livra-me de carregar o amanhã. Dá-me pão e paz para o dia de hoje. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Basta a cada dia o seu cuidado — e a minha fé.\n<break time=\"2.5s\" />\nAmanhã fechamos a série renovando a mente."
+  },
+  "prem-paz-07": {
+    "title": "Renovando a Mente e o Espírito",
+    "subtitle": "Dia 7 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: autocompaixão e renovação. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 7,
+    "biblicalPrayerIds": [
+      "romanos-12-1-2"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Chegamos ao sétimo dia desta jornada de paz.\n<break time=\"2.0s\" />\nRenovar a mente não é virar outra pessoa da noite para o dia. É voltar, de novo, ao que é verdadeiro em Cristo — com paciência consigo.\n<break time=\"2.5s\" />\nOuça Romanos, capítulo doze, versículos um e dois.\n<break time=\"1.5s\" />\n{{BIBLE:romanos-12-1-2}}\n<break time=\"3.5s\" />\nColoque a mão no coração e diga: “Eu posso recomeçar com Deus.”\n<break time=\"2.5s\" />\nEscolha uma prática desta série para continuar: respiração, entrega, aquietar, gratidão ou um dia de cada vez.\n<break time=\"2.5s\" />\nA paz cresce com repetição amorosa.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nEspírito Santo, renova a minha mente. Forma em mim a paz de Cristo, dia após dia. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Minha mente se renova na Palavra.\n<break time=\"2.5s\" />\nVocê concluiu a série da Paz. Volte a ela quando o caos voltar a falar alto. A paz de Cristo permanece."
+  },
+  "prem-resiliencia-01": {
+    "title": "A Força que Vem de Cima",
+    "subtitle": "Dia 1 · Construindo Resiliência na Fé",
+    "summary": "Foco: força em Deus. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "ISAIAH_41_10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Resiliência cristã não é dureza. É capacidade de atravessar — com Deus.\n<break time=\"2.0s\" />\nSe você está cansado de “ser forte sozinho”, este é o lugar certo.\n<break time=\"2.5s\" />\nOuça Isaías, capítulo quarenta e um, versículo dez.\n<break time=\"1.5s\" />\n{{BIBLE:ISAIAH_41_10}}\n<break time=\"3.5s\" />\nNomeie uma força que Deus já colocou em você: coragem, paciência, fé, capacidade de pedir ajuda.\n<break time=\"3.0s\" />\nAgradeça. Depois diga: “Minha força vem do Senhor.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nDeus, fortalece-me. Eu não temo, porque Tu és comigo. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: A minha força vem de cima.\n<break time=\"2.5s\" />\nAmanhã: aprender com gigantes da fé.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-resiliencia-02": {
+    "title": "Aprendendo com os Gigantes da Fé",
+    "subtitle": "Dia 2 · Construindo Resiliência na Fé",
+    "summary": "Foco: reavaliar desafios. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "tiago-1-2-5"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Personagens da Bíblia também tremeram. Também choraram. E ainda assim perseveraram.\n<break time=\"2.0s\" />\nSua prova não te desqualifica — pode formar caráter.\n<break time=\"2.5s\" />\nOuça Tiago, capítulo um, versículos dois a cinco.\n<break time=\"1.5s\" />\n{{BIBLE:tiago-1-2-5}}\n<break time=\"3.5s\" />\nPense num desafio atual. Pergunte: “O que Deus pode formar em mim aqui — paciência, humildade, dependência?”\n<break time=\"3.5s\" />\nIsso não romantiza a dor. Dá direção no meio dela.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, dá-me sabedoria na prova. Ensina-me a perseverar com esperança. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Na prova, Deus ainda está formando o meu caráter.\n<break time=\"2.5s\" />\nAmanhã: propósito na dor."
+  },
+  "prem-resiliencia-03": {
+    "title": "O Propósito na Prova",
+    "subtitle": "Dia 3 · Construindo Resiliência na Fé",
+    "summary": "Foco: busca de significado. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "romanos-8-28"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Nem tudo que acontece é bom. Mas Deus pode tecer bem mesmo no que dói.\n<break time=\"2.0s\" />\nSignificado não apaga a lágrima — segura a alma enquanto ela cai.\n<break time=\"2.5s\" />\nOuça Romanos, capítulo oito, versículo vinte e oito.\n<break time=\"1.5s\" />\n{{BIBLE:romanos-8-28}}\n<break time=\"3.5s\" />\nEscreva mentalmente: “Mesmo sem entender tudo, eu confio que Deus não desistiu de mim.”\n<break time=\"3.0s\" />\nRespire. Permita-se não ter todas as respostas hoje.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nPai, eu confio o que não entendo às Tuas mãos. Usa até isto para o bem, segundo o Teu amor. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Deus ainda escreve propósito na minha história.\n<break time=\"2.5s\" />\nAmanhã: esperança ativa."
+  },
+  "prem-resiliencia-04": {
+    "title": "Cultivando a Esperança Ativa",
+    "subtitle": "Dia 4 · Construindo Resiliência na Fé",
+    "summary": "Foco: otimismo realista. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "salmo-62-5-8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Esperança cristã não é passividade. É confiança que move o próximo passo.\n<break time=\"2.0s\" />\nOtimismo realista: reconhece a dificuldade e ainda assim age com fé.\n<break time=\"2.5s\" />\nOuça o Salmo sessenta e dois, versículos cinco a oito.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-62-5-8}}\n<break time=\"3.5s\" />\nEscolha uma ação pequena alinhada à esperança: orar, pedir ajuda, cuidar do corpo, enviar uma mensagem, fazer uma tarefa de quinze minutos.\n<break time=\"3.0s\" />\nEsperança ativa tem pés.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nDeus da esperança, enche-me de alegria e paz ao crer. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Minha esperança age — e descansa em Deus.\n<break time=\"2.5s\" />\nAmanhã: o legado da superação."
+  },
+  "prem-resiliencia-05": {
+    "title": "O Legado da Superação",
+    "subtitle": "Dia 5 · Construindo Resiliência na Fé",
+    "summary": "Foco: celebrar conquistas. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "galatas-6-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Fechamos a série de resiliência.\n<break time=\"2.0s\" />\nPerseverar não é nunca cair. É levantar de novo com Cristo — e não desanimar de fazer o bem.\n<break time=\"2.5s\" />\nOuça Gálatas, capítulo seis, versículo nove.\n<break time=\"1.5s\" />\n{{BIBLE:galatas-6-9}}\n<break time=\"3.5s\" />\nCelebre um passo que você já deu nesta semana — mesmo pequeno.\n<break time=\"2.5s\" />\nDiga: “Isso também conta.” Autocompaixão cristã reconhece graça no processo.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, obrigado pela força até aqui. Sustenta-me para não desanimar. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Não desanimo — Deus completa a obra.\n<break time=\"2.5s\" />\nVolte a esta série quando a adversidade apertar. Você não está sozinho."
+  },
+  "prem-proposito-01": {
+    "title": "Criado com um Propósito",
+    "subtitle": "Dia 1 · O Propósito que Acalma a Alma",
+    "summary": "Foco: identidade e propósito. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "efesios-2-8-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "A ansiedade existencial diminui quando você lembra: você não é acidente.\n<break time=\"2.0s\" />\nVocê é feitura de Deus — criado em Cristo para boas obras.\n<break time=\"2.5s\" />\nOuça Efésios, capítulo dois, versículos oito a dez.\n<break time=\"1.5s\" />\n{{BIBLE:efesios-2-8-10}}\n<break time=\"3.5s\" />\nListe dois talentos ou paixões que Deus colocou em você.\n<break time=\"3.0s\" />\nNão precisa de plano de vida completo. Só reconhecimento: “Isso faz parte de quem eu sou nEle.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, mostra-me quem eu sou em Ti. Que o Teu propósito acalme a minha alma. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Eu sou obra de Deus — com propósito.\n<break time=\"2.5s\" />\nAmanhã: propósito que serve.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-proposito-02": {
+    "title": "Além do Eu: Servindo com Amor",
+    "subtitle": "Dia 2 · O Propósito que Acalma a Alma",
+    "summary": "Foco: altruísmo e engajamento. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "colossenses-3-12-14"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Propósito amadurece quando sai do umbigo e vira amor prático.\n<break time=\"2.0s\" />\nServir não é se apagar — é se doar com sabedoria.\n<break time=\"2.5s\" />\nOuça Colossenses, capítulo três, versículos doze a quatorze.\n<break time=\"1.5s\" />\n{{BIBLE:colossenses-3-12-14}}\n<break time=\"3.5s\" />\nEscolha uma pessoa para abençoar hoje: mensagem, oração, ajuda concreta.\n<break time=\"3.0s\" />\nO significado cresce quando o amor anda.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nJesus, ensina-me a servir com o Teu amor. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Meu propósito se expressa em amor.\n<break time=\"2.5s\" />\nAmanhã: chamado no cotidiano."
+  },
+  "prem-proposito-03": {
+    "title": "O Chamado no Cotidiano",
+    "subtitle": "Dia 3 · O Propósito que Acalma a Alma",
+    "summary": "Foco: significado no trabalho. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "colossenses-3-1-4"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Nem todo chamado é palco. Muito chamado é pia, planilha, cuidado, estudo, paciência.\n<break time=\"2.0s\" />\nO cotidiano também pode ser culto.\n<break time=\"2.5s\" />\nOuça Colossenses, capítulo três, versículos um a quatro.\n<break time=\"1.5s\" />\n{{BIBLE:colossenses-3-1-4}}\n<break time=\"3.5s\" />\nDedique a próxima tarefa a Deus: “Senhor, isto também é para Ti.”\n<break time=\"2.5s\" />\nFaça com presença — um bloco de atenção plena cristã.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, santifica o meu ordinário. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: No cotidiano, eu vivo o chamado.\n<break time=\"2.5s\" />\nAmanhã: alinhar valores e ações."
+  },
+  "prem-proposito-04": {
+    "title": "Alinhando Valores e Ações",
+    "subtitle": "Dia 4 · O Propósito que Acalma a Alma",
+    "summary": "Foco: coerência. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "PROVERBS_16_3"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Ansiedade cresce quando a vida diz uma coisa e o coração crê outra.\n<break time=\"2.0s\" />\nAlinhar valores cristãos às ações traz paz interior.\n<break time=\"2.5s\" />\nOuça Provérbios, capítulo dezesseis, versículo três.\n<break time=\"1.5s\" />\n{{BIBLE:PROVERBS_16_3}}\n<break time=\"3.5s\" />\nEscolha um valor: honestidade, gentileza, descanso, fidelidade.\n<break time=\"2.5s\" />\nDefina uma ação de hoje alinhada a ele. Confie essa obra ao Senhor.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nDeus, firma os meus pensamentos e alinha os meus passos. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Valores e ações andam juntos em Cristo.\n<break time=\"2.5s\" />\nAmanhã: legado de fé."
+  },
+  "prem-proposito-05": {
+    "title": "Deixando um Legado de Fé",
+    "subtitle": "Dia 5 · O Propósito que Acalma a Alma",
+    "summary": "Foco: realização. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "2timoteo-1-7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Legado não é fama. É o perfume de Cristo que fica nas pessoas que você ama.\n<break time=\"2.0s\" />\nDeus não te deu espírito de covardia.\n<break time=\"2.5s\" />\nOuça Segunda Timóteo, capítulo um, versículo sete.\n<break time=\"1.5s\" />\n{{BIBLE:2timoteo-1-7}}\n<break time=\"3.5s\" />\nVisualize a pessoa que você quer se tornar em Cristo daqui a um ano — mais paciente, mais fiel, mais livre do medo.\n<break time=\"3.0s\" />\nPeça graça para um passo nessa direção hoje.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nEspírito Santo, dá-me poder, amor e moderação. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Meu legado é Cristo em mim.\n<break time=\"2.5s\" />\nAmanhã: alegria no propósito."
+  },
+  "prem-proposito-06": {
+    "title": "Alegria no Propósito",
+    "subtitle": "Dia 6 · O Propósito que Acalma a Alma",
+    "summary": "Foco: emoções positivas. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "neemias-8-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Fechamos a série do propósito.\n<break time=\"2.0s\" />\nA alegria do Senhor é força — não negação da luta, mas combustível para continuar.\n<break time=\"2.5s\" />\nOuça Neemias, capítulo oito, versículo dez.\n<break time=\"1.5s\" />\n{{BIBLE:neemias-8-10}}\n<break time=\"3.5s\" />\nCelebre um alinhamento desta semana entre fé e ação.\n<break time=\"2.5s\" />\nSorria, se puder. Agradeça. A alegria também treina o coração.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, que a Tua alegria seja a minha força. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: A alegria do Senhor me fortalece.\n<break time=\"2.5s\" />\nVocê tem propósito. Volte a esta série quando a alma pedir direção."
+  },
+  "prem-gratidao-01": {
+    "title": "O Coração Grato",
+    "subtitle": "Dia 1 · Diário de Gratidão e Louvor",
+    "summary": "Foco: consciência da gratidão. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "salmo-103-1-13"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Gratidão é músculo espiritual e psicológico.\n<break time=\"2.0s\" />\nHoje abrimos o Diário de Gratidão e Louvor.\n<break time=\"2.5s\" />\nOuça o Salmo cento e três, versículos um a treze.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-103-1-13}}\n<break time=\"3.5s\" />\nListe três bênçãos — sem pressa.\n<break time=\"3.5s\" />\nBendiga o Senhor por cada uma. Isso é o começo do diário.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nBendize, ó minha alma, ao Senhor — e não te esqueças de nenhum de seus benefícios. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Eu escolho lembrar o bem que Deus faz.\n<break time=\"2.5s\" />\nAmanhã: louvor em todas as estações.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-gratidao-02": {
+    "title": "Louvor em Todas as Estações",
+    "subtitle": "Dia 2 · Diário de Gratidão e Louvor",
+    "summary": "Foco: reavaliação positiva. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "1tessalonicenses-5-16-18"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Dar graças em tudo não é fingir que tudo é bom.\n<break time=\"2.0s\" />\nÉ encontrar Deus mesmo quando a estação é difícil.\n<break time=\"2.5s\" />\nOuça Primeira Tessalonicenses, capítulo cinco, versículos dezesseis a dezoito.\n<break time=\"1.5s\" />\n{{BIBLE:1tessalonicenses-5-16-18}}\n<break time=\"3.5s\" />\nNomeie uma dificuldade. Agora nomeie um bem que ainda existe dentro dela — um aprendizado, uma presença, um limite saudável.\n<break time=\"3.5s\" />\nAgradeça por esse fio de luz.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, ensina-me a dar graças também na dificuldade. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Em toda estação, eu posso louvar.\n<break time=\"2.5s\" />\nAmanhã: a ciência da gratidão."
+  },
+  "prem-gratidao-03": {
+    "title": "A Ciência da Gratidão",
+    "subtitle": "Dia 3 · Diário de Gratidão e Louvor",
+    "summary": "Foco: benefícios da gratidão. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "salmo-9-9-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Pesquisas de bem-estar e a Palavra convergem: gratidão transforma a mente.\n<break time=\"2.0s\" />\nEla reduz o foco no déficit e amplia o que sustenta.\n<break time=\"2.5s\" />\nOuça o Salmo nove, versículos nove e dez.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-9-9-10}}\n<break time=\"3.5s\" />\nPor um minuto, respire e diga: “Obrigado, Senhor.”\n<break time=\"3.0s\" />\nDeixe a frase ocupar o espaço onde a reclamação costuma morar.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nDeus, Tu és refúgio. Obrigado por Tua fidelidade. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: A gratidão renova a minha mente.\n<break time=\"2.5s\" />\nAmanhã: expressar gratidão ativamente."
+  },
+  "prem-gratidao-04": {
+    "title": "Expressando Gratidão Ativamente",
+    "subtitle": "Dia 4 · Diário de Gratidão e Louvor",
+    "summary": "Foco: relacionamentos. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "colossenses-3-15"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Gratidão guardada aquece menos do que gratidão expressa.\n<break time=\"2.0s\" />\nHoje o louvor vira relacionamento.\n<break time=\"2.5s\" />\nOuça Colossenses, capítulo três, versículo quinze.\n<break time=\"1.5s\" />\n{{BIBLE:colossenses-3-15}}\n<break time=\"3.5s\" />\nEscolha alguém. Planeje agradecer — mensagem, voz ou olhar.\n<break time=\"3.0s\" />\nE agradeça a Deus por essa pessoa também.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, que a paz de Cristo reine em mim e derrame gratidão pelos outros. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Gratidão que se expressa edifica.\n<break time=\"2.5s\" />\nAmanhã: estilo de vida de louvor."
+  },
+  "prem-gratidao-05": {
+    "title": "Um Estilo de Vida de Louvor",
+    "subtitle": "Dia 5 · Diário de Gratidão e Louvor",
+    "summary": "Foco: felicidade e bem-estar. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "salmo-150"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Fechamos a série da gratidão.\n<break time=\"2.0s\" />\nLouvor não é só música — é postura de alma que reconhece a bondade de Deus.\n<break time=\"2.5s\" />\nOuça o Salmo cento e cinquenta.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-150}}\n<break time=\"3.5s\" />\nEscolha um horário diário curto para três gratidões.\n<break time=\"2.5s\" />\nManhã, almoço ou noite. Consistência vence intensidade.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nQue tudo que há em mim louve ao Senhor. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: O louvor é o meu estilo de vida.\n<break time=\"2.5s\" />\nContinue o diário. A alegria e a paz crescem no caminho da gratidão."
+  },
+  "prem-descanso-01": {
+    "title": "Entregando o Dia a Deus",
+    "subtitle": "Dia 1 · Descanso em Deus",
+    "summary": "Foco: relaxamento progressivo. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "PSALM_4_8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Esta é a série Descanso em Deus — para noites ansiosas.\n<break time=\"2.0s\" />\nO dia pode ter sido pesado. Agora é hora de entregar.\n<break time=\"2.5s\" />\nOuça o Salmo quatro, versículo oito.\n<break time=\"1.5s\" />\n{{BIBLE:PSALM_4_8}}\n<break time=\"3.5s\" />\nRelaxe progressivamente: testa... mandíbula... ombros... braços... peito... barriga... pernas... pés.\n<break time=\"4.0s\" />\nA cada parte, diga: “Entrego a Deus.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, em paz me deito e durmo, porque só Tu me fazes habitar em segurança. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Entrego o dia — e descanso em Deus.\n<break time=\"2.5s\" />\nBoa noite. Amanhã: a presença de Deus na noite.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-descanso-02": {
+    "title": "A Presença de Deus na Noite",
+    "subtitle": "Dia 2 · Descanso em Deus",
+    "summary": "Foco: mindfulness do corpo. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "salmo-139"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Mesmo nas trevas, Deus está.\n<break time=\"2.0s\" />\nVocê não precisa iluminar tudo para ser visto por Ele.\n<break time=\"2.5s\" />\nOuça o Salmo cento e trinta e nove.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-139}}\n<break time=\"3.5s\" />\nSinta o peso do corpo na cama ou na cadeira.\n<break time=\"3.0s\" />\nRespire. Perceba que a presença de Deus é mais constante que o medo.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, mesmo na noite, Tu estás comigo. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Nas trevas, Deus ainda me vê.\n<break time=\"2.5s\" />\nDescanse. Ele não dorme o seu cuidado."
+  },
+  "prem-descanso-03": {
+    "title": "Perdão e Liberação",
+    "subtitle": "Dia 3 · Descanso em Deus",
+    "summary": "Foco: autocompaixão e perdão. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "efesios-4-29-32"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Às vezes a noite não vem por falta de cansaço — vem por excesso de resentimento.\n<break time=\"2.0s\" />\nPerdoar libera o corpo para dormir.\n<break time=\"2.5s\" />\nOuça Efésios, capítulo quatro, versículos vinte e nove a trinta e dois.\n<break time=\"1.5s\" />\n{{BIBLE:efesios-4-29-32}}\n<break time=\"3.5s\" />\nSe vier um rosto ou uma falha sua, diga: “Entrego ao perdão de Cristo.”\n<break time=\"3.0s\" />\nPerdoar não nega a ferida. Solta o veneno.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nJesus, ensina-me a perdoar como fui perdoado. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Solto o ressentimento — e recebo paz.\n<break time=\"2.5s\" />\nDurma mais leve. O perdão é travesseiro."
+  },
+  "prem-descanso-04": {
+    "title": "A Esperança da Manhã",
+    "subtitle": "Dia 4 · Descanso em Deus",
+    "summary": "Foco: otimismo. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "salmo-30-1-5"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "O choro pode durar uma noite. A alegria vem pela manhã.\n<break time=\"2.0s\" />\nDeite-se com essa promessa.\n<break time=\"2.5s\" />\nOuça o Salmo trinta, versículos um a cinco.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-30-1-5}}\n<break time=\"3.5s\" />\nVisualize o despertar: luz suave, um “obrigado” primeiro que o celular.\n<break time=\"3.0s\" />\nA esperança também se ensaia à noite.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, guarda o meu sono e prepara a alegria da manhã. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: A manhã traz misericórdia nova.\n<break time=\"2.5s\" />\nDurma. A fidelidade de Deus já está no amanhã."
+  },
+  "prem-descanso-05": {
+    "title": "Protegido pelo Amor Divino",
+    "subtitle": "Dia 5 · Descanso em Deus",
+    "summary": "Foco: segurança. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "salmo-91"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Segurança verdadeira não é controle total. É abrigo.\n<break time=\"2.0s\" />\nVocê pode se esconder no Altíssimo.\n<break time=\"2.5s\" />\nOuça o Salmo noventa e um.\n<break time=\"1.5s\" />\n{{BIBLE:salmo-91}}\n<break time=\"3.5s\" />\nImagine-se sob a sombra do Todo-Poderoso.\n<break time=\"3.0s\" />\nSolte o peito. Você está guardado no amor de Deus.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nAltíssimo, sê o meu refúgio esta noite. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Estou seguro no amor de Deus.\n<break time=\"2.5s\" />\nDurma protegido. O cuidado dEle não tira férias."
+  },
+  "prem-descanso-06": {
+    "title": "Silenciando a Mente Ansiosa",
+    "subtitle": "Dia 6 · Descanso em Deus",
+    "summary": "Foco: atenção aos pensamentos. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "isaias-26-3-4"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Pensamentos noturnos gostam de circular.\n<break time=\"2.0s\" />\nVocê pode observá-los sem montar neles.\n<break time=\"2.5s\" />\nOuça Isaías, capítulo vinte e seis, versículos três e quatro.\n<break time=\"1.5s\" />\n{{BIBLE:isaias-26-3-4}}\n<break time=\"3.5s\" />\nQuando um pensamento ansioso surgir, diga: “Depois.”\n<break time=\"2.5s\" />\nVolte à respiração e à frase: “Tu guardarás em paz aquele cuja mente está firme em Ti.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, firma a minha mente em Ti e dá-me paz. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Mente firme em Deus — coração em paz.\n<break time=\"2.5s\" />\nDeixe os pensamentos passarem como nuvens. Durma."
+  },
+  "prem-descanso-07": {
+    "title": "Despertar Renovado",
+    "subtitle": "Dia 7 · Descanso em Deus",
+    "summary": "Foco: gratidão e propósito. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 7,
+    "biblicalPrayerIds": [
+      "LAMENTATIONS_3_21_23"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Última noite desta série.\n<break time=\"2.0s\" />\nAs misericórdias do Senhor se renovam cada manhã.\n<break time=\"2.5s\" />\nOuça Lamentações, capítulo três, versículos vinte e um a vinte e três.\n<break time=\"1.5s\" />\n{{BIBLE:LAMENTATIONS_3_21_23}}\n<break time=\"3.5s\" />\nAntes de dormir, agradeça por três mercês do dia.\n<break time=\"3.0s\" />\nAmanhã, ao acordar, diga primeiro: “Tuas misericórdias são novas hoje.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, obrigado pela fidelidade que não acaba. Renova-me ao despertar. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Cada manhã, misericórdia nova.\n<break time=\"2.5s\" />\nVocê concluiu Descanso em Deus. Volte quando a noite apertar. Durma em paz."
+  },
+  "prem-preocupacao-01": {
+    "title": "O Fardo da Preocupação",
+    "subtitle": "Dia 1 · Libertando-se da Preocupação",
+    "summary": "Foco: consciência da preocupação. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "mateus-6-25-30"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Preocupação excessiva cansa o corpo antes do trabalho começar.\n<break time=\"2.0s\" />\nJesus convida: não andeis ansiosos.\n<break time=\"2.5s\" />\nOuça Jesus em Mateus, capítulo seis, versículos vinte e cinco a trinta.\n<break time=\"1.5s\" />\n{{BIBLE:mateus-6-25-30}}\n<break time=\"3.5s\" />\nNomeie o fardo. Diga: “Isso é preocupação — não precisa dirigir a minha vida hoje.”\n<break time=\"3.0s\" />\nSó reconhecer já alivia um pouco.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nJesus, eu trago o fardo da preocupação a Ti. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Eu não carrego sozinho o que me preocupa.\n<break time=\"2.5s\" />\nAmanhã: confiança na provisão.\n<break time=\"2.0s\" />\nEste áudio oferece apoio espiritual e não substitui terapia ou acompanhamento médico."
+  },
+  "prem-preocupacao-02": {
+    "title": "Confiança na Provisão Divina",
+    "subtitle": "Dia 2 · Libertando-se da Preocupação",
+    "summary": "Foco: reavaliação de ameaças. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "MATTHEW_6_31_34"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Deus cuida dos lírios e das aves — e cuida de você.\n<break time=\"2.0s\" />\nProvisão não significa ausência de trabalho. Significa presença de Pai.\n<break time=\"2.5s\" />\nOuça Mateus, capítulo seis, versículos trinta e um a trinta e quatro.\n<break time=\"1.5s\" />\n{{BIBLE:MATTHEW_6_31_34}}\n<break time=\"3.5s\" />\nListe necessidades reais versus cenários imaginados.\n<break time=\"3.0s\" />\nEntregue os cenários. Cuide do próximo passo das necessidades.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nPai, eu confio na Tua provisão. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Meu Pai cuida de mim.\n<break time=\"2.5s\" />\nAmanhã: ação com fé."
+  },
+  "prem-preocupacao-03": {
+    "title": "Ação com Fé, Não com Medo",
+    "subtitle": "Dia 3 · Libertando-se da Preocupação",
+    "summary": "Foco: resolução de problemas. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "tiago-4-7-8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Há diferença entre preocupar e planejar.\n<break time=\"2.0s\" />\nFé age. Medo só gira.\n<break time=\"2.5s\" />\nOuça Tiago, capítulo quatro, versículos sete e oito.\n<break time=\"1.5s\" />\n{{BIBLE:tiago-4-7-8}}\n<break time=\"3.5s\" />\nEscolha um problema. Defina uma ação fiel de quinze minutos.\n<break time=\"3.0s\" />\nFazer o bem possível é oração com as mãos.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, aproxima-me de Ti e dá-me coragem para agir com fé. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Eu ajo com fé — não só com medo.\n<break time=\"2.5s\" />\nAmanhã: desapego e controle."
+  },
+  "prem-preocupacao-04": {
+    "title": "Desapego e Controle",
+    "subtitle": "Dia 4 · Libertando-se da Preocupação",
+    "summary": "Foco: aceitação. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "1_PETER_5_7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Paz cresce quando você solta o que não controla.\n<break time=\"2.0s\" />\nLançar sobre Ele é ato de confiança — e de maturidade emocional.\n<break time=\"2.5s\" />\nOuça Primeira Pedro, capítulo cinco, versículo sete.\n<break time=\"1.5s\" />\n{{BIBLE:1_PETER_5_7}}\n<break time=\"3.5s\" />\nDuas colunas mentais: controlável / incontrolável.\n<break time=\"3.0s\" />\nLance a segunda sobre Deus. Cuide da primeira com calma.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, eu lanço sobre Ti a minha ansiedade, porque Tu tens cuidado de mim. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Solto o que não controlo — Deus cuida.\n<break time=\"2.5s\" />\nAmanhã: pensamentos que edificam."
+  },
+  "prem-preocupacao-05": {
+    "title": "Pensamentos que Edificam",
+    "subtitle": "Dia 5 · Libertando-se da Preocupação",
+    "summary": "Foco: reestruturação cognitiva. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "filipenses-4-4-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "A mente vai para onde você a convida.\n<break time=\"2.0s\" />\nPaulo aponta o caminho: o que é verdadeiro, respeitável, justo, puro, amável.\n<break time=\"2.5s\" />\nOuça Filipenses, capítulo quatro, versículos quatro a nove.\n<break time=\"1.5s\" />\n{{BIBLE:filipenses-4-4-9}}\n<break time=\"3.5s\" />\nPegue um pensamento ansioso e troque por uma verdade da Palavra.\n<break time=\"3.0s\" />\nExemplo: de “vai dar tudo errado” para “Deus está comigo neste passo.”\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nSenhor, guarda os meus pensamentos no que edifica. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Penso no que é verdadeiro em Cristo.\n<break time=\"2.5s\" />\nAmanhã: viver em liberdade."
+  },
+  "prem-preocupacao-06": {
+    "title": "Vivendo em Liberdade",
+    "subtitle": "Dia 6 · Libertando-se da Preocupação",
+    "summary": "Foco: autonomia e propósito. Apoio espiritual — não substitui terapia.",
+    "voiceHint": "acolhedora, pausada, espiritual",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "galatas-2-20"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300,
+    "settings": {
+      "stability": 0.78,
+      "similarity_boost": 0.72,
+      "style": 0.25,
+      "speed": 0.8
+    },
+    "devotionalScript": "Fechamos a série Libertando-se da Preocupação.\n<break time=\"2.0s\" />\nEm Cristo, a preocupação não precisa ser senhor da casa.\n<break time=\"2.5s\" />\nOuça Gálatas, capítulo dois, versículo vinte.\n<break time=\"1.5s\" />\n{{BIBLE:galatas-2-20}}\n<break time=\"3.5s\" />\nDeclare: “Já não vivo eu, mas Cristo vive em mim.”\n<break time=\"2.5s\" />\nEscolha uma prática diária: entrega, ação fiel ou pensamento que edifica.\n<break time=\"2.5s\" />\nVamos orar.\n<break time=\"2.0s\" />\nJesus, vive em mim. Liberta-me do domínio da preocupação. Amém.\n<break time=\"3.0s\" />\nFrase-âncora: Em Cristo, eu vivo livre.\n<break time=\"2.5s\" />\nContinue a prática. A liberdade se renova um dia de cada vez."
+  }
+}

@@ -8,6 +8,7 @@ import { getOldTestamentPrayerById } from '../../src/constants/oldTestamentPraye
 import { getOtPrayerAudioSource } from '../../src/constants/otPrayerAudio';
 import { getBiblicalTextById } from '../../src/services/biblicalContent';
 import { trackAnalytics } from '../../src/services/analytics';
+import { canAccessOtPrayer } from '../../src/services/contentAccess';
 import {
   computeAccessKind,
   useUserStore,
@@ -18,17 +19,17 @@ export default function LeituraGuiadaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trialStartedAt = useUserStore((s) => s.trialStartedAt);
   const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
-  const hasContentAccess =
-    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
+  const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
   const otPrayer = id ? getOldTestamentPrayerById(id) : undefined;
   const passage = useMemo(
     () => (otPrayer ? getBiblicalTextById(otPrayer.passageId) : null),
     [otPrayer],
   );
   const audioSource = otPrayer ? getOtPrayerAudioSource(otPrayer.id) : undefined;
+  const gate = otPrayer ? canAccessOtPrayer(otPrayer, accessKind) : 'ok';
 
   useEffect(() => {
-    if (!hasContentAccess || !otPrayer) return;
+    if (gate !== 'ok' || !otPrayer) return;
     void trackAnalytics({
       name: 'read_open',
       contentId: otPrayer.id,
@@ -36,9 +37,9 @@ export default function LeituraGuiadaScreen() {
       contentKind: 'ot',
       path: `/leitura/${otPrayer.id}`,
     });
-  }, [hasContentAccess, otPrayer?.id, otPrayer?.title]);
+  }, [gate, otPrayer?.id, otPrayer?.title]);
 
-  if (!hasContentAccess) {
+  if (otPrayer && gate !== 'ok') {
     return (
       <SafeAreaView style={styles.safe}>
         <SubscriptionPaywall
@@ -84,13 +85,10 @@ export default function LeituraGuiadaScreen() {
       </View>
 
       <View style={styles.meta}>
-        <Text style={styles.emoji}>{otPrayer.emoji}</Text>
-        <View style={styles.metaText}>
-          <Text style={styles.title}>{otPrayer.title}</Text>
-          <Text style={styles.who}>
-            {otPrayer.whoPrayed} · {otPrayer.focus}
-          </Text>
-        </View>
+        <Text style={styles.title}>{otPrayer.title}</Text>
+        <Text style={styles.subtitle}>
+          {otPrayer.whoPrayed} · {otPrayer.focus}
+        </Text>
       </View>
 
       <SyncedScriptureReader
@@ -117,8 +115,6 @@ const styles = StyleSheet.create({
   },
   side: {
     minWidth: 64,
-    minHeight: 44,
-    justifyContent: 'center',
   },
   back: {
     ...typography.bodyMedium,
@@ -131,24 +127,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
     paddingHorizontal: spacing.screen,
     paddingBottom: spacing.md,
-  },
-  emoji: {
-    fontSize: 28,
-  },
-  metaText: {
-    flex: 1,
-    gap: 2,
+    gap: 4,
   },
   title: {
     ...typography.section,
     color: colors.textPrimary,
   },
-  who: {
+  subtitle: {
     ...typography.caption,
     color: colors.textSecondary,
   },
@@ -156,8 +143,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: spacing.xl,
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
   },
   error: {
     ...typography.body,

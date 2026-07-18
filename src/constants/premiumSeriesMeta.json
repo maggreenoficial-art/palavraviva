@@ -1,0 +1,506 @@
+{
+  "prem-paz-01": {
+    "title": "A Paz que o Mundo Não Dá",
+    "subtitle": "Dia 1 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: paz de Cristo e respiração consciente. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "joao-14-27"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-02": {
+    "title": "Entregando as Preocupações",
+    "subtitle": "Dia 2 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: reavaliação cognitiva e entrega. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "PHILIPPIANS_4_6_7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-03": {
+    "title": "O Poder da Oração Contemplativa",
+    "subtitle": "Dia 3 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: atenção plena e escuta. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "salmo-46-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-04": {
+    "title": "Confiança em Meio à Tempestade",
+    "subtitle": "Dia 4 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: resiliência emocional. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "MATTHEW_11_28_30"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-05": {
+    "title": "A Graça do Contentamento",
+    "subtitle": "Dia 5 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: gratidão. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "filipenses-4-4-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-06": {
+    "title": "Vivendo um Dia de Cada Vez",
+    "subtitle": "Dia 6 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: foco no presente. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "MATTHEW_6_31_34"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-paz-07": {
+    "title": "Renovando a Mente e o Espírito",
+    "subtitle": "Dia 7 · Paz que Excede Todo Entendimento",
+    "summary": "Foco: autocompaixão e renovação. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1F3340",
+    "seriesId": "paz",
+    "seriesTitle": "Paz que Excede Todo Entendimento",
+    "seriesDay": 7,
+    "biblicalPrayerIds": [
+      "romanos-12-1-2"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-resiliencia-01": {
+    "title": "A Força que Vem de Cima",
+    "subtitle": "Dia 1 · Construindo Resiliência na Fé",
+    "summary": "Foco: força em Deus. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "ISAIAH_41_10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-resiliencia-02": {
+    "title": "Aprendendo com os Gigantes da Fé",
+    "subtitle": "Dia 2 · Construindo Resiliência na Fé",
+    "summary": "Foco: reavaliar desafios. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "tiago-1-2-5"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-resiliencia-03": {
+    "title": "O Propósito na Prova",
+    "subtitle": "Dia 3 · Construindo Resiliência na Fé",
+    "summary": "Foco: busca de significado. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "romanos-8-28"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-resiliencia-04": {
+    "title": "Cultivando a Esperança Ativa",
+    "subtitle": "Dia 4 · Construindo Resiliência na Fé",
+    "summary": "Foco: otimismo realista. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "salmo-62-5-8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-resiliencia-05": {
+    "title": "O Legado da Superação",
+    "subtitle": "Dia 5 · Construindo Resiliência na Fé",
+    "summary": "Foco: celebrar conquistas. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A281F",
+    "seriesId": "resiliencia",
+    "seriesTitle": "Construindo Resiliência na Fé",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "galatas-6-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-01": {
+    "title": "Criado com um Propósito",
+    "subtitle": "Dia 1 · O Propósito que Acalma a Alma",
+    "summary": "Foco: identidade e propósito. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "efesios-2-8-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-02": {
+    "title": "Além do Eu: Servindo com Amor",
+    "subtitle": "Dia 2 · O Propósito que Acalma a Alma",
+    "summary": "Foco: altruísmo e engajamento. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "colossenses-3-12-14"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-03": {
+    "title": "O Chamado no Cotidiano",
+    "subtitle": "Dia 3 · O Propósito que Acalma a Alma",
+    "summary": "Foco: significado no trabalho. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "colossenses-3-1-4"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-04": {
+    "title": "Alinhando Valores e Ações",
+    "subtitle": "Dia 4 · O Propósito que Acalma a Alma",
+    "summary": "Foco: coerência. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "PROVERBS_16_3"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-05": {
+    "title": "Deixando um Legado de Fé",
+    "subtitle": "Dia 5 · O Propósito que Acalma a Alma",
+    "summary": "Foco: realização. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "2timoteo-1-7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-proposito-06": {
+    "title": "Alegria no Propósito",
+    "subtitle": "Dia 6 · O Propósito que Acalma a Alma",
+    "summary": "Foco: emoções positivas. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#243448",
+    "seriesId": "proposito",
+    "seriesTitle": "O Propósito que Acalma a Alma",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "neemias-8-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-gratidao-01": {
+    "title": "O Coração Grato",
+    "subtitle": "Dia 1 · Diário de Gratidão e Louvor",
+    "summary": "Foco: consciência da gratidão. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "salmo-103-1-13"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-gratidao-02": {
+    "title": "Louvor em Todas as Estações",
+    "subtitle": "Dia 2 · Diário de Gratidão e Louvor",
+    "summary": "Foco: reavaliação positiva. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "1tessalonicenses-5-16-18"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-gratidao-03": {
+    "title": "A Ciência da Gratidão",
+    "subtitle": "Dia 3 · Diário de Gratidão e Louvor",
+    "summary": "Foco: benefícios da gratidão. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "salmo-9-9-10"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-gratidao-04": {
+    "title": "Expressando Gratidão Ativamente",
+    "subtitle": "Dia 4 · Diário de Gratidão e Louvor",
+    "summary": "Foco: relacionamentos. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "colossenses-3-15"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-gratidao-05": {
+    "title": "Um Estilo de Vida de Louvor",
+    "subtitle": "Dia 5 · Diário de Gratidão e Louvor",
+    "summary": "Foco: felicidade e bem-estar. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#2A3228",
+    "seriesId": "gratidao",
+    "seriesTitle": "Diário de Gratidão e Louvor",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "salmo-150"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-01": {
+    "title": "Entregando o Dia a Deus",
+    "subtitle": "Dia 1 · Descanso em Deus",
+    "summary": "Foco: relaxamento progressivo. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "PSALM_4_8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-02": {
+    "title": "A Presença de Deus na Noite",
+    "subtitle": "Dia 2 · Descanso em Deus",
+    "summary": "Foco: mindfulness do corpo. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "salmo-139"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-03": {
+    "title": "Perdão e Liberação",
+    "subtitle": "Dia 3 · Descanso em Deus",
+    "summary": "Foco: autocompaixão e perdão. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "efesios-4-29-32"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-04": {
+    "title": "A Esperança da Manhã",
+    "subtitle": "Dia 4 · Descanso em Deus",
+    "summary": "Foco: otimismo. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "salmo-30-1-5"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-05": {
+    "title": "Protegido pelo Amor Divino",
+    "subtitle": "Dia 5 · Descanso em Deus",
+    "summary": "Foco: segurança. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "salmo-91"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-06": {
+    "title": "Silenciando a Mente Ansiosa",
+    "subtitle": "Dia 6 · Descanso em Deus",
+    "summary": "Foco: atenção aos pensamentos. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "isaias-26-3-4"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-descanso-07": {
+    "title": "Despertar Renovado",
+    "subtitle": "Dia 7 · Descanso em Deus",
+    "summary": "Foco: gratidão e propósito. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1A2430",
+    "seriesId": "descanso",
+    "seriesTitle": "Descanso em Deus",
+    "seriesDay": 7,
+    "biblicalPrayerIds": [
+      "LAMENTATIONS_3_21_23"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-01": {
+    "title": "O Fardo da Preocupação",
+    "subtitle": "Dia 1 · Libertando-se da Preocupação",
+    "summary": "Foco: consciência da preocupação. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "mateus-6-25-30"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-02": {
+    "title": "Confiança na Provisão Divina",
+    "subtitle": "Dia 2 · Libertando-se da Preocupação",
+    "summary": "Foco: reavaliação de ameaças. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "MATTHEW_6_31_34"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-03": {
+    "title": "Ação com Fé, Não com Medo",
+    "subtitle": "Dia 3 · Libertando-se da Preocupação",
+    "summary": "Foco: resolução de problemas. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "tiago-4-7-8"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-04": {
+    "title": "Desapego e Controle",
+    "subtitle": "Dia 4 · Libertando-se da Preocupação",
+    "summary": "Foco: aceitação. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "1_PETER_5_7"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-05": {
+    "title": "Pensamentos que Edificam",
+    "subtitle": "Dia 5 · Libertando-se da Preocupação",
+    "summary": "Foco: reestruturação cognitiva. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "filipenses-4-4-9"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  },
+  "prem-preocupacao-06": {
+    "title": "Vivendo em Liberdade",
+    "subtitle": "Dia 6 · Libertando-se da Preocupação",
+    "summary": "Foco: autonomia e propósito. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#332428",
+    "seriesId": "preocupacao",
+    "seriesTitle": "Libertando-se da Preocupação",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "galatas-2-20"
+    ],
+    "ambientVolume": 0.11,
+    "durationSeconds": 300
+  }
+}

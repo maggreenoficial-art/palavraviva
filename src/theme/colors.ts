@@ -11,12 +11,16 @@ export const colors = {
   cyan: '#38BDF8',
 
   textPrimary: '#F2F5F7',
-  textSecondary: '#B4C0CC',
-  textMuted: '#8A97A5',
+  /** Texto secundário com contraste WCAG AA sobre fundo escuro */
+  textSecondary: '#C5D0DB',
+  /** Antes #8A97A5 — clareado para legibilidade sênior */
+  textMuted: '#A8B4C2',
 
   sos: '#F07167',
   sosSoft: 'rgba(240, 113, 103, 0.16)',
 
   white: '#FFFFFF',
   overlay: 'rgba(8, 12, 16, 0.72)',
+  /** Texto sobre botões accent (contraste alto) */
+  onAccent: '#0B1410',
 } as const;

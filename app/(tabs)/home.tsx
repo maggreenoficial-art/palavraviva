@@ -1,11 +1,19 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { DonationModal } from '../../src/components/DonationModal';
 import { FeelingPickerModal } from '../../src/components/FeelingPickerModal';
 import { BrandMark } from '../../src/components/BrandMark';
 import { FeaturedSessionCard } from '../../src/components/FeaturedSessionCard';
+import { HelpFaqSheet } from '../../src/components/HelpFaqSheet';
 import { JourneyRow } from '../../src/components/JourneyRow';
 import { OtPrayerRow } from '../../src/components/OtPrayerRow';
 import { SessionRow } from '../../src/components/SessionRow';
@@ -13,6 +21,7 @@ import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { SosButton } from '../../src/components/SosButton';
 import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
+import { getOldTestamentPrayerById } from '../../src/constants/oldTestamentPrayers';
 import {
   ecosystemSessions,
   getRecommendedSessions,
@@ -21,15 +30,30 @@ import {
   meditationSessions,
   morningSessions,
   nightSessions,
+  premiumSeriesById,
 } from '../../src/constants/sessions';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
+import {
+  canAccessOtPrayer,
+  canAccessSession,
+  gateMessage,
+  hasFullAudioAccess,
+} from '../../src/services/contentAccess';
 import { useContinueStore } from '../../src/store/useContinueStore';
+import { useJourneyProgressStore } from '../../src/store/useJourneyProgressStore';
 import {
   computeAccessKind,
   computeTrialRemainingMs,
   useUserStore,
 } from '../../src/store/useUserStore';
-import { TAB_BAR_OFFSET, colors, radius, spacing, typography } from '../../src/theme';
+import {
+  MIN_TAP,
+  TAB_BAR_OFFSET,
+  colors,
+  radius,
+  spacing,
+  useTypography,
+} from '../../src/theme';
 import { formatTime } from '../../src/utils/formatTime';
 import { firstNameFrom } from '../../src/utils/userId';
 import type { Feeling, Session } from '../../src/types';
@@ -59,6 +83,7 @@ function isEvening() {
 }
 
 export default function HomeScreen() {
+  const type = useTypography();
   const feeling = useUserStore((state) => state.feeling);
   const setFeeling = useUserStore((state) => state.setFeeling);
   const displayName = useUserStore((state) => state.displayName);
@@ -68,7 +93,8 @@ export default function HomeScreen() {
   );
   const firstName = firstNameFrom(displayName ?? '');
   const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
-  const hasContentAccess = accessKind !== 'locked';
+  const fullAudio = hasFullAudioAccess(accessKind);
+  const maxUnlockedDay = useJourneyProgressStore((s) => s.maxUnlockedDay);
   const trialRemainingMs = computeTrialRemainingMs(trialStartedAt);
   const continueId = useContinueStore((s) => s.sessionId);
   const positionMs = useContinueStore((s) => s.positionMs);
@@ -77,6 +103,7 @@ export default function HomeScreen() {
   const [feelingVisible, setFeelingVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [paywallVisible, setPaywallVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const continueSession = continueId ? getSessionById(continueId) : undefined;
   const continueProgress =
@@ -114,16 +141,244 @@ export default function HomeScreen() {
     return (filtered.length ? filtered : all).slice(0, 3);
   }, [feeling]);
 
-  function requireAccess(action: () => void) {
-    if (!hasContentAccess) {
-      setPaywallVisible(true);
-      return;
-    }
-    action();
-  }
+  const isSessionLocked = (session: Session) =>
+    canAccessSession(session, accessKind, maxUnlockedDay) !== 'ok';
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        safe: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        content: {
+          paddingBottom: TAB_BAR_OFFSET + spacing.lg,
+        },
+        header: {
+          paddingHorizontal: spacing.screen,
+          paddingTop: spacing.lg,
+          marginBottom: spacing.xl,
+        },
+        headerTop: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: spacing.sm,
+        },
+        settingsBtn: {
+          minWidth: MIN_TAP,
+          minHeight: MIN_TAP,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        settingsIcon: {
+          fontSize: 24,
+          color: colors.textSecondary,
+        },
+        greeting: {
+          ...type.body,
+          color: colors.textPrimary,
+          marginBottom: spacing.xs,
+        },
+        tagline: {
+          ...type.body,
+          color: colors.textSecondary,
+        },
+        trialHint: {
+          ...type.caption,
+          color: colors.accentMuted,
+          marginTop: spacing.sm,
+        },
+        trialLocked: {
+          marginTop: spacing.sm,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          borderRadius: radius.sm,
+          borderWidth: 1,
+          borderColor: 'rgba(240, 113, 103, 0.45)',
+          backgroundColor: 'rgba(240, 113, 103, 0.12)',
+          minHeight: MIN_TAP,
+          justifyContent: 'center',
+        },
+        trialLockedText: {
+          ...type.caption,
+          color: colors.sos,
+          fontFamily: 'DMSans_600SemiBold',
+        },
+        sosWrap: {
+          paddingHorizontal: spacing.screen,
+          marginBottom: spacing.section,
+        },
+        section: {
+          paddingHorizontal: spacing.screen,
+          marginBottom: spacing.section,
+        },
+        blockHeader: {
+          paddingHorizontal: spacing.screen,
+          marginBottom: spacing.md,
+          gap: 4,
+        },
+        blockTitle: {
+          ...type.section,
+          color: colors.textPrimary,
+        },
+        blockHint: {
+          ...type.caption,
+          color: colors.textSecondary,
+          marginBottom: spacing.sm,
+        },
+        sectionLabel: {
+          ...type.caption,
+          color: colors.textMuted,
+          fontFamily: 'DMSans_600SemiBold',
+          textTransform: 'uppercase',
+          letterSpacing: 0.7,
+          marginBottom: spacing.md,
+        },
+        continueCard: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          backgroundColor: colors.backgroundElevated,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: spacing.lg,
+          minHeight: MIN_TAP,
+        },
+        continueText: {
+          flex: 1,
+          gap: 4,
+        },
+        continueTitle: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+        },
+        continueMeta: {
+          ...type.caption,
+          color: colors.textSecondary,
+        },
+        continueCta: {
+          backgroundColor: colors.accent,
+          borderRadius: radius.sm,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          minHeight: MIN_TAP,
+          justifyContent: 'center',
+        },
+        continueCtaText: {
+          ...type.button,
+          color: colors.onAccent,
+          fontSize: type.caption.fontSize,
+        },
+        dayRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          minHeight: 56,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          gap: spacing.md,
+        },
+        dayIcon: {
+          fontSize: 18,
+          width: 24,
+          color: colors.accent,
+        },
+        dayText: {
+          flex: 1,
+        },
+        dayTitle: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+        },
+        dayMeta: {
+          ...type.caption,
+          color: colors.textSecondary,
+        },
+        prayerLink: {
+          minHeight: 52,
+          justifyContent: 'center',
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        prayerTitle: {
+          ...type.body,
+          color: colors.textPrimary,
+        },
+        linkBtn: {
+          minHeight: MIN_TAP,
+          justifyContent: 'center',
+          alignSelf: 'flex-start',
+        },
+        linkText: {
+          ...type.bodyMedium,
+          color: colors.cyan,
+        },
+        supportBanner: {
+          marginHorizontal: spacing.screen,
+          marginBottom: spacing.lg,
+          padding: spacing.lg,
+          borderRadius: radius.md,
+          backgroundColor: colors.backgroundSoft,
+          borderWidth: 1,
+          borderColor: colors.border,
+          minHeight: MIN_TAP,
+        },
+        supportText: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+        },
+        supportHint: {
+          ...type.caption,
+          color: colors.textSecondary,
+          marginTop: 4,
+        },
+        toolsBanner: {
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.accentMuted,
+          backgroundColor: colors.accentSoft,
+          padding: spacing.lg,
+          minHeight: MIN_TAP,
+          gap: 4,
+        },
+        toolsBannerTitle: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+        },
+        toolsBannerHint: {
+          ...type.caption,
+          color: colors.accent,
+        },
+        pressed: {
+          opacity: 0.85,
+        },
+      }),
+    [type],
+  );
 
   function openSession(session: Session) {
-    requireAccess(() => router.push(`/player/${session.id}`));
+    const gate = canAccessSession(session, accessKind, maxUnlockedDay);
+    if (gate === 'ok') {
+      router.push(`/player/${session.id}`);
+      return;
+    }
+    if (gate === 'journey_locked') {
+      Alert.alert('Dia ainda bloqueado', gateMessage(gate));
+      return;
+    }
+    setPaywallVisible(true);
+  }
+
+  function openOtPrayer(id: string) {
+    const prayer = getOldTestamentPrayerById(id);
+    if (!prayer) return;
+    const gate = canAccessOtPrayer(prayer, accessKind);
+    if (gate === 'ok') {
+      router.push(`/leitura/${id}`);
+      return;
+    }
+    setPaywallVisible(true);
   }
 
   const trialHoursLeft = Math.ceil(trialRemainingMs / (60 * 60 * 1000));
@@ -141,7 +396,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Abrir configurações"
               onPress={() => setSettingsVisible(true)}
-              hitSlop={10}
+              hitSlop={8}
               style={styles.settingsBtn}
             >
               <Text style={styles.settingsIcon}>⚙</Text>
@@ -162,14 +417,17 @@ export default function HomeScreen() {
               Restam cerca de {trialHoursLeft}h do seu acesso gratuito.
             </Text>
           ) : null}
-          {accessKind === 'locked' ? (
+          {!fullAudio ? (
             <Pressable
               accessibilityRole="button"
               onPress={() => setPaywallVisible(true)}
-              style={styles.trialLocked}
+              style={({ pressed }) => [
+                styles.trialLocked,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.trialLockedText}>
-                Acesso gratuito encerrado · Toque para assinar Missão+
+                Missão+ · R$ 19,90/mês · Liberar todos os áudios
               </Text>
             </Pressable>
           ) : null}
@@ -177,9 +435,7 @@ export default function HomeScreen() {
 
         <View style={styles.sosWrap}>
           <InstallPwaBanner />
-          <SosButton
-            onPress={() => requireAccess(() => router.push('/sos'))}
-          />
+          <SosButton onPress={() => router.push('/sos')} />
         </View>
 
         {continueSession && positionMs > 0 ? (
@@ -189,7 +445,10 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Continuar ${continueSession.title}`}
               onPress={() => openSession(continueSession)}
-              style={({ pressed }) => [styles.continueCard, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.continueCard,
+                pressed && styles.pressed,
+              ]}
             >
               <View style={styles.continueText}>
                 <Text style={styles.continueTitle} numberOfLines={2}>
@@ -217,6 +476,14 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
+        {/* Áudios gratuitos */}
+        <View style={styles.blockHeader}>
+          <Text style={styles.blockTitle}>Áudios gratuitos</Text>
+          <Text style={styles.blockHint}>
+            Jornada diária, meditações e áudios do dia — sem assinatura.
+          </Text>
+        </View>
+
         <JourneyRow
           sessions={journeySessions}
           focusId={journeyFocus?.id}
@@ -224,6 +491,7 @@ export default function HomeScreen() {
             continueSession?.category === 'jornada' ? continueSession.id : null
           }
           progressRatio={continueProgress}
+          maxUnlockedDay={fullAudio ? 7 : maxUnlockedDay}
           onSelect={openSession}
         />
 
@@ -231,18 +499,7 @@ export default function HomeScreen() {
           title="Meditações bíblicas"
           sessions={meditationSessions}
           onSelect={openSession}
-        />
-
-        <SessionRow
-          title="3 dias: mente, controle e ordem"
-          sessions={ecosystemSessions}
-          onSelect={openSession}
-        />
-
-        <OtPrayerRow
-          onSelect={(id) =>
-            requireAccess(() => router.push(`/leitura/${id}`))
-          }
+          isLocked={isSessionLocked}
         />
 
         <View style={styles.section}>
@@ -270,6 +527,100 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Séries Premium */}
+        <View style={styles.blockHeader}>
+          <Text style={styles.blockTitle}>Séries Premium</Text>
+          <Text style={styles.blockHint}>
+            Missão+ · O primeiro dia de cada série é uma amostra gratuita.
+          </Text>
+        </View>
+
+        <SessionRow
+          title="3 dias: mente, controle e ordem"
+          badge="Missão+"
+          sessions={ecosystemSessions}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="Paz que Excede Todo Entendimento"
+          badge="Missão+"
+          sessions={premiumSeriesById.paz}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="Construindo Resiliência na Fé"
+          badge="Missão+"
+          sessions={premiumSeriesById.resiliencia}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="O Propósito que Acalma a Alma"
+          badge="Missão+"
+          sessions={premiumSeriesById.proposito}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="Diário de Gratidão e Louvor"
+          badge="Missão+"
+          sessions={premiumSeriesById.gratidao}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="Descanso em Deus"
+          badge="Missão+"
+          sessions={premiumSeriesById.descanso}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <SessionRow
+          title="Libertando-se da Preocupação"
+          badge="Missão+"
+          sessions={premiumSeriesById.preocupacao}
+          onSelect={openSession}
+          isLocked={isSessionLocked}
+        />
+
+        <View style={styles.section}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir Ferramentas e Diário de Gratidão"
+            onPress={() => router.push('/(tabs)/ferramentas')}
+            style={({ pressed }) => [
+              styles.toolsBanner,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.toolsBannerTitle}>Ferramentas</Text>
+            <Text style={styles.toolsBannerHint}>
+              Diário de Gratidão e outros recursos práticos →
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Leituras e orações */}
+        <View style={styles.blockHeader}>
+          <Text style={styles.blockTitle}>Leituras e orações</Text>
+          <Text style={styles.blockHint}>
+            Textos bíblicos sempre disponíveis para ler com calma.
+          </Text>
+        </View>
+
+        <OtPrayerRow
+          onSelect={openOtPrayer}
+          isLocked={(prayer) => canAccessOtPrayer(prayer, accessKind) !== 'ok'}
+        />
+
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Passagens para este momento</Text>
           {suggestedPrayers.map((prayer) => (
@@ -277,10 +628,11 @@ export default function HomeScreen() {
               key={prayer.id}
               accessibilityRole="button"
               accessibilityLabel={`${prayer.title}. ${prayer.referenceLabel}`}
-              onPress={() =>
-                requireAccess(() => router.push(`/oracao/${prayer.id}`))
-              }
-              style={({ pressed }) => [styles.prayerLink, pressed && styles.pressed]}
+              onPress={() => router.push(`/oracao/${prayer.id}`)}
+              style={({ pressed }) => [
+                styles.prayerLink,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.prayerTitle}>
                 {prayer.referenceLabel} — {prayer.themeLabel}
@@ -300,11 +652,16 @@ export default function HomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Apoie a Missão"
-          style={({ pressed }) => [styles.supportBanner, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.supportBanner,
+            pressed && styles.pressed,
+          ]}
           onPress={() => setDonationVisible(true)}
         >
           <Text style={styles.supportText}>Apoie a Missão</Text>
-          <Text style={styles.supportHint}>Contribuição voluntária, quando quiser</Text>
+          <Text style={styles.supportHint}>
+            Contribuição voluntária, quando quiser
+          </Text>
         </Pressable>
       </ScrollView>
 
@@ -322,6 +679,11 @@ export default function HomeScreen() {
         onClose={() => setSettingsVisible(false)}
         onChangeFeeling={() => setFeelingVisible(true)}
         onOpenSubscription={() => setPaywallVisible(true)}
+        onOpenHelp={() => setHelpVisible(true)}
+      />
+      <HelpFaqSheet
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
       />
       <SubscriptionPaywall
         visible={paywallVisible}
@@ -332,177 +694,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingBottom: TAB_BAR_OFFSET + spacing.lg,
-  },
-  header: {
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  settingsBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 22,
-    color: colors.textSecondary,
-  },
-  greeting: {
-    ...typography.body,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  tagline: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  trialHint: {
-    ...typography.caption,
-    color: colors.accentMuted,
-    marginTop: spacing.sm,
-  },
-  trialLocked: {
-    marginTop: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(240, 113, 103, 0.45)',
-    backgroundColor: 'rgba(240, 113, 103, 0.12)',
-  },
-  trialLockedText: {
-    ...typography.caption,
-    color: colors.sos,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-  sosWrap: {
-    paddingHorizontal: spacing.screen,
-    marginBottom: spacing.section,
-  },
-  section: {
-    paddingHorizontal: spacing.screen,
-    marginBottom: spacing.section,
-  },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontFamily: 'DMSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginBottom: spacing.md,
-  },
-  continueCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.backgroundElevated,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-  },
-  continueText: {
-    flex: 1,
-    gap: 4,
-  },
-  continueTitle: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-  },
-  continueMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  continueCta: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  continueCtaText: {
-    ...typography.caption,
-    color: colors.background,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-  dayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 56,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.md,
-  },
-  dayIcon: {
-    fontSize: 18,
-    width: 24,
-    color: colors.accent,
-  },
-  dayText: {
-    flex: 1,
-  },
-  dayTitle: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-  },
-  dayMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  prayerLink: {
-    minHeight: 48,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  prayerTitle: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  linkBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-  },
-  linkText: {
-    ...typography.bodyMedium,
-    color: colors.cyan,
-  },
-  supportBanner: {
-    marginHorizontal: spacing.screen,
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.backgroundSoft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  supportText: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-  },
-  supportHint: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});

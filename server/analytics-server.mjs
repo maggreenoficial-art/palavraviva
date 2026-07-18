@@ -7,12 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const dataDir = path.join(__dirname, 'data');
 const eventsPath = path.join(dataDir, 'events.json');
+const usersPath = path.join(dataDir, 'users.json');
 const PORT = Number(process.env.ANALYTICS_PORT || 8787);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'palavraviva';
 
 fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(eventsPath)) {
   fs.writeFileSync(eventsPath, '[]', 'utf8');
+}
+if (!fs.existsSync(usersPath)) {
+  fs.writeFileSync(usersPath, '{}', 'utf8');
 }
 
 function loadEnv() {
@@ -43,6 +47,66 @@ function writeEvents(events) {
   // Mantém no máximo ~50k eventos
   const trimmed = events.slice(-50_000);
   fs.writeFileSync(eventsPath, JSON.stringify(trimmed), 'utf8');
+}
+
+function readUsers() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeUsers(users) {
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
+}
+
+function upsertUserProfile(event) {
+  const key = event.userId || null;
+  if (!key) return;
+
+  const users = readUsers();
+  const prev = users[key] || {
+    userId: key,
+    displayName: null,
+    whatsapp: null,
+    city: null,
+    region: null,
+    country: null,
+    source: null,
+    platform: null,
+    firstSeenAt: event.occurredAt,
+    lastSeenAt: event.occurredAt,
+    events: 0,
+  };
+
+  users[key] = {
+    ...prev,
+    displayName: event.displayName || prev.displayName,
+    whatsapp: event.whatsapp || prev.whatsapp,
+    city: event.geo?.city || prev.city,
+    region: event.geo?.region || prev.region,
+    country: event.geo?.country || prev.country,
+    source: event.attribution?.source || prev.source,
+    platform: event.platform || prev.platform,
+    firstSeenAt: prev.firstSeenAt || event.occurredAt,
+    lastSeenAt:
+      Date.parse(event.occurredAt) >= Date.parse(prev.lastSeenAt || 0)
+        ? event.occurredAt
+        : prev.lastSeenAt,
+    events: (prev.events || 0) + 1,
+  };
+
+  writeUsers(users);
+}
+
+function formatWhatsapp(digits) {
+  if (!digits) return null;
+  const clean = String(digits).replace(/\D/g, '');
+  if (clean.length < 10) return clean;
+  const withCountry = clean.startsWith('55') ? clean : `55${clean}`;
+  return withCountry;
 }
 
 function send(res, status, body, type = 'application/json') {
@@ -143,6 +207,10 @@ function buildStats(events) {
   const recent = events.filter((e) => Date.parse(e.occurredAt) >= weekAgo);
   const today = events.filter((e) => Date.parse(e.occurredAt) >= dayAgo);
 
+  const contacts = Object.values(readUsers())
+    .filter((u) => u.displayName || u.whatsapp)
+    .sort((a, b) => Date.parse(b.lastSeenAt || 0) - Date.parse(a.lastSeenAt || 0));
+
   const onlineWindow = now - 2 * 60 * 1000;
   const onlineMap = new Map();
   for (const event of events) {
@@ -186,45 +254,32 @@ function buildStats(events) {
       reads7d: reads.length,
       opens24h: today.filter((e) => e.name === 'app_open').length,
       onlineNow: onlineMap.size,
+      contacts: contacts.length,
+      withWhatsapp: contacts.filter((u) => u.whatsapp).length,
     },
     online: [...onlineMap.values()].map((e) => ({
       userId: e.userId,
       displayName: e.displayName || null,
       whatsapp: e.whatsapp || null,
+      whatsappLink: formatWhatsapp(e.whatsapp),
       sessionId: e.sessionId,
       city: e.geo?.city || '—',
       source: e.attribution?.source || '—',
       at: e.occurredAt,
     })),
-    users: (() => {
-      const map = new Map();
-      for (const event of recent) {
-        const key = event.userId || event.sessionId;
-        if (!key) continue;
-        const prev = map.get(key) || {
-          userId: event.userId || null,
-          sessionId: event.sessionId || null,
-          displayName: null,
-          whatsapp: null,
-          city: '—',
-          source: '—',
-          events: 0,
-          lastAt: event.occurredAt,
-        };
-        prev.events += 1;
-        if (event.displayName) prev.displayName = event.displayName;
-        if (event.whatsapp) prev.whatsapp = event.whatsapp;
-        if (event.geo?.city) prev.city = event.geo.city;
-        if (event.attribution?.source) prev.source = event.attribution.source;
-        if (Date.parse(event.occurredAt) >= Date.parse(prev.lastAt)) {
-          prev.lastAt = event.occurredAt;
-        }
-        map.set(key, prev);
-      }
-      return [...map.values()]
-        .sort((a, b) => Date.parse(b.lastAt) - Date.parse(a.lastAt))
-        .slice(0, 40);
-    })(),
+    contacts: contacts.map((u) => ({
+      userId: u.userId,
+      displayName: u.displayName || null,
+      whatsapp: u.whatsapp || null,
+      whatsappLink: formatWhatsapp(u.whatsapp),
+      city: u.city || '—',
+      source: u.source || '—',
+      platform: u.platform || '—',
+      firstSeenAt: u.firstSeenAt,
+      lastSeenAt: u.lastSeenAt,
+      events: u.events || 0,
+    })),
+    users: contacts.slice(0, 80),
     topListened: topCounts(
       listens,
       (e) => e.contentTitle || e.contentId || 'sem-titulo',
@@ -250,11 +305,23 @@ function buildStats(events) {
         title: e.contentTitle || e.path || '',
         displayName: e.displayName || null,
         whatsapp: e.whatsapp || null,
+        whatsappLink: formatWhatsapp(e.whatsapp),
         city: e.geo?.city || '—',
         source: e.attribution?.source || '—',
         at: e.occurredAt,
       })),
   };
+}
+
+function backfillUsersFromEvents() {
+  const users = readUsers();
+  if (Object.keys(users).length > 0) return;
+  const events = readEvents();
+  for (const event of events) {
+    if (event.userId && (event.displayName || event.whatsapp)) {
+      upsertUserProfile(event);
+    }
+  }
 }
 
 const adminHtml = `<!doctype html>
@@ -323,6 +390,9 @@ const adminHtml = `<!doctype html>
       display: inline-block; padding: 2px 8px; border-radius: 999px;
       background: rgba(61,220,151,.15); color: var(--accent); font-size: .75rem;
     }
+    a.wa { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a.wa:hover { text-decoration: underline; }
+    .section-note { color: var(--muted); font-size: .85rem; margin: -4px 0 12px; }
   </style>
 </head>
 <body>
@@ -366,9 +436,41 @@ const adminHtml = `<!doctype html>
         <div class="wrap">
           <div class="grid">
             <div class="card"><div class="label">Online agora</div><div class="value">\${data.totals.onlineNow}</div></div>
+            <div class="card"><div class="label">Cadastros</div><div class="value">\${data.totals.contacts || 0}</div></div>
+            <div class="card"><div class="label">Com WhatsApp</div><div class="value">\${data.totals.withWhatsapp || 0}</div></div>
             <div class="card"><div class="label">Acessos 24h</div><div class="value">\${data.totals.opens24h}</div></div>
             <div class="card"><div class="label">Áudios 7 dias</div><div class="value">\${data.totals.listens7d}</div></div>
             <div class="card"><div class="label">Leituras 7 dias</div><div class="value">\${data.totals.reads7d}</div></div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h2>📇 Contatos (nome e WhatsApp)</h2>
+            <p class="section-note">Cadastros do onboarding — nome e WhatsApp ficam salvos aqui para contato.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>WhatsApp</th>
+                  <th>Cidade</th>
+                  <th>Origem</th>
+                  <th>Cadastro</th>
+                  <th>Último acesso</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${(data.contacts || []).length ? data.contacts.map(u => \`
+                  <tr>
+                    <td><strong>\${u.displayName || '—'}</strong></td>
+                    <td>\${u.whatsappLink
+                      ? \`<a class="wa" href="https://wa.me/\${u.whatsappLink}" target="_blank" rel="noopener">\${u.whatsapp}</a>\`
+                      : (u.whatsapp || '—')}</td>
+                    <td>\${u.city}</td>
+                    <td><span class="pill">\${u.source}</span></td>
+                    <td>\${u.firstSeenAt ? new Date(u.firstSeenAt).toLocaleString('pt-BR') : '—'}</td>
+                    <td>\${u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleString('pt-BR') : '—'}</td>
+                  </tr>\`).join('') : '<tr><td colspan="6" class="muted">Nenhum cadastro com nome/WhatsApp ainda. Peça para alguém concluir o onboarding no app.</td></tr>'}
+              </tbody>
+            </table>
           </div>
 
           <div class="cols">
@@ -404,29 +506,13 @@ const adminHtml = `<!doctype html>
                 \${data.online.length ? data.online.map(o => \`
                   <tr>
                     <td>\${o.displayName || o.userId || o.sessionId || '—'}</td>
-                    <td>\${o.whatsapp || '—'}</td>
+                    <td>\${o.whatsappLink
+                      ? \`<a class="wa" href="https://wa.me/\${o.whatsappLink}" target="_blank" rel="noopener">\${o.whatsapp}</a>\`
+                      : (o.whatsapp || '—')}</td>
                     <td>\${o.city}</td>
                     <td><span class="pill">\${o.source}</span></td>
                     <td>\${new Date(o.at).toLocaleTimeString('pt-BR')}</td>
                   </tr>\`).join('') : '<tr><td colspan="5" class="muted">Ninguém online neste momento.</td></tr>'}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="card" style="margin-top:14px">
-            <h2>👥 Usuários (7 dias)</h2>
-            <table>
-              <thead><tr><th>Nome</th><th>WhatsApp</th><th>Cidade</th><th>Origem</th><th>Eventos</th><th>Último</th></tr></thead>
-              <tbody>
-                \${(data.users || []).length ? data.users.map(u => \`
-                  <tr>
-                    <td>\${u.displayName || u.userId || '—'}</td>
-                    <td>\${u.whatsapp || '—'}</td>
-                    <td>\${u.city}</td>
-                    <td><span class="pill">\${u.source}</span></td>
-                    <td>\${u.events}</td>
-                    <td>\${new Date(u.lastAt).toLocaleString('pt-BR')}</td>
-                  </tr>\`).join('') : '<tr><td colspan="6" class="muted">Nenhum usuário ainda.</td></tr>'}
               </tbody>
             </table>
           </div>
@@ -440,7 +526,9 @@ const adminHtml = `<!doctype html>
                   <tr>
                     <td>\${e.name}</td>
                     <td>\${e.displayName || '—'}</td>
-                    <td>\${e.whatsapp || '—'}</td>
+                    <td>\${e.whatsappLink
+                      ? \`<a class="wa" href="https://wa.me/\${e.whatsappLink}" target="_blank" rel="noopener">\${e.whatsapp}</a>\`
+                      : (e.whatsapp || '—')}</td>
                     <td>\${e.title || '—'}</td>
                     <td>\${e.city}</td>
                     <td>\${e.source}</td>
@@ -536,7 +624,11 @@ const server = http.createServer(async (req, res) => {
         occurredAt: body.occurredAt || new Date().toISOString(),
         receivedAt: new Date().toISOString(),
       });
+      const saved = events[events.length - 1];
       writeEvents(events);
+      if (saved.userId) {
+        upsertUserProfile(saved);
+      }
       send(res, 201, { ok: true });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error) });
@@ -561,9 +653,20 @@ const server = http.createServer(async (req, res) => {
   send(res, 404, { error: 'not_found' });
 });
 
+backfillUsersFromEvents();
+
 server.listen(PORT, () => {
+  const password = process.env.ADMIN_PASSWORD || ADMIN_PASSWORD;
+  const isProd = process.env.NODE_ENV === 'production';
   console.log(`\nPainel Palavra Viva`);
   console.log(`→ http://localhost:${PORT}/admin`);
-  console.log(`→ Senha: ${process.env.ADMIN_PASSWORD || ADMIN_PASSWORD}`);
-  console.log(`→ API eventos: POST http://localhost:${PORT}/api/events\n`);
+  console.log(`→ Senha: ${password}`);
+  console.log(`→ API eventos: POST http://localhost:${PORT}/api/events`);
+  if (isProd && password === 'palavraviva') {
+    console.warn(
+      '⚠ PRODUÇÃO: defina ADMIN_PASSWORD forte no .env (senha padrão ainda ativa).\n',
+    );
+  } else {
+    console.log('');
+  }
 });

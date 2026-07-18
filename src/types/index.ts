@@ -37,6 +37,10 @@ export interface Session {
   biblicalPrayerIds?: string[];
   /** Dia da jornada (1–7), se aplicável */
   journeyDay?: number;
+  /** Identificador da série (eco, paz, resiliencia, …) */
+  seriesId?: string;
+  /** Título da série para UI */
+  seriesTitle?: string;
   coverColor: string;
   /** Miniatura local (require) */
   coverImage?: number;

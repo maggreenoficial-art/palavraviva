@@ -12,29 +12,34 @@ const texts = JSON.parse(
   ),
 );
 
-const prayersSource = fs.readFileSync(
-  path.join(root, 'src', 'constants', 'biblicalPrayers.ts'),
-  'utf8',
+const catalog = JSON.parse(
+  fs.readFileSync(
+    path.join(root, 'src', 'constants', 'biblicalPrayerCatalog.json'),
+    'utf8',
+  ),
 );
 
-// IDs de oração: aparecem junto de apiPassage no mesmo objeto.
-const blocks = prayersSource.split('{').slice(1);
-const uniqueIds = [];
-
-for (const block of blocks) {
-  if (!block.includes('apiPassage')) continue;
-  const idMatch = block.match(/id:\s*'([^']+)'/);
-  if (idMatch) uniqueIds.push(idMatch[1]);
-}
-
-const ids = [...new Set(uniqueIds)];
+const ids = catalog.map((item) => item.id);
 const issues = [];
+const seen = new Set();
 
 if (ids.length === 0) {
   issues.push('Nenhum ID de oração encontrado no catálogo.');
 }
 
-for (const id of ids) {
+for (const item of catalog) {
+  const { id } = item;
+  if (!id) {
+    issues.push('(sem-id): item sem ID');
+    continue;
+  }
+  if (seen.has(id)) issues.push(`${id}: ID duplicado`);
+  seen.add(id);
+  if (!item.referenceLabel) issues.push(`${id}: referenceLabel ausente`);
+  if (!item.book || !item.chapter) {
+    issues.push(`${id}: book/chapter ausente para fetch`);
+  }
+
   const text = texts[id];
   if (!text) {
     issues.push(`${id}: ausente em biblicalPrayerTexts.json`);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { AnalyticsBootstrap } from '../src/components/AnalyticsBootstrap';
+import { useResponsive } from '../src/hooks/useResponsive';
 import { colors } from '../src/theme';
 
 const splashLogo = require('../assets/brand/logo.png');
@@ -61,26 +62,43 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <View style={styles.shell}>
-        <View style={styles.root}>
-          <AnalyticsBootstrap />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              animation: 'fade',
-            }}
-          />
-        </View>
-      </View>
+      <ResponsiveShell>
+        <AnalyticsBootstrap />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'fade',
+          }}
+        />
+      </ResponsiveShell>
     </SafeAreaProvider>
+  );
+}
+
+function ResponsiveShell({ children }: { children: ReactNode }) {
+  const { shellMaxWidth } = useResponsive();
+
+  return (
+    <View style={styles.shell}>
+      <View
+        style={[
+          styles.root,
+          Platform.OS === 'web' ? { maxWidth: shellMaxWidth } : null,
+        ]}
+      >
+        {children}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: colors.background,
+    // Faixas laterais no desktop (PWA centrado, tom espiritual)
+    backgroundColor:
+      Platform.OS === 'web' ? '#0B1116' : colors.background,
     minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
     alignItems: Platform.OS === 'web' ? 'center' : undefined,
     width: Platform.OS === 'web' ? ('100%' as unknown as number) : undefined,
@@ -89,7 +107,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     width: '100%',
-    maxWidth: Platform.OS === 'web' ? 480 : undefined,
     minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
     borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
     borderRightWidth: Platform.OS === 'web' ? 1 : 0,

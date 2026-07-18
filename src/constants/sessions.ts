@@ -264,15 +264,153 @@ export const ecosystemSessions: Session[] = ecosystemMeta.map((item) => ({
   biblicalPrayerId: item.biblicalPrayerIds[0],
   biblicalPrayerIds: [...item.biblicalPrayerIds],
   journeyDay: item.day,
+  seriesId: 'eco',
+  seriesTitle: '3 dias: mente, controle e ordem',
   coverColor: item.coverColor,
   coverImage: ecosystemCoverRequires[item.id],
 }));
+
+/** Séries premium Manus (teologia + psicologia positiva) */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const premiumSeriesMeta = require('./premiumSeriesMeta.json') as Record<
+  string,
+  {
+    title: string;
+    subtitle: string;
+    summary: string;
+    coverColor: string;
+    seriesId: string;
+    seriesTitle: string;
+    seriesDay: number;
+    biblicalPrayerIds: string[];
+    ambientVolume: number;
+    durationSeconds: number;
+  }
+>;
+
+const premiumAudioRequires: Record<string, number> = {
+  'prem-paz-01': require('../../assets/audio/prem-paz-01.mp3'),
+  'prem-paz-02': require('../../assets/audio/prem-paz-02.mp3'),
+  'prem-paz-03': require('../../assets/audio/prem-paz-03.mp3'),
+  'prem-paz-04': require('../../assets/audio/prem-paz-04.mp3'),
+  'prem-paz-05': require('../../assets/audio/prem-paz-05.mp3'),
+  'prem-paz-06': require('../../assets/audio/prem-paz-06.mp3'),
+  'prem-paz-07': require('../../assets/audio/prem-paz-07.mp3'),
+  'prem-resiliencia-01': require('../../assets/audio/prem-resiliencia-01.mp3'),
+  'prem-resiliencia-02': require('../../assets/audio/prem-resiliencia-02.mp3'),
+  'prem-resiliencia-03': require('../../assets/audio/prem-resiliencia-03.mp3'),
+  'prem-resiliencia-04': require('../../assets/audio/prem-resiliencia-04.mp3'),
+  'prem-resiliencia-05': require('../../assets/audio/prem-resiliencia-05.mp3'),
+  'prem-proposito-01': require('../../assets/audio/prem-proposito-01.mp3'),
+  'prem-proposito-02': require('../../assets/audio/prem-proposito-02.mp3'),
+  'prem-proposito-03': require('../../assets/audio/prem-proposito-03.mp3'),
+  'prem-proposito-04': require('../../assets/audio/prem-proposito-04.mp3'),
+  'prem-proposito-05': require('../../assets/audio/prem-proposito-05.mp3'),
+  'prem-proposito-06': require('../../assets/audio/prem-proposito-06.mp3'),
+  'prem-gratidao-01': require('../../assets/audio/prem-gratidao-01.mp3'),
+  'prem-gratidao-02': require('../../assets/audio/prem-gratidao-02.mp3'),
+  'prem-gratidao-03': require('../../assets/audio/prem-gratidao-03.mp3'),
+  'prem-gratidao-04': require('../../assets/audio/prem-gratidao-04.mp3'),
+  'prem-gratidao-05': require('../../assets/audio/prem-gratidao-05.mp3'),
+  'prem-descanso-01': require('../../assets/audio/prem-descanso-01.mp3'),
+  'prem-descanso-02': require('../../assets/audio/prem-descanso-02.mp3'),
+  'prem-descanso-03': require('../../assets/audio/prem-descanso-03.mp3'),
+  'prem-descanso-04': require('../../assets/audio/prem-descanso-04.mp3'),
+  'prem-descanso-05': require('../../assets/audio/prem-descanso-05.mp3'),
+  'prem-descanso-06': require('../../assets/audio/prem-descanso-06.mp3'),
+  'prem-descanso-07': require('../../assets/audio/prem-descanso-07.mp3'),
+  'prem-preocupacao-01': require('../../assets/audio/prem-preocupacao-01.mp3'),
+  'prem-preocupacao-02': require('../../assets/audio/prem-preocupacao-02.mp3'),
+  'prem-preocupacao-03': require('../../assets/audio/prem-preocupacao-03.mp3'),
+  'prem-preocupacao-04': require('../../assets/audio/prem-preocupacao-04.mp3'),
+  'prem-preocupacao-05': require('../../assets/audio/prem-preocupacao-05.mp3'),
+  'prem-preocupacao-06': require('../../assets/audio/prem-preocupacao-06.mp3'),
+};
+
+const premiumCoverRequires: Record<string, number> = {
+  'prem-paz-01': require('../../assets/thumbnails/prem-paz-01.jpg'),
+  'prem-paz-02': require('../../assets/thumbnails/prem-paz-02.jpg'),
+  'prem-paz-03': require('../../assets/thumbnails/prem-paz-03.jpg'),
+  'prem-paz-04': require('../../assets/thumbnails/prem-paz-04.jpg'),
+  'prem-paz-05': require('../../assets/thumbnails/prem-paz-05.jpg'),
+  'prem-paz-06': require('../../assets/thumbnails/prem-paz-06.jpg'),
+  'prem-paz-07': require('../../assets/thumbnails/prem-paz-07.jpg'),
+  'prem-resiliencia-01': require('../../assets/thumbnails/prem-resiliencia-01.jpg'),
+  'prem-resiliencia-02': require('../../assets/thumbnails/prem-resiliencia-02.jpg'),
+  'prem-resiliencia-03': require('../../assets/thumbnails/prem-resiliencia-03.jpg'),
+  'prem-resiliencia-04': require('../../assets/thumbnails/prem-resiliencia-04.jpg'),
+  'prem-resiliencia-05': require('../../assets/thumbnails/prem-resiliencia-05.jpg'),
+  'prem-proposito-01': require('../../assets/thumbnails/prem-proposito-01.jpg'),
+  'prem-proposito-02': require('../../assets/thumbnails/prem-proposito-02.jpg'),
+  'prem-proposito-03': require('../../assets/thumbnails/prem-proposito-03.jpg'),
+  'prem-proposito-04': require('../../assets/thumbnails/prem-proposito-04.jpg'),
+  'prem-proposito-05': require('../../assets/thumbnails/prem-proposito-05.jpg'),
+  'prem-proposito-06': require('../../assets/thumbnails/prem-proposito-06.jpg'),
+  'prem-gratidao-01': require('../../assets/thumbnails/prem-gratidao-01.jpg'),
+  'prem-gratidao-02': require('../../assets/thumbnails/prem-gratidao-02.jpg'),
+  'prem-gratidao-03': require('../../assets/thumbnails/prem-gratidao-03.jpg'),
+  'prem-gratidao-04': require('../../assets/thumbnails/prem-gratidao-04.jpg'),
+  'prem-gratidao-05': require('../../assets/thumbnails/prem-gratidao-05.jpg'),
+  'prem-descanso-01': require('../../assets/thumbnails/prem-descanso-01.jpg'),
+  'prem-descanso-02': require('../../assets/thumbnails/prem-descanso-02.jpg'),
+  'prem-descanso-03': require('../../assets/thumbnails/prem-descanso-03.jpg'),
+  'prem-descanso-04': require('../../assets/thumbnails/prem-descanso-04.jpg'),
+  'prem-descanso-05': require('../../assets/thumbnails/prem-descanso-05.jpg'),
+  'prem-descanso-06': require('../../assets/thumbnails/prem-descanso-06.jpg'),
+  'prem-descanso-07': require('../../assets/thumbnails/prem-descanso-07.jpg'),
+  'prem-preocupacao-01': require('../../assets/thumbnails/prem-preocupacao-01.jpg'),
+  'prem-preocupacao-02': require('../../assets/thumbnails/prem-preocupacao-02.jpg'),
+  'prem-preocupacao-03': require('../../assets/thumbnails/prem-preocupacao-03.jpg'),
+  'prem-preocupacao-04': require('../../assets/thumbnails/prem-preocupacao-04.jpg'),
+  'prem-preocupacao-05': require('../../assets/thumbnails/prem-preocupacao-05.jpg'),
+  'prem-preocupacao-06': require('../../assets/thumbnails/prem-preocupacao-06.jpg'),
+};
+
+const premiumAmbientBySeries: Record<string, number> = {
+  paz: require('../../assets/audio/ambient/ansiedade-01.mp3'),
+  resiliencia: require('../../assets/audio/ambient/medo-01.mp3'),
+  proposito: require('../../assets/audio/ambient/manha-esperanca-01.mp3'),
+  gratidao: require('../../assets/audio/ambient/amor-acalma-01.mp3'),
+  descanso: require('../../assets/audio/ambient/noite-ansiedade-01.mp3'),
+  preocupacao: require('../../assets/audio/ambient/ansiedade-01.mp3'),
+};
+
+export const premiumSeriesSessions: Session[] = Object.entries(
+  premiumSeriesMeta,
+).map(([id, item]) => ({
+  id,
+  title: item.title,
+  subtitle: item.subtitle,
+  summary: item.summary,
+  category: 'serie' as const,
+  durationSeconds: item.durationSeconds,
+  audioSource: premiumAudioRequires[id],
+  ambientSource: premiumAmbientBySeries[item.seriesId],
+  ambientVolume: item.ambientVolume,
+  biblicalPrayerId: item.biblicalPrayerIds[0],
+  biblicalPrayerIds: [...item.biblicalPrayerIds],
+  journeyDay: item.seriesDay,
+  seriesId: item.seriesId,
+  seriesTitle: item.seriesTitle,
+  coverColor: item.coverColor,
+  coverImage: premiumCoverRequires[id],
+}));
+
+export const premiumSeriesById = {
+  paz: premiumSeriesSessions.filter((s) => s.seriesId === 'paz'),
+  resiliencia: premiumSeriesSessions.filter((s) => s.seriesId === 'resiliencia'),
+  proposito: premiumSeriesSessions.filter((s) => s.seriesId === 'proposito'),
+  gratidao: premiumSeriesSessions.filter((s) => s.seriesId === 'gratidao'),
+  descanso: premiumSeriesSessions.filter((s) => s.seriesId === 'descanso'),
+  preocupacao: premiumSeriesSessions.filter((s) => s.seriesId === 'preocupacao'),
+};
 
 export const sessions: Session[] = [
   ...baseSessions,
   ...journeySessions,
   ...meditationSessions,
   ...ecosystemSessions,
+  ...premiumSeriesSessions,
 ];
 
 export const morningSessions = sessions.filter((s) => s.category === 'manha');

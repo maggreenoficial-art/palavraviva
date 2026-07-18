@@ -1,11 +1,13 @@
 import { useFavoritesStore } from './useFavoritesStore';
+import { useJournalStore } from './useJournalStore';
 import { useUserStore } from './useUserStore';
 import { useWellbeingStore } from './useWellbeingStore';
 
-/** Apaga feeling e check-ins locais. Mantém onboarding e favoritos. */
+/** Apaga feeling, check-ins e diário locais. Mantém onboarding e favoritos. */
 export function clearSensitiveLocalData() {
   useUserStore.getState().clearFeeling();
   useWellbeingStore.getState().clearCheckIns();
+  useJournalStore.getState().clearEntries();
 }
 
 /** Apaga preferências locais amplas (feeling, check-ins e favoritos). */

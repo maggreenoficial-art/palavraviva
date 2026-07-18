@@ -53,12 +53,17 @@ export default function OnboardingScreen() {
 
   function handleContinueProfile() {
     const cleaned = name.trim();
+    const digits = whatsapp.replace(/\D/g, '');
     if (cleaned.length < 2) {
       setError('Informe seu nome (mínimo 2 letras).');
       return;
     }
+    if (digits.length < 10 || digits.length > 13) {
+      setError('Informe um WhatsApp válido com DDD (ex: 11999999999).');
+      return;
+    }
     setError(null);
-    completeProfile({ name: cleaned, whatsapp });
+    completeProfile({ name: cleaned, whatsapp: digits });
     void trackAnalytics({ name: 'signup', path: '/onboarding' });
     setStep('feeling');
   }
@@ -89,8 +94,8 @@ export default function OnboardingScreen() {
             <>
               <Text style={styles.question}>Como podemos te chamar?</Text>
               <Text style={styles.support}>
-                Seu nome aparece na saudação. WhatsApp é opcional — só para
-                métrica e apoio à missão. Você ganha 3 dias (72h) de acesso
+                Seu nome aparece na saudação. O WhatsApp nos ajuda a acompanhar
+                a jornada e apoiar a missão. Você ganha 3 dias (72h) de acesso
                 completo.
               </Text>
 
@@ -106,7 +111,7 @@ export default function OnboardingScreen() {
                 accessibilityLabel="Nome"
               />
 
-              <Text style={styles.label}>WhatsApp (opcional)</Text>
+              <Text style={styles.label}>WhatsApp *</Text>
               <TextInput
                 value={whatsapp}
                 onChangeText={setWhatsapp}
@@ -114,7 +119,7 @@ export default function OnboardingScreen() {
                 placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 style={styles.input}
-                accessibilityLabel="WhatsApp opcional"
+                accessibilityLabel="WhatsApp"
               />
 
               {error ? <Text style={styles.error}>{error}</Text> : null}

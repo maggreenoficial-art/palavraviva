@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../src/theme';
+import { colors, MIN_TAP } from '../../src/theme';
 
 export default function TabsLayout() {
   return (
@@ -11,9 +11,9 @@ export default function TabsLayout() {
           backgroundColor: colors.backgroundElevated,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 8,
+          height: 82,
+          paddingBottom: 12,
+          paddingTop: 10,
         },
         sceneStyle: {
           backgroundColor: colors.background,
@@ -22,7 +22,11 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           fontFamily: 'DMSans_500Medium',
-          fontSize: 12,
+          fontSize: 14,
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          minHeight: MIN_TAP,
         },
       }}
     >
@@ -30,8 +34,8 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: 'Início',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home-outline" size={26} color={color} />
           ),
         }}
       />
@@ -39,8 +43,17 @@ export default function TabsLayout() {
         name="oracoes"
         options={{
           title: 'Orações',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="book-outline" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ferramentas"
+        options={{
+          title: 'Ferramentas',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="sparkles-outline" size={26} color={color} />
           ),
         }}
       />

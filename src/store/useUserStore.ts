@@ -18,6 +18,16 @@ function normalizeFeeling(value: unknown): Feeling | null {
 }
 
 export type AccessKind = 'trial' | 'subscribed' | 'locked';
+export type FontScale = 'padrao' | 'medio' | 'grande';
+
+const validFontScales: FontScale[] = ['padrao', 'medio', 'grande'];
+
+function normalizeFontScale(value: unknown): FontScale {
+  if (typeof value === 'string' && validFontScales.includes(value as FontScale)) {
+    return value as FontScale;
+  }
+  return 'padrao';
+}
 
 interface UserState {
   hasOnboarded: boolean;
@@ -25,6 +35,10 @@ interface UserState {
   displayName: string | null;
   whatsapp: string | null;
   feeling: Feeling | null;
+  /** Escala tipográfica (acessibilidade sênior) */
+  fontScale: FontScale;
+  /** Ferramentas compradas (ex.: diario) */
+  unlockedTools: string[];
   /** ISO — início do trial de 72h */
   trialStartedAt: string | null;
   /** ISO — fim da assinatura mensal ativa */
@@ -32,6 +46,9 @@ interface UserState {
   completeProfile: (input: { name: string; whatsapp?: string }) => void;
   setFeeling: (feeling: Feeling) => void;
   clearFeeling: () => void;
+  setFontScale: (scale: FontScale) => void;
+  unlockTool: (toolId: string) => void;
+  setUnlockedTools: (toolIds: string[]) => void;
   activateSubscription: (days?: number) => void;
   /** Sincroniza expiração vinda do servidor de pagamentos (Wiven). */
   setSubscriptionExpiresAt: (expiresAt: string | null) => void;
@@ -76,6 +93,8 @@ export const useUserStore = create<UserState>()(
       displayName: null,
       whatsapp: null,
       feeling: null,
+      fontScale: 'padrao',
+      unlockedTools: [],
       trialStartedAt: null,
       subscriptionExpiresAt: null,
 
@@ -99,6 +118,28 @@ export const useUserStore = create<UserState>()(
         }),
 
       clearFeeling: () => set({ feeling: null }),
+
+      setFontScale: (scale) => set({ fontScale: normalizeFontScale(scale) }),
+
+      unlockTool: (toolId) => {
+        const id = toolId.trim();
+        if (!id) return;
+        const current = get().unlockedTools;
+        if (current.includes(id)) return;
+        set({ unlockedTools: [...current, id] });
+      },
+
+      setUnlockedTools: (toolIds) => {
+        const unique = [
+          ...new Set(
+            toolIds
+              .filter((id) => typeof id === 'string')
+              .map((id) => id.trim())
+              .filter(Boolean),
+          ),
+        ];
+        set({ unlockedTools: unique });
+      },
 
       activateSubscription: (days = 30) => {
         const ms = Math.max(1, days) * 24 * 60 * 60 * 1000;
@@ -133,6 +174,7 @@ export const useUserStore = create<UserState>()(
           userId: null,
           displayName: null,
           whatsapp: null,
+          unlockedTools: [],
           trialStartedAt: null,
           subscriptionExpiresAt: null,
         }),
@@ -151,13 +193,15 @@ export const useUserStore = create<UserState>()(
     {
       name: 'palavra-viva-user',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 4,
       partialize: (state) => ({
         hasOnboarded: state.hasOnboarded,
         userId: state.userId,
         displayName: state.displayName,
         whatsapp: state.whatsapp,
         feeling: state.feeling,
+        fontScale: state.fontScale,
+        unlockedTools: state.unlockedTools,
         trialStartedAt: state.trialStartedAt,
         subscriptionExpiresAt: state.subscriptionExpiresAt,
       }),
@@ -174,6 +218,11 @@ export const useUserStore = create<UserState>()(
             : state.hasOnboarded
               ? new Date().toISOString()
               : null;
+        const unlockedTools = Array.isArray(state.unlockedTools)
+          ? state.unlockedTools.filter(
+              (id): id is string => typeof id === 'string' && Boolean(id.trim()),
+            )
+          : [];
 
         return {
           hasOnboarded: Boolean(state.hasOnboarded && displayName && userId),
@@ -182,6 +231,8 @@ export const useUserStore = create<UserState>()(
           whatsapp:
             typeof state.whatsapp === 'string' ? state.whatsapp : null,
           feeling: normalizeFeeling(state.feeling),
+          fontScale: normalizeFontScale(state.fontScale),
+          unlockedTools,
           trialStartedAt,
           subscriptionExpiresAt:
             typeof state.subscriptionExpiresAt === 'string'
@@ -194,5 +245,5 @@ export const useUserStore = create<UserState>()(
 );
 
 export const TRIAL_HOURS = 72;
-export const SUBSCRIPTION_PRICE_LABEL = 'R$ 12,90/mês';
+export const SUBSCRIPTION_PRICE_LABEL = 'R$ 19,90/mês';
 export { TRIAL_MS, MONTH_MS };

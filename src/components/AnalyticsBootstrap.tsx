@@ -12,6 +12,7 @@ import { usePathname } from 'expo-router';
 export function AnalyticsBootstrap() {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
+  const whatsapp = useUserStore((s) => s.whatsapp);
   const setSubscriptionExpiresAt = useUserStore(
     (s) => s.setSubscriptionExpiresAt,
   );
@@ -20,7 +21,7 @@ export function AnalyticsBootstrap() {
   useEffect(() => {
     void bootstrapAnalytics();
     return startPresenceHeartbeat();
-  }, [userId, displayName]);
+  }, [userId, displayName, whatsapp]);
 
   useEffect(() => {
     if (!userId) return;
@@ -33,7 +34,7 @@ export function AnalyticsBootstrap() {
       name: 'screen_view',
       path: pathname,
     });
-  }, [pathname, userId, displayName]);
+  }, [pathname, userId, displayName, whatsapp]);
 
   return null;
 }

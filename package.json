@@ -50,6 +50,8 @@
     "generate:journey": "node scripts/export-journey-templates.mjs && node scripts/generate-journey-audios.mjs",
     "generate:meditation": "node scripts/generate-meditation-audios.mjs",
     "generate:ecosystem": "node scripts/generate-ecosystem-audios.mjs",
+    "build:premium-series": "node scripts/build-premium-series.mjs",
+    "generate:premium-series": "node scripts/generate-premium-series-audios.mjs",
     "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
     "analytics:server": "node server/analytics-server.mjs",
     "payments:server": "node server/payments-server.mjs",

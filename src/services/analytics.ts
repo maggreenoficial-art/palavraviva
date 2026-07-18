@@ -10,7 +10,11 @@ export type AnalyticsEventName =
   | 'listen_progress'
   | 'read_open'
   | 'presence'
-  | 'signup';
+  | 'signup'
+  | 'subscription_start'
+  | 'subscription_activated'
+  | 'tool_purchase_start'
+  | 'tool_purchase_activated';
 
 export type ContentKind =
   | 'session'

@@ -17,18 +17,14 @@ import {
 } from '../../src/constants/biblicalPrayers';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
 import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
-import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
 import {
-  computeAccessKind,
-  useUserStore,
-} from '../../src/store/useUserStore';
-import {
+  MIN_TAP,
   TAB_BAR_OFFSET,
   colors,
   radius,
   spacing,
-  typography,
+  useTypography,
 } from '../../src/theme';
 
 type FilterId = PrayerTheme | 'todas' | 'favoritos' | 'mais';
@@ -46,17 +42,156 @@ const moreThemes = prayerThemes.filter(
 );
 
 export default function OracoesScreen() {
+  const type = useTypography();
   const [theme, setTheme] = useState<FilterId>('todas');
   const [query, setQuery] = useState('');
   const [showMore, setShowMore] = useState(false);
-  const [paywallVisible, setPaywallVisible] = useState(false);
-  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
-  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
-  const hasContentAccess =
-    computeAccessKind(trialStartedAt, subscriptionExpiresAt) !== 'locked';
   const favorites = useFavoritesStore((s) => s.items);
   const isFavorite = useFavoritesStore((s) => s.isFavorite);
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        safe: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        header: {
+          paddingHorizontal: spacing.screen,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.sm,
+        },
+        heading: {
+          ...type.title,
+          color: colors.textPrimary,
+          marginBottom: spacing.xs,
+        },
+        support: {
+          ...type.body,
+          color: colors.textSecondary,
+          marginBottom: spacing.md,
+        },
+        search: {
+          minHeight: MIN_TAP + 4,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.backgroundElevated,
+          color: colors.textPrimary,
+          paddingHorizontal: spacing.md,
+          marginBottom: spacing.md,
+          fontFamily: 'DMSans_400Regular',
+          fontSize: type.body.fontSize,
+        },
+        filtersWrap: {
+          position: 'relative',
+          marginHorizontal: -spacing.screen,
+        },
+        filtersScroll: {
+          flexGrow: 0,
+        },
+        filters: {
+          paddingHorizontal: spacing.screen,
+          paddingBottom: spacing.sm,
+          alignItems: 'center',
+          paddingRight: spacing.section,
+        },
+        filtersFade: {
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: spacing.sm,
+          width: 20,
+          backgroundColor: colors.background,
+          opacity: 0.72,
+        },
+        chip: {
+          borderRadius: radius.sm,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.backgroundElevated,
+          paddingHorizontal: spacing.md,
+          paddingVertical: 10,
+          marginRight: spacing.sm,
+          minHeight: MIN_TAP,
+          justifyContent: 'center',
+        },
+        chipActive: {
+          backgroundColor: colors.accentSoft,
+          borderColor: colors.accentMuted,
+        },
+        chipText: {
+          ...type.caption,
+          color: colors.textSecondary,
+        },
+        chipTextActive: {
+          color: colors.accent,
+          fontFamily: 'DMSans_600SemiBold',
+        },
+        list: {
+          paddingHorizontal: spacing.screen,
+          paddingBottom: TAB_BAR_OFFSET + spacing.lg,
+        },
+        row: {
+          minHeight: 112,
+          paddingVertical: spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
+        },
+        rowMain: {
+          flex: 1,
+          justifyContent: 'center',
+          minHeight: 96,
+        },
+        favHit: {
+          minWidth: MIN_TAP,
+          minHeight: MIN_TAP,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 2,
+        },
+        fav: {
+          fontSize: 22,
+          color: colors.accent,
+        },
+        pressed: {
+          opacity: 0.85,
+        },
+        theme: {
+          ...type.caption,
+          color: colors.accentMuted,
+          fontFamily: 'DMSans_600SemiBold',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        },
+        title: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+          marginTop: 2,
+        },
+        reference: {
+          ...type.caption,
+          color: colors.textSecondary,
+          marginTop: 4,
+        },
+        badge: {
+          ...type.caption,
+          color: colors.textMuted,
+          marginTop: 4,
+        },
+        empty: {
+          ...type.body,
+          color: colors.textMuted,
+          textAlign: 'center',
+          marginTop: spacing.xl,
+        },
+      }),
+    [type],
+  );
 
   const validPrayers = useMemo(() => listValidBiblicalPrayers(), []);
 
@@ -107,13 +242,7 @@ export default function OracoesScreen() {
       <View style={styles.row}>
         <Pressable
           style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
-          onPress={() => {
-            if (!hasContentAccess) {
-              setPaywallVisible(true);
-              return;
-            }
-            router.push(`/oracao/${item.id}`);
-          }}
+          onPress={() => router.push(`/oracao/${item.id}`)}
           accessibilityRole="button"
           accessibilityLabel={`${item.title}. ${item.referenceLabel}. Texto bíblico.`}
         >
@@ -237,150 +366,6 @@ export default function OracoesScreen() {
           </Text>
         }
       />
-
-      <SubscriptionPaywall
-        visible={paywallVisible}
-        onClose={() => setPaywallVisible(false)}
-      />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  heading: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  support: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  search: {
-    minHeight: 48,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundElevated,
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 16,
-  },
-  filtersWrap: {
-    position: 'relative',
-    marginHorizontal: -spacing.screen,
-  },
-  filtersScroll: {
-    flexGrow: 0,
-  },
-  filters: {
-    paddingHorizontal: spacing.screen,
-    paddingBottom: spacing.sm,
-    alignItems: 'center',
-    paddingRight: spacing.section,
-  },
-  filtersFade: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: spacing.sm,
-    width: 20,
-    backgroundColor: colors.background,
-    opacity: 0.72,
-  },
-  chip: {
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundElevated,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    marginRight: spacing.sm,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  chipActive: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accentMuted,
-  },
-  chipText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  chipTextActive: {
-    color: colors.accent,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-  list: {
-    paddingHorizontal: spacing.screen,
-    paddingBottom: TAB_BAR_OFFSET + spacing.lg,
-  },
-  row: {
-    minHeight: 112,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  rowMain: {
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 96,
-  },
-  favHit: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  fav: {
-    fontSize: 20,
-    color: colors.accent,
-  },
-  pressed: {
-    opacity: 0.9,
-  },
-  theme: {
-    ...typography.caption,
-    color: colors.accentMuted,
-    fontFamily: 'DMSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  title: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  reference: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  badge: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  empty: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-});
