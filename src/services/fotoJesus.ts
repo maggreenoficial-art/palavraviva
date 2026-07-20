@@ -79,6 +79,7 @@ export async function fetchFotoJesusStatus(input: {
   inputUrl?: string | null;
   token?: string | null;
   kieTaskId?: string | null;
+  transactionId?: string | null;
 }): Promise<FotoJesusStatusResult | null> {
   try {
     const base = paymentsBaseUrl();
@@ -89,14 +90,19 @@ export async function fetchFotoJesusStatus(input: {
     if (input.inputUrl) params.set('inputUrl', input.inputUrl);
     if (input.token) params.set('token', input.token);
     if (input.kieTaskId) params.set('kieTaskId', input.kieTaskId);
+    if (input.transactionId) params.set('transactionId', input.transactionId);
 
     const response = await fetch(
       `${base}/api/foto-jesus/status?${params.toString()}`,
     );
     if (!response.ok) return null;
-    const data = (await response.json()) as FotoJesusStatusResult & {
-      ok?: boolean;
-    };
+    const rawText = await response.text();
+    let data: FotoJesusStatusResult & { ok?: boolean };
+    try {
+      data = JSON.parse(rawText) as FotoJesusStatusResult & { ok?: boolean };
+    } catch {
+      return null;
+    }
     if (!data.ok) return null;
     return data;
   } catch {
@@ -111,6 +117,7 @@ export async function pollFotoJesusResult(
     inputUrl?: string | null;
     token?: string | null;
     kieTaskId?: string | null;
+    transactionId?: string | null;
   },
   options?: {
     maxAttempts?: number;
@@ -123,18 +130,23 @@ export async function pollFotoJesusResult(
   const signal = options?.signal;
   let delay = options?.initialDelayMs ?? 3000;
   let kieTaskId = input.kieTaskId ?? null;
+  let last: FotoJesusStatusResult | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    if (signal?.cancelled) return null;
+    if (signal?.cancelled) return last;
     await new Promise((resolve) => setTimeout(resolve, delay));
-    if (signal?.cancelled) return null;
+    if (signal?.cancelled) return last;
 
     const status = await fetchFotoJesusStatus({
       ...input,
       kieTaskId,
     });
-    if (!status) continue;
+    if (!status) {
+      delay = Math.min(delay + 500, 8_000);
+      continue;
+    }
     if (status.kieTaskId) kieTaskId = status.kieTaskId;
+    last = status;
     options?.onUpdate?.(status);
 
     if (status.status === 'success' || status.status === 'fail') {
@@ -144,5 +156,5 @@ export async function pollFotoJesusResult(
     delay = Math.min(delay + 500, 8_000);
   }
 
-  return null;
+  return last;
 }

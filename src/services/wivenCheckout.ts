@@ -49,6 +49,7 @@ export type CardCheckoutResult = {
 export type PixCheckoutResult = {
   ok: true;
   checkoutId: string;
+  transactionId?: string | null;
   pixCode: string | null;
   pixImage: string | null;
 };

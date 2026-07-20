@@ -45,6 +45,9 @@ export default function FotoJesusScreen() {
   const tool = getToolById('foto-jesus');
   const userId = useUserStore((s) => s.userId);
   const saveResult = useFotoJesusStore((s) => s.saveResult);
+  const savePending = useFotoJesusStore((s) => s.savePending);
+  const clearPending = useFotoJesusStore((s) => s.clearPending);
+  const pending = useFotoJesusStore((s) => s.pending);
 
   const [step, setStep] = useState<Step>('pick');
   const [hydrated, setHydrated] = useState(false);
@@ -54,6 +57,10 @@ export default function FotoJesusScreen() {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [inputUrl, setInputUrl] = useState<string | null>(null);
   const [generationToken, setGenerationToken] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [pixCode, setPixCode] = useState<string | null>(null);
+  const [pixImage, setPixImage] = useState<string | null>(null);
+  // checkoutId fica no pending store via onPixReady
   const [kieTaskId, setKieTaskId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -66,11 +73,31 @@ export default function FotoJesusScreen() {
     if (hydrated) return;
 
     const finish = () => {
-      const saved = useFotoJesusStore.getState().lastResult;
+      const state = useFotoJesusStore.getState();
+      const saved = state.lastResult;
       if (saved?.dataUri || saved?.resultUrl) {
         setResultUrl(saved.dataUri || saved.resultUrl);
         setGenerationId(saved.generationId);
         setStep('done');
+        setHydrated(true);
+        return;
+      }
+
+      const open = state.pending;
+      if (open?.generationId && open.inputUrl && open.token) {
+        setGenerationId(open.generationId);
+        setInputUrl(open.inputUrl);
+        setGenerationToken(open.token);
+        setTransactionId(open.transactionId);
+        setPixCode(open.pixCode);
+        setPixImage(open.pixImage);
+        if (open.previewUri) setLocalUri(open.previewUri);
+        setStep('paying');
+        setStatusText(
+          open.transactionId
+            ? 'Há um Pix em aberto. Toque em “Abrir Pix” ou “Verificar pagamento”.'
+            : 'Continue o pagamento para gerar sua imagem.',
+        );
       }
       setHydrated(true);
     };
@@ -262,11 +289,15 @@ export default function FotoJesusScreen() {
     setGenerationId(null);
     setInputUrl(null);
     setGenerationToken(null);
+    setTransactionId(null);
+    setPixCode(null);
+    setPixImage(null);
     setKieTaskId(null);
     setResultUrl(null);
     setStep('ready');
     setStatusText(null);
-  }, []);
+    clearPending();
+  }, [clearPending]);
 
   const uploadAndPay = useCallback(async () => {
     if (!userId) {
@@ -317,6 +348,7 @@ export default function FotoJesusScreen() {
         await persistGenerated(generationId, seed.resultUrl);
         setLocalUri(null);
         setImageBase64(null);
+        clearPending();
         setStep('done');
         setStatusText(null);
         return;
@@ -338,6 +370,7 @@ export default function FotoJesusScreen() {
           inputUrl,
           token: generationToken,
           kieTaskId: seed?.kieTaskId || kieTaskId,
+          transactionId,
         },
         {
           signal,
@@ -346,7 +379,9 @@ export default function FotoJesusScreen() {
           onUpdate: (status) => {
             if (status.kieTaskId) setKieTaskId(status.kieTaskId);
             if (status.status === 'awaiting_payment') {
-              setStatusText('Aguardando confirmação do pagamento…');
+              setStatusText(
+                'Aguardando confirmação do pagamento… Se já pagou, toque em “Verificar pagamento”.',
+              );
             } else if (
               status.status === 'paid' ||
               status.status === 'generating'
@@ -358,9 +393,9 @@ export default function FotoJesusScreen() {
       );
 
       if (!result) {
-        setStep('error');
+        setStep('paying');
         setError(
-          'A geração demorou mais que o esperado. Toque em “Verificar status” em instantes.',
+          'Ainda não confirmamos o pagamento ou a geração demorou. Toque em “Verificar pagamento” ou abra o Pix de novo.',
         );
         return;
       }
@@ -370,6 +405,7 @@ export default function FotoJesusScreen() {
         await persistGenerated(generationId, result.resultUrl);
         setLocalUri(null);
         setImageBase64(null);
+        clearPending();
         setStep('done');
         setStatusText(null);
         void trackAnalytics({
@@ -379,17 +415,27 @@ export default function FotoJesusScreen() {
         return;
       }
 
+      if (result.status === 'awaiting_payment') {
+        setStep('paying');
+        setStatusText(
+          'Pagamento ainda não confirmado. Abra o Pix ou verifique de novo.',
+        );
+        return;
+      }
+
       setStep('error');
       setError(
         result.error || 'Não foi possível gerar a imagem. Tente outra foto.',
       );
     },
     [
+      clearPending,
       generationId,
       generationToken,
       inputUrl,
       kieTaskId,
       persistGenerated,
+      transactionId,
       userId,
     ],
   );
@@ -443,12 +489,16 @@ export default function FotoJesusScreen() {
     setGenerationId(null);
     setInputUrl(null);
     setGenerationToken(null);
+    setTransactionId(null);
+    setPixCode(null);
+    setPixImage(null);
     setKieTaskId(null);
     setResultUrl(null);
     setError(null);
     setActionMessage(null);
     setStatusText(null);
-  }, []);
+    clearPending();
+  }, [clearPending]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -576,7 +626,7 @@ export default function FotoJesusScreen() {
           </Pressable>
         ) : null}
 
-        {step === 'ready' ? (
+        {step === 'ready' && !pending?.transactionId ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Pagar ${TOOL_FOTO_JESUS_PRICE_LABEL} e gerar`}
@@ -594,7 +644,42 @@ export default function FotoJesusScreen() {
           </Pressable>
         ) : null}
 
-        {step === 'generating' || step === 'paying' ? (
+        {step === 'paying' || (step === 'ready' && pending?.transactionId) ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Abrir pagamento Pix"
+              disabled={busy}
+              onPress={() => {
+                setStep('paying');
+                setPaywallVisible(true);
+              }}
+              style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+            >
+              <Text style={styles.ctaText}>
+                {pixCode ? 'Abrir Pix de novo' : 'Abrir pagamento Pix'}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy || !generationId}
+              onPress={() => void checkStatus()}
+              style={({ pressed }) => [
+                styles.cta,
+                styles.ctaSecondary,
+                pressed && styles.pressed,
+              ]}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : (
+                <Text style={styles.ctaTextSecondary}>Verificar pagamento</Text>
+              )}
+            </Pressable>
+          </>
+        ) : null}
+
+        {step === 'generating' ? (
           <>
             <ActivityIndicator color={colors.accent} />
             {generationId ? (
@@ -615,8 +700,8 @@ export default function FotoJesusScreen() {
         ) : null}
 
         <Text style={styles.tip}>
-          Use uma foto clara do rosto, de frente e com boa luz. A imagem só é
-          liberada após o pagamento confirmado.
+          Use uma foto clara do rosto, de frente e com boa luz. Depois do Pix,
+          toque em “Já paguei” ou “Verificar pagamento” para liberar a imagem.
         </Text>
       </ScrollView>
 
@@ -627,9 +712,41 @@ export default function FotoJesusScreen() {
         generationId={generationId}
         inputUrl={inputUrl}
         generationToken={generationToken}
+        initialPixCode={pixCode}
+        initialPixImage={pixImage}
+        initialTransactionId={transactionId}
+        onPixReady={(info) => {
+          setTransactionId(info.transactionId);
+          setPixCode(info.pixCode);
+          setPixImage(info.pixImage);
+          if (generationId && inputUrl && generationToken) {
+            savePending({
+              generationId,
+              inputUrl,
+              token: generationToken,
+              transactionId: info.transactionId,
+              checkoutId: info.checkoutId,
+              pixCode: info.pixCode,
+              pixImage: info.pixImage,
+              previewUri: localUri,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          setStep('paying');
+          setStatusText(
+            'Pix gerado. Pague no banco e toque em “Já paguei” ou “Verificar pagamento”.',
+          );
+        }}
         onClose={() => {
           setPaywallVisible(false);
-          if (step === 'paying') setStep('ready');
+          if (step === 'paying' || pixCode) {
+            setStep('paying');
+            setStatusText(
+              pixCode
+                ? 'Pix em aberto. Toque em “Abrir Pix” ou “Verificar pagamento”.'
+                : 'Continue o pagamento para gerar sua imagem.',
+            );
+          }
         }}
         onUnlocked={(meta) => {
           void startPolling(meta);

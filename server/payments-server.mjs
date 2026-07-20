@@ -582,6 +582,65 @@ async function fetchWivenTransaction(transactionId) {
   );
 }
 
+/** Extrai status de pagamento de respostas variadas da Wiven. */
+function extractTxStatus(tx) {
+  if (!tx) return null;
+  if (Array.isArray(tx)) return extractTxStatus(tx[0]);
+  const nested = tx.data ?? tx.transaction ?? tx.result ?? null;
+  if (Array.isArray(nested)) return extractTxStatus(nested[0]);
+  return (
+    tx.status ||
+    tx.payment_status ||
+    tx.paymentStatus ||
+    nested?.status ||
+    nested?.payment_status ||
+    nested?.paymentStatus ||
+    null
+  );
+}
+
+/**
+ * Confirma Pix/cartão consultando a Wiven (não depende do /tmp entre lambdas).
+ */
+async function tryConfirmGenerationPayment({
+  generationId,
+  userId,
+  inputUrl,
+  token,
+  transactionId,
+  checkoutId,
+  source,
+}) {
+  if (!transactionId) return null;
+  const tx = await fetchWivenTransaction(transactionId);
+  const status = extractTxStatus(tx);
+  if (!isPaidStatus(status)) return null;
+
+  try {
+    const all = readCheckouts();
+    const idx = all.findIndex(
+      (c) =>
+        c.transactionId === transactionId ||
+        (checkoutId && c.id === checkoutId),
+    );
+    if (idx >= 0) {
+      all[idx].status = 'paid';
+      all[idx].paidAt = new Date().toISOString();
+      writeCheckouts(all);
+    }
+  } catch {
+    // /tmp pode falhar no Vercel — ok, seguimos com a geração
+  }
+
+  return fulfillFotoJesusPayment(generationId, userId, {
+    checkoutId: checkoutId || null,
+    source: source || 'tx_confirm',
+    providerRef: transactionId,
+    inputUrl: inputUrl || null,
+    token: token || null,
+  });
+}
+
 function saveCheckoutRecord(record) {
   const checkouts = readCheckouts();
   checkouts.push(record);
@@ -1112,6 +1171,16 @@ const serverHandler = async (req, res) => {
       const resolved = resolveProduct(metaProduct);
 
       if (resolved.kind === 'generation' && metaGenerationId) {
+        const metaInputUrl =
+          body.metadata?.inputUrl ||
+          body.data?.metadata?.inputUrl ||
+          matched?.inputUrl ||
+          null;
+        const metaToken =
+          body.metadata?.generationToken ||
+          body.data?.metadata?.generationToken ||
+          matched?.generationToken ||
+          null;
         const generation = await fulfillFotoJesusPayment(
           metaGenerationId,
           userId,
@@ -1119,8 +1188,8 @@ const serverHandler = async (req, res) => {
             checkoutId: matched?.id || null,
             source: 'wiven_webhook',
             providerRef,
-            inputUrl: matched?.inputUrl || null,
-            token: matched?.generationToken || null,
+            inputUrl: metaInputUrl,
+            token: metaToken,
           },
         );
         send(res, 200, {
@@ -1285,6 +1354,9 @@ const serverHandler = async (req, res) => {
       const inputUrl = (url.searchParams.get('inputUrl') || '').trim();
       const token = (url.searchParams.get('token') || '').trim();
       const kieTaskId = (url.searchParams.get('kieTaskId') || '').trim();
+      const transactionId = (
+        url.searchParams.get('transactionId') || ''
+      ).trim();
       if (!generationId || !userId) {
         send(res, 400, {
           ok: false,
@@ -1316,41 +1388,51 @@ const serverHandler = async (req, res) => {
       }
 
       if (generation.status === 'awaiting_payment') {
-        const openCheckouts = readCheckouts()
-          .filter(
-            (c) =>
-              c.userId === userId &&
-              c.generationId === generationId &&
-              c.status === 'opened' &&
-              c.transactionId,
-          )
-          .slice(-3)
-          .reverse();
+        const txCandidates = [];
+        if (transactionId) txCandidates.push({ transactionId, checkoutId: null });
 
-        for (const checkout of openCheckouts) {
-          try {
-            const tx = await fetchWivenTransaction(checkout.transactionId);
-            const status = tx?.status || tx?.payment_status || tx?.data?.status;
-            if (!isPaidStatus(status)) continue;
-
-            const all = readCheckouts();
-            const idx = all.findIndex((c) => c.id === checkout.id);
-            if (idx >= 0) {
-              all[idx].status = 'paid';
-              all[idx].paidAt = new Date().toISOString();
-              writeCheckouts(all);
+        try {
+          const openCheckouts = readCheckouts()
+            .filter(
+              (c) =>
+                c.userId === userId &&
+                c.generationId === generationId &&
+                c.status === 'opened' &&
+                c.transactionId,
+            )
+            .slice(-3)
+            .reverse();
+          for (const checkout of openCheckouts) {
+            if (
+              !txCandidates.some((t) => t.transactionId === checkout.transactionId)
+            ) {
+              txCandidates.push({
+                transactionId: checkout.transactionId,
+                checkoutId: checkout.id,
+              });
             }
+          }
+        } catch {
+          // /tmp ausente no Vercel — usa só transactionId do cliente
+        }
 
-            generation = await fulfillFotoJesusPayment(generationId, userId, {
-              checkoutId: checkout.id,
+        for (const candidate of txCandidates) {
+          try {
+            const confirmed = await tryConfirmGenerationPayment({
+              generationId,
+              userId,
+              inputUrl: inputUrl || null,
+              token: token || null,
+              transactionId: candidate.transactionId,
+              checkoutId: candidate.checkoutId,
               source: 'status_poll',
-              providerRef: checkout.transactionId,
-              inputUrl: checkout.inputUrl || inputUrl || null,
-              token: checkout.generationToken || token || null,
             });
-            break;
+            if (confirmed) {
+              generation = confirmed;
+              break;
+            }
           } catch {
-            // continua
+            // tenta o próximo
           }
         }
       }

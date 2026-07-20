@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -20,6 +20,7 @@ import {
 } from '../constants/toolsCatalog';
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
+import { fetchFotoJesusStatus } from '../services/fotoJesus';
 import {
   formatCardNumber,
   formatCpf,
@@ -38,10 +39,20 @@ interface ToolPaywallProps {
     kieTaskId?: string | null;
     resultUrl?: string | null;
   }) => void;
+  onPixReady?: (info: {
+    transactionId: string | null;
+    checkoutId: string | null;
+    pixCode: string | null;
+    pixImage: string | null;
+  }) => void;
   /** Para cobrança por imagem (Foto com Jesus) */
   generationId?: string | null;
   inputUrl?: string | null;
   generationToken?: string | null;
+  /** Retomar Pix já gerado */
+  initialPixCode?: string | null;
+  initialPixImage?: string | null;
+  initialTransactionId?: string | null;
   consumable?: boolean;
 }
 
@@ -57,9 +68,13 @@ export function ToolPaywall({
   toolId,
   onClose,
   onUnlocked,
+  onPixReady,
   generationId = null,
   inputUrl = null,
   generationToken = null,
+  initialPixCode = null,
+  initialPixImage = null,
+  initialTransactionId = null,
   consumable = false,
 }: ToolPaywallProps) {
   const type = useTypography();
@@ -69,8 +84,12 @@ export function ToolPaywall({
   const whatsapp = useUserStore((s) => s.whatsapp);
   const firstName = (displayName ?? '').trim().split(/\s+/)[0] ?? '';
 
-  const [method, setMethod] = useState<PayMethod>('card');
+  const isConsumable = consumable || Boolean(tool?.consumable);
+  const [method, setMethod] = useState<PayMethod>(
+    isConsumable ? 'pix' : 'card',
+  );
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [document, setDocument] = useState('');
@@ -80,43 +99,116 @@ export function ToolPaywall({
   const [cvv, setCvv] = useState('');
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const unlockingRef = useRef(false);
   const { isDesktop, shellMaxWidth } = useResponsive();
 
   const priceLabel = tool?.priceLabel ?? TOOL_FOTO_JESUS_PRICE_LABEL;
   const productKey = PRODUCT_BY_TOOL[toolId] ?? `tool-${toolId}`;
-  const isConsumable = consumable || Boolean(tool?.consumable);
 
   useEffect(() => {
     if (!visible) return;
-    setMethod('card');
+    unlockingRef.current = false;
+    setMethod(isConsumable ? 'pix' : 'card');
     setLoading(false);
+    setChecking(false);
     setMessage(null);
     setError(null);
-    setPixCode(null);
-    setPixImage(null);
+    setCopied(false);
     setCardOwner((prev) => prev || displayName || '');
-  }, [visible, displayName, generationId]);
+    setPixCode(initialPixCode);
+    setPixImage(initialPixImage);
+    setTransactionId(initialTransactionId);
+    if (initialPixCode) {
+      setMessage(
+        'Pix pronto. Pague no banco e toque em “Já paguei” para continuar.',
+      );
+    }
+  }, [
+    visible,
+    displayName,
+    generationId,
+    isConsumable,
+    initialPixCode,
+    initialPixImage,
+    initialTransactionId,
+  ]);
 
+  // Poll automático enquanto o Pix está na tela (Vercel precisa do transactionId)
   useEffect(() => {
-    if (!visible || !pixCode || !isConsumable || !generationId) return;
+    if (!visible || !pixCode || !isConsumable || !generationId || !userId) {
+      return;
+    }
+    if (!transactionId && !generationToken) return;
+
     const signal = { cancelled: false };
-    const timer = setTimeout(() => {
-      if (!signal.cancelled) {
-        setMessage(
-          'Se o Pix já foi pago, feche e aguarde a geração — ou toque em Já paguei.',
-        );
+    let delay = 4000;
+
+    const tick = async () => {
+      if (signal.cancelled || unlockingRef.current) return;
+      const status = await fetchFotoJesusStatus({
+        generationId,
+        userId,
+        inputUrl,
+        token: generationToken,
+        transactionId,
+      });
+      if (signal.cancelled || unlockingRef.current) return;
+
+      if (
+        status &&
+        (status.status === 'paid' ||
+          status.status === 'generating' ||
+          status.status === 'success')
+      ) {
+        unlockingRef.current = true;
+        void trackAnalytics({
+          name: 'tool_purchase_activated',
+          meta: { toolId, method: 'pix_auto', consumable: isConsumable },
+        });
+        await handleSuccess({
+          kieTaskId: status.kieTaskId,
+          resultUrl: status.resultUrl,
+        });
+        return;
       }
-    }, 12_000);
+
+      delay = Math.min(delay + 500, 8_000);
+      if (!signal.cancelled) {
+        timer = setTimeout(() => {
+          void tick();
+        }, delay);
+      }
+    };
+
+    let timer = setTimeout(() => {
+      void tick();
+    }, delay);
+
     return () => {
       signal.cancelled = true;
       clearTimeout(timer);
     };
-  }, [visible, pixCode, isConsumable, generationId]);
+    // handleSuccess é estável o suficiente via closure do render atual
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    visible,
+    pixCode,
+    isConsumable,
+    generationId,
+    userId,
+    transactionId,
+    generationToken,
+    inputUrl,
+    toolId,
+  ]);
 
   const qrUri = useMemo(() => {
     if (pixImage) return pixImage;
     if (!pixCode) return null;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pixCode)}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(pixCode)}`;
   }, [pixCode, pixImage]);
 
   const styles = useMemo(
@@ -139,14 +231,14 @@ export function ToolPaywall({
           backgroundColor: colors.backgroundElevated,
           borderTopLeftRadius: radius.xl,
           borderTopRightRadius: radius.xl,
-          maxHeight: '92%',
+          maxHeight: '94%',
           borderTopWidth: 1,
           borderColor: colors.border,
           overflow: 'hidden',
         },
         sheetDesktop: {
           width: '100%',
-          maxHeight: '88%',
+          maxHeight: '90%',
           borderRadius: radius.xl,
           alignSelf: 'center',
         },
@@ -181,6 +273,7 @@ export function ToolPaywall({
           ...type.body,
           color: colors.textSecondary,
           marginBottom: spacing.sm,
+          lineHeight: Math.round(type.body.fontSize * 1.45),
         },
         priceCard: {
           flexDirection: 'row',
@@ -223,7 +316,7 @@ export function ToolPaywall({
         },
         tab: {
           flex: 1,
-          minHeight: MIN_TAP,
+          minHeight: MIN_TAP + 4,
           borderRadius: radius.sm,
           alignItems: 'center',
           justifyContent: 'center',
@@ -233,6 +326,7 @@ export function ToolPaywall({
         },
         tabText: {
           ...type.bodyMedium,
+          fontSize: type.bodyMedium.fontSize + 1,
           color: colors.textSecondary,
         },
         tabTextActive: {
@@ -240,13 +334,13 @@ export function ToolPaywall({
           fontFamily: 'DMSans_700Bold',
         },
         label: {
-          ...type.caption,
-          color: colors.textMuted,
+          ...type.bodyMedium,
+          color: colors.textSecondary,
           marginTop: spacing.sm,
-          marginBottom: 4,
+          marginBottom: 6,
         },
         input: {
-          minHeight: 50,
+          minHeight: 54,
           borderRadius: radius.md,
           borderWidth: 1,
           borderColor: colors.border,
@@ -254,7 +348,7 @@ export function ToolPaywall({
           color: colors.textPrimary,
           paddingHorizontal: spacing.md,
           fontFamily: 'DMSans_400Regular',
-          fontSize: type.body.fontSize,
+          fontSize: type.body.fontSize + 2,
         },
         row: {
           flexDirection: 'row',
@@ -265,7 +359,7 @@ export function ToolPaywall({
         },
         cta: {
           marginTop: spacing.md,
-          minHeight: 54,
+          minHeight: 56,
           borderRadius: radius.md,
           backgroundColor: colors.accent,
           alignItems: 'center',
@@ -274,53 +368,104 @@ export function ToolPaywall({
         },
         ctaText: {
           ...type.button,
+          fontSize: type.button.fontSize + 1,
           color: colors.onAccent,
         },
-        secondary: {
-          minHeight: 48,
+        ctaSecondaryFill: {
+          backgroundColor: colors.surface,
+          borderWidth: 1.5,
+          borderColor: colors.accent,
+        },
+        ctaSecondaryFillText: {
+          color: colors.accent,
+        },
+        stepsBox: {
+          marginTop: spacing.md,
+          backgroundColor: colors.backgroundSoft,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: spacing.lg,
+          gap: spacing.sm,
+        },
+        stepTitle: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+          fontFamily: 'DMSans_700Bold',
+          marginBottom: 4,
+        },
+        stepLine: {
+          ...type.body,
+          color: colors.textSecondary,
+          lineHeight: Math.round(type.body.fontSize * 1.4),
+        },
+        pixBox: {
+          marginTop: spacing.md,
           alignItems: 'center',
-          justifyContent: 'center',
+          gap: spacing.md,
+          width: '100%',
+        },
+        qrWrap: {
+          padding: spacing.md,
+          backgroundColor: colors.white,
+          borderRadius: radius.lg,
+        },
+        qr: {
+          width: 220,
+          height: 220,
+        },
+        copyHint: {
+          ...type.bodyMedium,
+          color: colors.textPrimary,
+          textAlign: 'center',
+          fontFamily: 'DMSans_700Bold',
+        },
+        pixCodeBox: {
+          width: '100%',
+          backgroundColor: colors.backgroundSoft,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: spacing.md,
+        },
+        pixCode: {
+          ...type.caption,
+          fontSize: 13,
+          lineHeight: 18,
+          color: colors.textSecondary,
+          textAlign: 'left',
+        },
+        waitingRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
           marginTop: spacing.sm,
         },
-        secondaryText: {
-          ...type.bodyMedium,
-          color: colors.cyan,
+        waitingText: {
+          ...type.body,
+          color: colors.accent,
+          flex: 1,
         },
         close: {
           minHeight: MIN_TAP,
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: spacing.sm,
+          marginTop: spacing.md,
         },
         closeText: {
           ...type.bodyMedium,
           color: colors.textMuted,
         },
         message: {
-          ...type.caption,
+          ...type.body,
           color: colors.accent,
           marginTop: spacing.sm,
+          lineHeight: Math.round(type.body.fontSize * 1.4),
         },
         error: {
-          ...type.caption,
+          ...type.body,
           color: colors.sos,
           marginTop: spacing.sm,
-        },
-        pixBox: {
-          marginTop: spacing.md,
-          alignItems: 'center',
-          gap: spacing.sm,
-        },
-        qr: {
-          width: 200,
-          height: 200,
-          borderRadius: radius.md,
-          backgroundColor: colors.white,
-        },
-        pixCode: {
-          ...type.caption,
-          color: colors.textSecondary,
-          textAlign: 'center',
         },
         pressed: {
           opacity: 0.85,
@@ -335,7 +480,7 @@ export function ToolPaywall({
   }) {
     setMessage(
       isConsumable
-        ? 'Pagamento confirmado. Gerando sua imagem…'
+        ? 'Pagamento confirmado! Gerando sua imagem…'
         : 'Pagamento confirmado. Ferramenta liberada!',
     );
     setTimeout(() => {
@@ -390,7 +535,7 @@ export function ToolPaywall({
         return;
       }
       setMessage(
-        'Pagamento em análise. Toque em “Já paguei” em alguns segundos.',
+        'Pagamento em análise. Aguarde alguns segundos e toque em “Já paguei”.',
       );
     } catch (err) {
       setError(
@@ -413,6 +558,7 @@ export function ToolPaywall({
     setLoading(true);
     setError(null);
     setMessage(null);
+    setCopied(false);
     try {
       void trackAnalytics({
         name: 'tool_purchase_start',
@@ -428,10 +574,19 @@ export function ToolPaywall({
         inputUrl,
         generationToken,
       });
+      const tx = result.transactionId ?? null;
       setPixCode(result.pixCode);
       setPixImage(result.pixImage);
+      setTransactionId(tx);
+      setCheckoutId(result.checkoutId ?? null);
+      onPixReady?.({
+        transactionId: tx,
+        checkoutId: result.checkoutId ?? checkoutId ?? null,
+        pixCode: result.pixCode,
+        pixImage: result.pixImage,
+      });
       setMessage(
-        'Pix gerado. Após o pagamento, a imagem começa a ser criada automaticamente.',
+        'Pix gerado. Pague no app do banco e depois toque em “Já paguei”.',
       );
     } catch (err) {
       setError(
@@ -443,9 +598,56 @@ export function ToolPaywall({
   }
 
   async function handleAlreadyPaid() {
+    if (!userId) {
+      setError('Faça o onboarding novamente para gerar seu ID.');
+      return;
+    }
+
+    if (isConsumable && generationId) {
+      setChecking(true);
+      setError(null);
+      setMessage('Confirmando seu pagamento…');
+      try {
+        const status = await fetchFotoJesusStatus({
+          generationId,
+          userId,
+          inputUrl,
+          token: generationToken,
+          transactionId,
+        });
+
+        if (
+          status &&
+          (status.status === 'paid' ||
+            status.status === 'generating' ||
+            status.status === 'success')
+        ) {
+          void trackAnalytics({
+            name: 'tool_purchase_activated',
+            meta: { toolId, method: 'manual_check', consumable: true },
+          });
+          unlockingRef.current = true;
+          await handleSuccess({
+            kieTaskId: status.kieTaskId,
+            resultUrl: status.resultUrl,
+          });
+          return;
+        }
+
+        setMessage(
+          'Ainda não identificamos o pagamento. Confira no banco e tente de novo em alguns segundos.',
+        );
+      } catch {
+        setError('Não foi possível verificar o pagamento agora. Tente de novo.');
+      } finally {
+        setChecking(false);
+      }
+      return;
+    }
+
     void trackAnalytics({
       name: 'tool_purchase_activated',
-      meta: { toolId, method: 'manual_check', consumable: isConsumable },
+      meta: { toolId, method: 'manual_check', consumable: false },
     });
     await handleSuccess();
   }
@@ -459,14 +661,19 @@ export function ToolPaywall({
         navigator.clipboard
       ) {
         await navigator.clipboard.writeText(pixCode);
-        setMessage('Código Pix copiado.');
+        setCopied(true);
+        setMessage('Código Pix copiado! Cole no app do seu banco.');
         return;
       }
       await Share.share({ message: pixCode });
+      setCopied(true);
+      setMessage('Código Pix pronto para colar no banco.');
     } catch {
-      setMessage('Selecione e copie o código Pix abaixo.');
+      setMessage('Pressione e segure o código abaixo para copiar.');
     }
   }
+
+  const pixReady = Boolean(pixCode);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -499,8 +706,10 @@ export function ToolPaywall({
                 : 'Finalize para gerar'}
             </Text>
             <Text style={styles.body}>
-              {tool?.benefit ??
-                'Após o pagamento confirmado, geramos sua imagem com Jesus.'}
+              {pixReady
+                ? 'Pague com Pix no app do banco. Em seguida toque em “Já paguei” para começarmos a imagem.'
+                : (tool?.benefit ??
+                  'Após o pagamento confirmado, geramos sua imagem com Jesus.')}
             </Text>
 
             <View style={styles.priceCard}>
@@ -517,51 +726,57 @@ export function ToolPaywall({
               </View>
             </View>
 
-            <View style={styles.tabs}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: method === 'card' }}
-                onPress={() => setMethod('card')}
-                style={[styles.tab, method === 'card' && styles.tabActive]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    method === 'card' && styles.tabTextActive,
-                  ]}
+            {!pixReady ? (
+              <View style={styles.tabs}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: method === 'pix' }}
+                  onPress={() => setMethod('pix')}
+                  style={[styles.tab, method === 'pix' && styles.tabActive]}
                 >
-                  Cartão
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: method === 'pix' }}
-                onPress={() => setMethod('pix')}
-                style={[styles.tab, method === 'pix' && styles.tabActive]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    method === 'pix' && styles.tabTextActive,
-                  ]}
+                  <Text
+                    style={[
+                      styles.tabText,
+                      method === 'pix' && styles.tabTextActive,
+                    ]}
+                  >
+                    Pix
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: method === 'card' }}
+                  onPress={() => setMethod('card')}
+                  style={[styles.tab, method === 'card' && styles.tabActive]}
                 >
-                  Pix
-                </Text>
-              </Pressable>
-            </View>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      method === 'card' && styles.tabTextActive,
+                    ]}
+                  >
+                    Cartão
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
 
-            <Text style={styles.label}>CPF</Text>
-            <TextInput
-              value={document}
-              onChangeText={(v) => setDocument(formatCpf(v))}
-              placeholder="000.000.000-00"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="number-pad"
-              style={styles.input}
-              accessibilityLabel="CPF"
-            />
+            {!pixReady ? (
+              <>
+                <Text style={styles.label}>Seu CPF</Text>
+                <TextInput
+                  value={document}
+                  onChangeText={(v) => setDocument(formatCpf(v))}
+                  placeholder="000.000.000-00"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                  style={styles.input}
+                  accessibilityLabel="CPF"
+                />
+              </>
+            ) : null}
 
-            {method === 'card' ? (
+            {method === 'card' && !pixReady ? (
               <>
                 <Text style={styles.label}>Número do cartão</Text>
                 <TextInput
@@ -626,54 +841,127 @@ export function ToolPaywall({
                   )}
                 </Pressable>
               </>
-            ) : (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={loading}
-                  onPress={() => void handlePayPix()}
-                  style={({ pressed }) => [
-                    styles.cta,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={colors.onAccent} />
-                  ) : (
-                    <Text style={styles.ctaText}>
-                      Gerar Pix · {priceLabel}
-                    </Text>
-                  )}
-                </Pressable>
-                {pixCode ? (
-                  <View style={styles.pixBox}>
-                    {qrUri ? (
-                      <Image source={{ uri: qrUri }} style={styles.qr} />
-                    ) : null}
-                    <Text style={styles.pixCode} selectable>
-                      {pixCode}
-                    </Text>
-                    <Pressable onPress={() => void copyPix()} style={styles.secondary}>
-                      <Text style={styles.secondaryText}>Copiar código Pix</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-              </>
-            )}
+            ) : null}
 
-            <Pressable
-              onPress={() => void handleAlreadyPaid()}
-              style={styles.secondary}
-              disabled={loading}
-            >
-              <Text style={styles.secondaryText}>Já paguei</Text>
-            </Pressable>
+            {method === 'pix' || pixReady ? (
+              <>
+                {!pixReady ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={loading}
+                    onPress={() => void handlePayPix()}
+                    style={({ pressed }) => [
+                      styles.cta,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={colors.onAccent} />
+                    ) : (
+                      <Text style={styles.ctaText}>
+                        Gerar Pix · {priceLabel}
+                      </Text>
+                    )}
+                  </Pressable>
+                ) : (
+                  <View style={styles.pixBox}>
+                    <View style={styles.stepsBox}>
+                      <Text style={styles.stepTitle}>Como pagar (Pix)</Text>
+                      <Text style={styles.stepLine}>
+                        1. Abra o app do seu banco
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        2. Escolha Pix → Pix Copia e Cola (ou QR Code)
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        3. Cole o código ou escaneie o QR abaixo
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        4. Confirme o valor de {priceLabel} e pague
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        5. Volte aqui e toque em “Já paguei”
+                      </Text>
+                    </View>
+
+                    {qrUri ? (
+                      <View style={styles.qrWrap}>
+                        <Image source={{ uri: qrUri }} style={styles.qr} />
+                      </View>
+                    ) : null}
+
+                    <Text style={styles.copyHint}>Pix Copia e Cola</Text>
+                    <View style={styles.pixCodeBox}>
+                      <Text style={styles.pixCode} selectable>
+                        {pixCode}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Copiar código Pix"
+                      onPress={() => void copyPix()}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={styles.ctaText}>
+                        {copied ? 'Código copiado ✓' : 'Copiar código Pix'}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Já paguei, verificar pagamento"
+                      disabled={checking || loading}
+                      onPress={() => void handleAlreadyPaid()}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        styles.ctaSecondaryFill,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      {checking ? (
+                        <ActivityIndicator color={colors.accent} />
+                      ) : (
+                        <Text
+                          style={[styles.ctaText, styles.ctaSecondaryFillText]}
+                        >
+                          Já paguei — verificar agora
+                        </Text>
+                      )}
+                    </Pressable>
+
+                    <View style={styles.waitingRow}>
+                      <ActivityIndicator color={colors.accent} />
+                      <Text style={styles.waitingText}>
+                        Também verificamos automaticamente a cada poucos
+                        segundos…
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            ) : null}
+
+            {!pixReady ? (
+              <Pressable
+                onPress={() => void handleAlreadyPaid()}
+                style={styles.close}
+                disabled={loading || checking}
+              >
+                <Text style={styles.closeText}>Já paguei</Text>
+              </Pressable>
+            ) : null}
 
             {message ? <Text style={styles.message}>{message}</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <Pressable onPress={onClose} style={styles.close}>
-              <Text style={styles.closeText}>Agora não</Text>
+              <Text style={styles.closeText}>
+                {pixReady ? 'Fechar e continuar depois' : 'Agora não'}
+              </Text>
             </Pressable>
           </ScrollView>
         </View>
