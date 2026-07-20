@@ -14,6 +14,15 @@ export type FotoJesusStatus =
   | 'success'
   | 'fail';
 
+export type FotoJesusPaymentCheck = {
+  transactionId?: string;
+  wivenStatus?: string | null;
+  paid?: boolean;
+  payedAt?: string | null;
+  error?: string;
+  hint?: string;
+};
+
 export type FotoJesusStatusResult = {
   ok: true;
   generationId: string;
@@ -21,6 +30,7 @@ export type FotoJesusStatusResult = {
   resultUrl: string | null;
   kieTaskId: string | null;
   error: string | null;
+  paymentCheck?: FotoJesusPaymentCheck | null;
 };
 
 export async function prepareFotoJesus(input: {
@@ -83,27 +93,30 @@ export async function fetchFotoJesusStatus(input: {
 }): Promise<FotoJesusStatusResult | null> {
   try {
     const base = paymentsBaseUrl();
-    const params = new URLSearchParams({
-      generationId: input.generationId,
-      userId: input.userId,
+    // POST evita URL enorme (inputUrl da Kie estoura GET e quebra a verificação)
+    const response = await fetch(`${base}/api/foto-jesus/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        generationId: input.generationId,
+        userId: input.userId,
+        inputUrl: input.inputUrl || null,
+        token: input.token || null,
+        kieTaskId: input.kieTaskId || null,
+        transactionId: input.transactionId || null,
+      }),
     });
-    if (input.inputUrl) params.set('inputUrl', input.inputUrl);
-    if (input.token) params.set('token', input.token);
-    if (input.kieTaskId) params.set('kieTaskId', input.kieTaskId);
-    if (input.transactionId) params.set('transactionId', input.transactionId);
-
-    const response = await fetch(
-      `${base}/api/foto-jesus/status?${params.toString()}`,
-    );
-    if (!response.ok) return null;
     const rawText = await response.text();
-    let data: FotoJesusStatusResult & { ok?: boolean };
+    let data: FotoJesusStatusResult & { ok?: boolean; error?: string };
     try {
-      data = JSON.parse(rawText) as FotoJesusStatusResult & { ok?: boolean };
+      data = JSON.parse(rawText) as FotoJesusStatusResult & {
+        ok?: boolean;
+        error?: string;
+      };
     } catch {
       return null;
     }
-    if (!data.ok) return null;
+    if (!response.ok || !data.ok) return null;
     return data;
   } catch {
     return null;

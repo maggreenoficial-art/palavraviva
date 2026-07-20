@@ -634,9 +634,24 @@ export function ToolPaywall({
           return;
         }
 
-        setMessage(
-          'Ainda não identificamos o pagamento. Confira no banco e tente de novo em alguns segundos.',
-        );
+        const wiven = status?.paymentCheck?.wivenStatus;
+        if (status?.paymentCheck?.error === 'transactionId_ausente') {
+          setMessage(
+            'Não encontramos o Pix desta sessão. Toque em “Gerar Pix” de novo, pague e depois em “Já paguei”.',
+          );
+        } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
+          setMessage(
+            'O banco ainda não confirmou o Pix (pendente). Aguarde uns 20 segundos e toque de novo em “Já paguei”.',
+          );
+        } else if (status?.paymentCheck?.error) {
+          setError(
+            `Falha ao confirmar: ${status.paymentCheck.error}. Tente de novo.`,
+          );
+        } else {
+          setMessage(
+            'Ainda não identificamos o pagamento. Confira no banco e tente de novo em alguns segundos.',
+          );
+        }
       } catch {
         setError('Não foi possível verificar o pagamento agora. Tente de novo.');
       } finally {

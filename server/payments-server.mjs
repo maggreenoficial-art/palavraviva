@@ -475,17 +475,57 @@ async function wivenGet(path) {
 
 /** Status de pagamento confirmado (consulta de transação). */
 function isPaidStatus(status) {
-  const value = String(status || '').toUpperCase();
+  const value = String(status || '').toUpperCase().trim();
   // "OK" na criação do Pix só significa cobrança gerada, não paga.
+  // "PENDING" / "WAITING_*" = ainda não pago.
+  if (
+    !value ||
+    value === 'OK' ||
+    value === 'PENDING' ||
+    value === 'OPEN' ||
+    value === 'OPENED' ||
+    value.startsWith('WAITING')
+  ) {
+    return false;
+  }
   return (
     value === 'PAID' ||
     value === 'APPROVED' ||
     value === 'ACTIVE' ||
     value === 'COMPLETED' ||
+    value === 'COMPLETE' ||
     value === 'SUCCESS' ||
+    value === 'SUCCEEDED' ||
+    value === 'CONFIRMED' ||
+    value === 'CONFIRMADO' ||
+    value === 'RECEIVED' ||
+    value === 'RECEBIDO' ||
+    value === 'CAPTURED' ||
+    value === 'SETTLED' ||
+    value === 'LIQUIDATED' ||
+    value === 'FINISHED' ||
+    value === 'DONE' ||
     value.includes('PAGO') ||
     value.includes('APPROV')
   );
+}
+
+/** Transação Wiven considerada paga (status ou payedAt). */
+function isPaidTransaction(tx) {
+  if (!tx) return false;
+  if (Array.isArray(tx)) return isPaidTransaction(tx[0]);
+  const nested = tx.data ?? tx.transaction ?? null;
+  if (Array.isArray(nested)) return isPaidTransaction(nested[0]);
+  if (isPaidStatus(extractTxStatus(tx))) return true;
+  if (tx.paid === true || tx.isPaid === true || nested?.paid === true) return true;
+  const paidAt =
+    tx.payedAt ||
+    tx.paidAt ||
+    tx.paymentSettlementDate ||
+    nested?.payedAt ||
+    nested?.paidAt ||
+    null;
+  return Boolean(paidAt);
 }
 
 /** Na criação via cartão, OK costuma indicar captura imediata. */
@@ -611,10 +651,20 @@ async function tryConfirmGenerationPayment({
   checkoutId,
   source,
 }) {
-  if (!transactionId) return null;
+  if (!transactionId) {
+    return { generation: null, paymentCheck: { error: 'transactionId_ausente' } };
+  }
   const tx = await fetchWivenTransaction(transactionId);
-  const status = extractTxStatus(tx);
-  if (!isPaidStatus(status)) return null;
+  const wivenStatus = extractTxStatus(tx);
+  const paymentCheck = {
+    transactionId,
+    wivenStatus,
+    paid: isPaidTransaction(tx),
+    payedAt: tx?.payedAt || tx?.paidAt || null,
+  };
+  if (!paymentCheck.paid) {
+    return { generation: null, paymentCheck };
+  }
 
   try {
     const all = readCheckouts();
@@ -632,13 +682,14 @@ async function tryConfirmGenerationPayment({
     // /tmp pode falhar no Vercel — ok, seguimos com a geração
   }
 
-  return fulfillFotoJesusPayment(generationId, userId, {
+  const generation = await fulfillFotoJesusPayment(generationId, userId, {
     checkoutId: checkoutId || null,
     source: source || 'tx_confirm',
     providerRef: transactionId,
     inputUrl: inputUrl || null,
     token: token || null,
   });
+  return { generation, paymentCheck };
 }
 
 function saveCheckoutRecord(record) {
@@ -1246,8 +1297,7 @@ const serverHandler = async (req, res) => {
     for (const checkout of openCheckouts) {
       try {
         const tx = await fetchWivenTransaction(checkout.transactionId);
-        const status = tx?.status || tx?.payment_status || tx?.data?.status;
-        if (!isPaidStatus(status)) continue;
+        if (!isPaidTransaction(tx)) continue;
 
         const all = readCheckouts();
         const idx = all.findIndex((c) => c.id === checkout.id);
@@ -1347,15 +1397,30 @@ const serverHandler = async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/foto-jesus/status') {
+  if (
+    (req.method === 'GET' || req.method === 'POST') &&
+    url.pathname === '/api/foto-jesus/status'
+  ) {
     try {
-      const generationId = (url.searchParams.get('generationId') || '').trim();
-      const userId = (url.searchParams.get('userId') || '').trim();
-      const inputUrl = (url.searchParams.get('inputUrl') || '').trim();
-      const token = (url.searchParams.get('token') || '').trim();
-      const kieTaskId = (url.searchParams.get('kieTaskId') || '').trim();
-      const transactionId = (
-        url.searchParams.get('transactionId') || ''
+      const body =
+        req.method === 'POST' ? (await readBody(req)).json || {} : {};
+      const generationId = String(
+        body.generationId || url.searchParams.get('generationId') || '',
+      ).trim();
+      const userId = String(
+        body.userId || url.searchParams.get('userId') || '',
+      ).trim();
+      const inputUrl = String(
+        body.inputUrl || url.searchParams.get('inputUrl') || '',
+      ).trim();
+      const token = String(
+        body.token || url.searchParams.get('token') || '',
+      ).trim();
+      const kieTaskId = String(
+        body.kieTaskId || url.searchParams.get('kieTaskId') || '',
+      ).trim();
+      const transactionId = String(
+        body.transactionId || url.searchParams.get('transactionId') || '',
       ).trim();
       if (!generationId || !userId) {
         send(res, 400, {
@@ -1375,7 +1440,15 @@ const serverHandler = async (req, res) => {
         });
       }
       if (!generation || generation.userId !== userId) {
-        send(res, 404, { ok: false, error: 'geracao_nao_encontrada' });
+        send(res, 404, {
+          ok: false,
+          error: 'geracao_nao_encontrada',
+          hint: !inputUrl
+            ? 'inputUrl_ausente'
+            : !token
+              ? 'token_ausente'
+              : 'token_ou_geracao_invalida',
+        });
         return;
       }
 
@@ -1387,6 +1460,7 @@ const serverHandler = async (req, res) => {
           }) || generation;
       }
 
+      let paymentCheck = null;
       if (generation.status === 'awaiting_payment') {
         const txCandidates = [];
         if (transactionId) txCandidates.push({ transactionId, checkoutId: null });
@@ -1416,23 +1490,34 @@ const serverHandler = async (req, res) => {
           // /tmp ausente no Vercel — usa só transactionId do cliente
         }
 
+        if (!txCandidates.length) {
+          paymentCheck = {
+            error: 'transactionId_ausente',
+            hint: 'Gere o Pix de novo e toque em Já paguei após pagar.',
+          };
+        }
+
         for (const candidate of txCandidates) {
           try {
             const confirmed = await tryConfirmGenerationPayment({
               generationId,
               userId,
-              inputUrl: inputUrl || null,
+              inputUrl: inputUrl || generation.inputUrl || null,
               token: token || null,
               transactionId: candidate.transactionId,
               checkoutId: candidate.checkoutId,
               source: 'status_poll',
             });
-            if (confirmed) {
-              generation = confirmed;
+            paymentCheck = confirmed.paymentCheck;
+            if (confirmed.generation) {
+              generation = confirmed.generation;
               break;
             }
-          } catch {
-            // tenta o próximo
+          } catch (error) {
+            paymentCheck = {
+              transactionId: candidate.transactionId,
+              error: String(error.message || error),
+            };
           }
         }
       }
@@ -1453,6 +1538,7 @@ const serverHandler = async (req, res) => {
         resultUrl: generation.resultUrl || null,
         kieTaskId: generation.kieTaskId || null,
         error: generation.error || null,
+        paymentCheck,
       });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
