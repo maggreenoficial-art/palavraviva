@@ -45,15 +45,27 @@ export async function prepareFotoJesus(input: {
       'Não foi possível conectar ao servidor. No site online, confirme se as rotas /api estão no ar.',
     );
   }
-  const data = (await response.json()) as FotoJesusPrepareResult & {
-    ok?: boolean;
-    error?: string;
-  };
+
+  const rawText = await response.text();
+  let data: FotoJesusPrepareResult & { ok?: boolean; error?: string };
+  try {
+    data = JSON.parse(rawText) as FotoJesusPrepareResult & {
+      ok?: boolean;
+      error?: string;
+    };
+  } catch {
+    throw new Error(
+      response.status === 404
+        ? 'Rota de geração indisponível no servidor. Aguarde o deploy e tente de novo.'
+        : `Servidor respondeu de forma inesperada (${response.status}). Tente novamente em instantes.`,
+    );
+  }
+
   if (!response.ok || !data.ok) {
     const raw = data.error || '';
     if (raw === 'not_found' || response.status === 404) {
       throw new Error(
-        'API de pagamentos indisponível. Faça o deploy das rotas /api no Vercel com as chaves Wiven e Kie.',
+        'API de pagamentos indisponível. Confira o deploy das rotas /api no Vercel com as chaves Wiven e Kie.',
       );
     }
     throw new Error(raw || 'Não foi possível enviar a foto.');

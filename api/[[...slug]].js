@@ -1,30 +1,11 @@
 /**
- * Catch-all da API de pagamentos no Vercel.
- * Expõe as mesmas rotas do server/payments-server.mjs em https://seu-dominio/api/*
+ * Rotas /api de 1 segmento: /api/health, /api/checkout, /api/access, etc.
+ * Rotas aninhadas ficam em arquivos explícitos (ex.: api/foto-jesus/prepare.js).
  */
+const runApi = require('../server/vercel-api-run.cjs');
+
 module.exports = async function handler(req, res) {
-  try {
-    const { handlePaymentsRequest } = await import('../server/payments-server.mjs');
-    await handlePaymentsRequest(req, res);
-  } catch (error) {
-    console.error('[api]', error);
-    if (!res.headersSent) {
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: String(error?.message || error || 'erro_interno'),
-        }),
-      );
-    }
-  }
+  return runApi(req, res);
 };
 
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
-  maxDuration: 60,
-};
+module.exports.config = require('../server/vercel-api-run.cjs').config;

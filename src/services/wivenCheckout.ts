@@ -76,7 +76,19 @@ async function postCheckout<T>(
       'Não foi possível conectar ao servidor de pagamentos. Verifique sua conexão e tente de novo.',
     );
   }
-  const data = (await response.json()) as T & { ok?: boolean; error?: string };
+
+  const rawText = await response.text();
+  let data: T & { ok?: boolean; error?: string };
+  try {
+    data = JSON.parse(rawText) as T & { ok?: boolean; error?: string };
+  } catch {
+    throw new Error(
+      response.status === 404
+        ? 'Rota de pagamento indisponível no servidor. Aguarde o deploy e tente de novo.'
+        : `Servidor de pagamento respondeu de forma inesperada (${response.status}). Tente novamente.`,
+    );
+  }
+
   if (!response.ok || !data.ok) {
     const raw = (data as { error?: string }).error || '';
     if (raw === 'not_found' || response.status === 404) {
