@@ -1,0 +1,118 @@
+{
+  "sos-ansiedade-01": {
+    "title": "O que a Bíblia diz sobre a ansiedade",
+    "subtitle": "Áudio 1 · Paz na Ansiedade",
+    "summary": "Filipenses 4:6-7: a Bíblia não proíbe sentir ansiedade — convida a não viver dominado por ela. Oração com gratidão. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 1,
+    "biblicalPrayerIds": [
+      "PHILIPPIANS_4_6_7",
+      "1_PETER_5_7"
+    ],
+    "ambientKey": "ansiedade-01",
+    "ambientVolume": 0.12,
+    "durationSeconds": 219
+  },
+  "sos-ansiedade-02": {
+    "title": "Jesus também sentiu angústia",
+    "subtitle": "Áudio 2 · Paz na Ansiedade",
+    "summary": "Mateus 26 e Hebreus 5: Jesus reconheceu a angústia, pediu apoio e orou com honestidade. Você não está sozinho. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 2,
+    "biblicalPrayerIds": [
+      "mateus-26-37-38",
+      "hebreus-5-7",
+      "lucas-22-44",
+      "getsemani"
+    ],
+    "ambientKey": "medo-01",
+    "ambientVolume": 0.11,
+    "durationSeconds": 257
+  },
+  "sos-ansiedade-03": {
+    "title": "O Salmo 23 e o alívio da mente",
+    "subtitle": "Áudio 3 · Paz na Ansiedade",
+    "summary": "Visualização guiada com o Salmo 23: pastos, águas tranquilas e a presença do Pastor. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 3,
+    "biblicalPrayerIds": [
+      "salmo-23",
+      "PSALM_23_1_4"
+    ],
+    "ambientKey": "manha-esperanca-01",
+    "ambientVolume": 0.12,
+    "durationSeconds": 230
+  },
+  "sos-ansiedade-04": {
+    "title": "Ansiedade é pecado?",
+    "subtitle": "Áudio 4 · Paz na Ansiedade",
+    "summary": "2 Timóteo 1:7 e 1 Pedro 5:7: emoção humana não é pecado; o convite é lançar a ansiedade sobre Deus. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 4,
+    "biblicalPrayerIds": [
+      "2timoteo-1-7",
+      "1_PETER_5_7",
+      "salmo-6-6-7"
+    ],
+    "ambientKey": "certeza-fe-01",
+    "ambientVolume": 0.11,
+    "durationSeconds": 202
+  },
+  "sos-ansiedade-05": {
+    "title": "Moisés, Elias e Paulo — e suas crises",
+    "subtitle": "Áudio 5 · Paz na Ansiedade",
+    "summary": "Três histórias de medo, esgotamento e fraqueza: Deus capacita, restaura e sustenta. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 5,
+    "biblicalPrayerIds": [
+      "exodo-4-10-12",
+      "1reis-19-4-8",
+      "2corintios-12-7-9"
+    ],
+    "ambientKey": "ansiedade-02",
+    "ambientVolume": 0.11,
+    "durationSeconds": 274
+  },
+  "sos-ansiedade-06": {
+    "title": "Fé, remédios e cuidado médico",
+    "subtitle": "Áudio 6 · Paz na Ansiedade",
+    "summary": "A Bíblia não condena o cuidado médico. Medicina e fé podem caminhar juntas. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 6,
+    "biblicalPrayerIds": [
+      "1timoteo-5-23",
+      "lucas-10-33-34"
+    ],
+    "ambientKey": "amor-acalma-01",
+    "ambientVolume": 0.11,
+    "durationSeconds": 211
+  },
+  "sos-ansiedade-07": {
+    "title": "O segredo de Paulo para os pensamentos",
+    "subtitle": "Áudio 7 · Paz na Ansiedade",
+    "summary": "Filipenses 4:8: redirecionar a mente para o que edifica — prática diária contra o looping ansioso. Apoio espiritual — não substitui terapia.",
+    "coverColor": "#1B2E3A",
+    "seriesId": "sos-ansiedade",
+    "seriesTitle": "Paz na Ansiedade",
+    "seriesDay": 7,
+    "biblicalPrayerIds": [
+      "filipenses-4-4-9",
+      "PHILIPPIANS_4_6_7"
+    ],
+    "ambientKey": "ordem-caos-01",
+    "ambientVolume": 0.1,
+    "durationSeconds": 240
+  }
+}

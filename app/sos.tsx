@@ -1,22 +1,21 @@
 import { useMemo } from 'react';
+import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { BiblicalPassage } from '../src/components/BiblicalPassage';
 import { EmergencyHelp } from '../src/components/EmergencyHelp';
-import { sosSession } from '../src/constants/sessions';
-import { getBiblicalTextById } from '../src/services/biblicalContent';
-import { colors, radius, spacing, typography } from '../src/theme';
+import {
+  sosAnxietySessions,
+  sosSession,
+} from '../src/constants/sessions';
+import { colors, MIN_TAP, radius, spacing, typography } from '../src/theme';
+
+function formatMinutes(seconds: number) {
+  return Math.max(1, Math.round(seconds / 60));
+}
 
 export default function SosScreen() {
-  const passage = useMemo(
-    () =>
-      sosSession.biblicalPrayerId
-        ? getBiblicalTextById(sosSession.biblicalPrayerId)
-        : null,
-    [],
-  );
-  const minutes = Math.round(sosSession.durationSeconds / 60);
+  const quickMinutes = formatMinutes(sosSession.durationSeconds);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -30,43 +29,81 @@ export default function SosScreen() {
         >
           <Text style={styles.back}>Voltar</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>SOS — Paz imediata</Text>
+        <Text style={styles.headerTitle}>SOS — Alívio Imediato</Text>
         <View style={styles.sideBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.lead}>Você está aqui.</Text>
         <Text style={styles.body}>
-          Vamos passar pelos próximos minutos juntos. Não há pressa.
+          Respire. Escolha um alívio rápido ou siga a sequência Paz na Ansiedade
+          — sete áudios com Palavra, prática e oração. Tudo gratuito.
         </Text>
-
-        {passage ? (
-          <BiblicalPassage passage={passage} compact />
-        ) : (
-          <Text style={styles.fallback}>
-            A passagem bíblica desta sessão está temporariamente indisponível.
-          </Text>
-        )}
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Iniciar sessão SOS, cerca de ${minutes} minutos`}
+          accessibilityLabel={`Alívio rápido, cerca de ${quickMinutes} minutos`}
           onPress={() => router.push(`/player/${sosSession.id}?from=sos`)}
           style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
         >
           <Text style={styles.primaryText}>
-            Iniciar sessão de {minutes} minutos
+            Alívio rápido · {quickMinutes} min
           </Text>
+          <Text style={styles.primarySub}>Respirar, orar e acolher agora</Text>
         </Pressable>
+
+        <Text style={styles.sectionTitle}>Paz na Ansiedade</Text>
+        <Text style={styles.sectionLead}>
+          Sequência de 7 áudios · ~4 a 5 minutos cada · sons ambiente suaves
+        </Text>
+
+        {sosAnxietySessions.map((session) => {
+          const minutes = formatMinutes(session.durationSeconds);
+          return (
+            <Pressable
+              key={session.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${session.subtitle}. ${session.title}. Cerca de ${minutes} minutos`}
+              onPress={() => router.push(`/player/${session.id}?from=sos`)}
+              style={({ pressed }) => [
+                styles.episode,
+                pressed && styles.pressed,
+              ]}
+            >
+              {session.coverImage ? (
+                <Image
+                  source={session.coverImage}
+                  style={styles.episodeCover}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={100}
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.episodeCover,
+                    { backgroundColor: session.coverColor },
+                  ]}
+                />
+              )}
+              <View style={styles.episodeBody}>
+                <Text style={styles.episodeKicker}>{session.subtitle}</Text>
+                <Text style={styles.episodeTitle}>{session.title}</Text>
+                <Text style={styles.episodeMeta}>{minutes} min · Grátis</Text>
+              </View>
+            </Pressable>
+          );
+        })}
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Aprofunde sua paz no Diário de Gratidão"
-          onPress={() => router.push('/diario')}
+          accessibilityLabel="Gerar Foto com Jesus por cinco reais"
+          onPress={() => router.push('/(tabs)/ferramentas')}
           style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
         >
           <Text style={styles.secondaryText}>
-            Aprofunde sua paz no Diário de Gratidão
+            Gerar Foto com Jesus · R$ 5,00
           </Text>
         </Pressable>
 
@@ -94,7 +131,7 @@ const styles = StyleSheet.create({
   },
   sideBtn: {
     minWidth: 64,
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: 'center',
   },
   back: {
@@ -122,16 +159,65 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   primary: {
-    minHeight: 56,
+    minHeight: 64,
     borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
+    backgroundColor: colors.sos,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: 4,
   },
   primaryText: {
     ...typography.button,
-    color: colors.background,
+    color: colors.white,
+  },
+  primarySub: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  sectionTitle: {
+    ...typography.section,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  sectionLead: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: -spacing.sm,
+  },
+  episode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: MIN_TAP,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundElevated,
+    overflow: 'hidden',
+    paddingRight: spacing.md,
+  },
+  episodeCover: {
+    width: 72,
+    height: 72,
+  },
+  episodeBody: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    gap: 2,
+  },
+  episodeKicker: {
+    ...typography.caption,
+    color: colors.sos,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  episodeTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  episodeMeta: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   secondary: {
     minHeight: 52,
@@ -142,15 +228,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
   },
   secondaryText: {
     ...typography.bodyMedium,
     color: colors.accent,
     textAlign: 'center',
-  },
-  fallback: {
-    ...typography.caption,
-    color: colors.textMuted,
   },
   disclaimer: {
     ...typography.caption,

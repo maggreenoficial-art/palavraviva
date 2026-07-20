@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import {
-  TOOL_DIARIO_PRICE_LABEL,
+  TOOL_FOTO_JESUS_PRICE_LABEL,
   getToolById,
   type ToolId,
 } from '../constants/toolsCatalog';
@@ -26,14 +26,8 @@ import {
   formatExpiry,
   payWithCard,
   payWithPix,
-  pollToolAccess,
-  syncToolAccess,
 } from '../services/wivenCheckout';
-import {
-  SUBSCRIPTION_PRICE_LABEL,
-  computeAccessKind,
-  useUserStore,
-} from '../store/useUserStore';
+import { useUserStore } from '../store/useUserStore';
 import { MIN_TAP, colors, radius, spacing, useTypography } from '../theme';
 
 interface ToolPaywallProps {
@@ -41,12 +35,16 @@ interface ToolPaywallProps {
   toolId: ToolId;
   onClose: () => void;
   onUnlocked?: () => void;
+  /** Para cobrança por imagem (Foto com Jesus) */
+  generationId?: string | null;
+  consumable?: boolean;
 }
 
 type PayMethod = 'card' | 'pix';
 
 const PRODUCT_BY_TOOL: Record<string, string> = {
   diario: 'tool-diario',
+  'foto-jesus': 'tool-foto-jesus',
 };
 
 export function ToolPaywall({
@@ -54,17 +52,14 @@ export function ToolPaywall({
   toolId,
   onClose,
   onUnlocked,
+  generationId = null,
+  consumable = false,
 }: ToolPaywallProps) {
   const type = useTypography();
   const tool = getToolById(toolId);
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
   const whatsapp = useUserStore((s) => s.whatsapp);
-  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
-  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
-  const unlockTool = useUserStore((s) => s.unlockTool);
-  const setUnlockedTools = useUserStore((s) => s.setUnlockedTools);
-  const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
   const firstName = (displayName ?? '').trim().split(/\s+/)[0] ?? '';
 
   const [method, setMethod] = useState<PayMethod>('card');
@@ -80,8 +75,9 @@ export function ToolPaywall({
   const [pixImage, setPixImage] = useState<string | null>(null);
   const { isDesktop, shellMaxWidth } = useResponsive();
 
-  const priceLabel = tool?.priceLabel ?? TOOL_DIARIO_PRICE_LABEL;
+  const priceLabel = tool?.priceLabel ?? TOOL_FOTO_JESUS_PRICE_LABEL;
   const productKey = PRODUCT_BY_TOOL[toolId] ?? `tool-${toolId}`;
+  const isConsumable = consumable || Boolean(tool?.consumable);
 
   useEffect(() => {
     if (!visible) return;
@@ -92,46 +88,23 @@ export function ToolPaywall({
     setPixCode(null);
     setPixImage(null);
     setCardOwner((prev) => prev || displayName || '');
-  }, [visible, displayName]);
+  }, [visible, displayName, generationId]);
 
   useEffect(() => {
-    if (!visible || !pixCode || !userId) return;
+    if (!visible || !pixCode || !isConsumable || !generationId) return;
     const signal = { cancelled: false };
-    void (async () => {
-      const unlocked = await pollToolAccess(
-        userId,
-        toolId,
-        setUnlockedTools,
-        { signal, initialDelayMs: 5000, maxAttempts: 48 },
-      );
-      if (!signal.cancelled && unlocked) {
-        unlockTool(toolId);
-        void trackAnalytics({
-          name: 'tool_purchase_activated',
-          meta: { toolId, method: 'pix' },
-        });
-        setMessage('Pagamento confirmado. Ferramenta liberada!');
-        setTimeout(() => {
-          if (!signal.cancelled) {
-            onUnlocked?.();
-            onClose();
-          }
-        }, 900);
+    const timer = setTimeout(() => {
+      if (!signal.cancelled) {
+        setMessage(
+          'Se o Pix já foi pago, feche e aguarde a geração — ou toque em Já paguei.',
+        );
       }
-    })();
+    }, 12_000);
     return () => {
       signal.cancelled = true;
+      clearTimeout(timer);
     };
-  }, [
-    visible,
-    pixCode,
-    userId,
-    toolId,
-    setUnlockedTools,
-    unlockTool,
-    onClose,
-    onUnlocked,
-  ]);
+  }, [visible, pixCode, isConsumable, generationId]);
 
   const qrUri = useMemo(() => {
     if (pixImage) return pixImage;
@@ -232,22 +205,6 @@ export function ToolPaywall({
           ...type.caption,
           color: colors.accent,
           fontFamily: 'DMSans_600SemiBold',
-        },
-        missionBtn: {
-          minHeight: MIN_TAP,
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderColor: colors.accent,
-          backgroundColor: colors.accentSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: spacing.lg,
-          marginBottom: spacing.md,
-        },
-        missionBtnText: {
-          ...type.bodyMedium,
-          color: colors.accent,
-          textAlign: 'center',
         },
         tabs: {
           flexDirection: 'row',
@@ -365,23 +322,26 @@ export function ToolPaywall({
     [type],
   );
 
-  function applyTools(tools: string[]) {
-    setUnlockedTools(tools);
-    if (tools.includes(toolId)) unlockTool(toolId);
-  }
-
   async function handleSuccess() {
-    setMessage('Pagamento confirmado. Ferramenta liberada!');
+    setMessage(
+      isConsumable
+        ? 'Pagamento confirmado. Gerando sua imagem…'
+        : 'Pagamento confirmado. Ferramenta liberada!',
+    );
     setTimeout(() => {
       setMessage(null);
       onUnlocked?.();
       onClose();
-    }, 900);
+    }, 700);
   }
 
   async function handlePayCard() {
     if (!userId) {
       setError('Faça o onboarding novamente para gerar seu ID.');
+      return;
+    }
+    if (isConsumable && !generationId) {
+      setError('Envie a foto antes de pagar.');
       return;
     }
     setLoading(true);
@@ -394,6 +354,7 @@ export function ToolPaywall({
         whatsapp,
         document,
         product: productKey,
+        generationId,
         card: {
           number: cardNumber,
           owner: cardOwner,
@@ -403,19 +364,13 @@ export function ToolPaywall({
       });
       void trackAnalytics({
         name: 'tool_purchase_start',
-        meta: { toolId, method: 'card' },
+        meta: { toolId, method: 'card', consumable: isConsumable },
       });
-      if (result.approved && result.unlockedTools?.includes(toolId)) {
-        applyTools(result.unlockedTools);
+      if (result.approved) {
         void trackAnalytics({
           name: 'tool_purchase_activated',
-          meta: { toolId, method: 'card' },
+          meta: { toolId, method: 'card', consumable: isConsumable },
         });
-        await handleSuccess();
-        return;
-      }
-      const unlocked = await syncToolAccess(userId, toolId, applyTools);
-      if (unlocked) {
         await handleSuccess();
         return;
       }
@@ -436,13 +391,17 @@ export function ToolPaywall({
       setError('Faça o onboarding novamente para gerar seu ID.');
       return;
     }
+    if (isConsumable && !generationId) {
+      setError('Envie a foto antes de pagar.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
     try {
       void trackAnalytics({
         name: 'tool_purchase_start',
-        meta: { toolId, method: 'pix' },
+        meta: { toolId, method: 'pix', consumable: isConsumable },
       });
       const result = await payWithPix({
         userId,
@@ -450,11 +409,12 @@ export function ToolPaywall({
         whatsapp,
         document,
         product: productKey,
+        generationId,
       });
       setPixCode(result.pixCode);
       setPixImage(result.pixImage);
       setMessage(
-        'Pix gerado. Pague no banco — confirmamos automaticamente em instantes.',
+        'Pix gerado. Após o pagamento, a imagem começa a ser criada automaticamente.',
       );
     } catch (err) {
       setError(
@@ -466,25 +426,11 @@ export function ToolPaywall({
   }
 
   async function handleAlreadyPaid() {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const unlocked = await syncToolAccess(userId, toolId, applyTools);
-      if (unlocked) {
-        void trackAnalytics({
-          name: 'tool_purchase_activated',
-          meta: { toolId, method: 'manual_check' },
-        });
-        await handleSuccess();
-      } else {
-        setMessage(
-          'Ainda não encontramos o pagamento. Aguarde alguns segundos e tente de novo.',
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    void trackAnalytics({
+      name: 'tool_purchase_activated',
+      meta: { toolId, method: 'manual_check', consumable: isConsumable },
+    });
+    await handleSuccess();
   }
 
   async function copyPix() {
@@ -503,47 +449,6 @@ export function ToolPaywall({
     } catch {
       setMessage('Selecione e copie o código Pix abaixo.');
     }
-  }
-
-  if (accessKind === 'subscribed') {
-    return (
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-        <Pressable style={styles.overlay} onPress={onClose}>
-          <Pressable
-            style={[styles.sheet, { padding: spacing.screen, paddingBottom: spacing.xxl }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.handle} />
-            <Text style={styles.kicker}>Incluído na Missão+</Text>
-            <Text style={styles.title}>
-              {tool?.title ?? 'Ferramenta'} já é seu
-            </Text>
-            <Text style={styles.body}>
-              Com a Missão+ ativa ({SUBSCRIPTION_PRICE_LABEL}), esta ferramenta
-              está liberada sem compra extra.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                onUnlocked?.();
-                onClose();
-              }}
-              style={({ pressed }) => [
-                styles.missionBtn,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.missionBtnText}>
-                Incluído na Missão+ · Continuar
-              </Text>
-            </Pressable>
-            <Pressable onPress={onClose} style={styles.close}>
-              <Text style={styles.closeText}>Fechar</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    );
   }
 
   return (
@@ -568,25 +473,30 @@ export function ToolPaywall({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scroll}
           >
-            <Text style={styles.kicker}>Compra única</Text>
+            <Text style={styles.kicker}>
+              {isConsumable ? 'Por imagem' : 'Compra única'}
+            </Text>
             <Text style={styles.title}>
               {firstName
-                ? `${firstName}, cultive a gratidão`
-                : 'Cultive a gratidão'}
+                ? `${firstName}, finalize para gerar`
+                : 'Finalize para gerar'}
             </Text>
             <Text style={styles.body}>
               {tool?.benefit ??
-                'Transforme sua perspectiva com um diário guiado pela Palavra.'}{' '}
-              Pague uma vez e use para sempre neste aparelho.
+                'Após o pagamento confirmado, geramos sua imagem com Jesus.'}
             </Text>
 
             <View style={styles.priceCard}>
               <View>
-                <Text style={styles.priceLabel}>{tool?.title ?? 'Ferramenta'}</Text>
+                <Text style={styles.priceLabel}>
+                  {tool?.title ?? 'Ferramenta'}
+                </Text>
                 <Text style={styles.price}>{priceLabel}</Text>
               </View>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>Acesso vitalício</Text>
+                <Text style={styles.badgeText}>
+                  {isConsumable ? '1 imagem' : 'Acesso vitalício'}
+                </Text>
               </View>
             </View>
 

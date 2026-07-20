@@ -12,7 +12,7 @@
       "joao-14-27"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 128,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -34,7 +34,7 @@
       "PHILIPPIANS_4_6_7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 112,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -56,7 +56,7 @@
       "salmo-46-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 70,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -78,7 +78,7 @@
       "MATTHEW_11_28_30"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 79,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -100,7 +100,7 @@
       "filipenses-4-4-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 113,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -122,7 +122,7 @@
       "MATTHEW_6_31_34"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 86,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -144,7 +144,7 @@
       "romanos-12-1-2"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 89,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -166,7 +166,7 @@
       "ISAIAH_41_10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 62,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -188,7 +188,7 @@
       "tiago-1-2-5"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 79,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -210,7 +210,7 @@
       "romanos-8-28"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 59,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -232,7 +232,7 @@
       "salmo-62-5-8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 78,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -254,7 +254,7 @@
       "galatas-6-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 60,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -276,7 +276,7 @@
       "efesios-2-8-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 78,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -298,7 +298,7 @@
       "colossenses-3-12-14"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 72,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -320,7 +320,7 @@
       "colossenses-3-1-4"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 73,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -342,7 +342,7 @@
       "PROVERBS_16_3"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 49,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -364,7 +364,7 @@
       "2timoteo-1-7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 51,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -386,7 +386,7 @@
       "neemias-8-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 59,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -408,7 +408,7 @@
       "salmo-103-1-13"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 135,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -430,7 +430,7 @@
       "1tessalonicenses-5-16-18"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 58,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -452,7 +452,7 @@
       "salmo-9-9-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 59,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -474,7 +474,7 @@
       "colossenses-3-15"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 51,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -496,7 +496,7 @@
       "salmo-150"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 78,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -518,7 +518,7 @@
       "PSALM_4_8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 60,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -540,7 +540,7 @@
       "salmo-139"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 128,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -562,7 +562,7 @@
       "efesios-4-29-32"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 79,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -584,7 +584,7 @@
       "salmo-30-1-5"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 81,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -606,7 +606,7 @@
       "salmo-91"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 138,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -628,7 +628,7 @@
       "isaias-26-3-4"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 59,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -650,7 +650,7 @@
       "LAMENTATIONS_3_21_23"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 60,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -672,7 +672,7 @@
       "mateus-6-25-30"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 115,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -694,7 +694,7 @@
       "MATTHEW_6_31_34"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 79,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -716,7 +716,7 @@
       "tiago-4-7-8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 58,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -738,7 +738,7 @@
       "1_PETER_5_7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 50,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -760,7 +760,7 @@
       "filipenses-4-4-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 101,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,
@@ -782,7 +782,7 @@
       "galatas-2-20"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300,
+    "durationSeconds": 59,
     "settings": {
       "stability": 0.78,
       "similarity_boost": 0.72,

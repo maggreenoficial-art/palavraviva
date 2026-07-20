@@ -70,6 +70,76 @@ export const baseSessions: Session[] = [
   },
 ];
 
+/** Sequência SOS — Paz na Ansiedade (7 áudios, sempre grátis) */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const sosAnxietyMeta = require('./sosAnxietyMeta.json') as Record<
+  string,
+  {
+    title: string;
+    subtitle: string;
+    summary: string;
+    coverColor: string;
+    seriesId: string;
+    seriesTitle: string;
+    seriesDay: number;
+    biblicalPrayerIds: string[];
+    ambientKey: string;
+    ambientVolume: number;
+    durationSeconds: number;
+  }
+>;
+
+const sosAnxietyAudioRequires: Record<string, number> = {
+  'sos-ansiedade-01': require('../../assets/audio/sos-ansiedade-01.mp3'),
+  'sos-ansiedade-02': require('../../assets/audio/sos-ansiedade-02.mp3'),
+  'sos-ansiedade-03': require('../../assets/audio/sos-ansiedade-03.mp3'),
+  'sos-ansiedade-04': require('../../assets/audio/sos-ansiedade-04.mp3'),
+  'sos-ansiedade-05': require('../../assets/audio/sos-ansiedade-05.mp3'),
+  'sos-ansiedade-06': require('../../assets/audio/sos-ansiedade-06.mp3'),
+  'sos-ansiedade-07': require('../../assets/audio/sos-ansiedade-07.mp3'),
+};
+
+const sosAnxietyAmbientRequires: Record<string, number> = {
+  'sos-ansiedade-01': require('../../assets/audio/ambient/sos-ansiedade-01.mp3'),
+  'sos-ansiedade-02': require('../../assets/audio/ambient/sos-ansiedade-02.mp3'),
+  'sos-ansiedade-03': require('../../assets/audio/ambient/sos-ansiedade-03.mp3'),
+  'sos-ansiedade-04': require('../../assets/audio/ambient/sos-ansiedade-04.mp3'),
+  'sos-ansiedade-05': require('../../assets/audio/ambient/sos-ansiedade-05.mp3'),
+  'sos-ansiedade-06': require('../../assets/audio/ambient/sos-ansiedade-06.mp3'),
+  'sos-ansiedade-07': require('../../assets/audio/ambient/sos-ansiedade-07.mp3'),
+};
+
+const sosAnxietyCoverRequires: Record<string, number> = {
+  'sos-ansiedade-01': require('../../assets/thumbnails/sos-ansiedade-01.jpg'),
+  'sos-ansiedade-02': require('../../assets/thumbnails/sos-ansiedade-02.jpg'),
+  'sos-ansiedade-03': require('../../assets/thumbnails/sos-ansiedade-03.jpg'),
+  'sos-ansiedade-04': require('../../assets/thumbnails/sos-ansiedade-04.jpg'),
+  'sos-ansiedade-05': require('../../assets/thumbnails/sos-ansiedade-05.jpg'),
+  'sos-ansiedade-06': require('../../assets/thumbnails/sos-ansiedade-06.jpg'),
+  'sos-ansiedade-07': require('../../assets/thumbnails/sos-ansiedade-07.jpg'),
+};
+
+export const sosAnxietySessions: Session[] = Object.entries(sosAnxietyMeta)
+  .sort(([, a], [, b]) => a.seriesDay - b.seriesDay)
+  .map(([id, item]) => ({
+    id,
+    title: item.title,
+    subtitle: item.subtitle,
+    summary: item.summary,
+    category: 'sos' as const,
+    durationSeconds: item.durationSeconds,
+    audioSource: sosAnxietyAudioRequires[id],
+    ambientSource: sosAnxietyAmbientRequires[id],
+    ambientVolume: item.ambientVolume,
+    biblicalPrayerId: item.biblicalPrayerIds[0],
+    biblicalPrayerIds: [...item.biblicalPrayerIds],
+    journeyDay: item.seriesDay,
+    seriesId: item.seriesId,
+    seriesTitle: item.seriesTitle,
+    coverColor: item.coverColor,
+    coverImage: sosAnxietyCoverRequires[id],
+  }));
+
 const journeyAudioRequires: Record<string, number> = {
   'ansiedade-01': require('../../assets/audio/ansiedade-01.mp3'),
   'ansiedade-02': require('../../assets/audio/ansiedade-02.mp3'),
@@ -407,6 +477,7 @@ export const premiumSeriesById = {
 
 export const sessions: Session[] = [
   ...baseSessions,
+  ...sosAnxietySessions,
   ...journeySessions,
   ...meditationSessions,
   ...ecosystemSessions,
@@ -415,7 +486,8 @@ export const sessions: Session[] = [
 
 export const morningSessions = sessions.filter((s) => s.category === 'manha');
 export const nightSessions = sessions.filter((s) => s.category === 'noite');
-export const sosSession = sessions.find((s) => s.category === 'sos')!;
+export const sosSession = sessions.find((s) => s.id === 'sos-paz')!;
+export const sosSessions = sessions.filter((s) => s.category === 'sos');
 
 export function getSessionById(id: string) {
   return sessions.find((session) => session.id === id);
@@ -425,6 +497,7 @@ export function getRecommendedSessions(feeling: string | null | undefined) {
   if (feeling === 'ansioso') {
     return [
       sosSession,
+      sosAnxietySessions[0],
       ecosystemSessions.find((s) => s.id === 'eco-ansiedade-01')!,
       meditationSessions.find((s) => s.id === 'ordem-caos-01')!,
       ...journeySessions.filter((s) =>

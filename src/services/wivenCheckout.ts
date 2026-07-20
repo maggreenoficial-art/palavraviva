@@ -32,8 +32,10 @@ export type CardCheckoutInput = {
   whatsapp?: string | null;
   email?: string | null;
   document: string;
-  /** Ex.: tool-diario — omite = assinatura Missão+ */
+  /** Ex.: tool-diario | tool-foto-jesus — omite = assinatura Missão+ */
   product?: string | null;
+  /** Obrigatório para tool-foto-jesus */
+  generationId?: string | null;
   card: {
     number: string;
     owner: string;
@@ -49,6 +51,7 @@ export type PixCheckoutInput = {
   email?: string | null;
   document: string;
   product?: string | null;
+  generationId?: string | null;
 };
 
 export type CardCheckoutResult = {
@@ -58,6 +61,8 @@ export type CardCheckoutResult = {
   checkoutId: string;
   subscriptionExpiresAt: string | null;
   unlockedTools?: string[];
+  generationId?: string | null;
+  generationStatus?: string | null;
 };
 
 export type PixCheckoutResult = {
@@ -104,6 +109,7 @@ export async function payWithCard(
     email: input.email ?? null,
     document: input.document,
     product: input.product ?? null,
+    generationId: input.generationId ?? null,
     card: input.card,
     clientIp: Platform.OS === 'web' ? undefined : '127.0.0.1',
   });
@@ -120,6 +126,7 @@ export async function payWithPix(
     email: input.email ?? null,
     document: input.document,
     product: input.product ?? null,
+    generationId: input.generationId ?? null,
   });
 }
 

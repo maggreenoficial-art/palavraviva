@@ -231,5 +231,14 @@
   {"id":"2cronicas-20-12","title":"Não sabemos o que faremos, mas os nossos olhos estão em ti","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"2Chr","chapter":20,"from":12,"to":12,"apiPassage":"2 cronicas 20:12","referenceLabel":"2 Crônicas 20:12"},
   {"id":"neemias-8-10","title":"A alegria do Senhor é a vossa força","theme":"louvor","themeLabel":"Louvor","book":"Neh","chapter":8,"from":10,"to":10,"apiPassage":"neemias 8:10","referenceLabel":"Neemias 8:10"},
   {"id":"jo-19-25","title":"Eu sei que o meu Redentor vive","theme":"confianca","themeLabel":"Confiança","book":"Job","chapter":19,"from":25,"to":25,"apiPassage":"jo 19:25","referenceLabel":"Jó 19:25"},
-  {"id":"jo-42-1-6","title":"Agora os meus olhos te veem","theme":"arrependimento","themeLabel":"Arrependimento","book":"Job","chapter":42,"from":1,"to":6,"apiPassage":"jo 42:1-6","referenceLabel":"Jó 42:1-6"}
+  {"id":"jo-42-1-6","title":"Agora os meus olhos te veem","theme":"arrependimento","themeLabel":"Arrependimento","book":"Job","chapter":42,"from":1,"to":6,"apiPassage":"jo 42:1-6","referenceLabel":"Jó 42:1-6"},
+  {"id":"mateus-26-37-38","title":"A minha alma está profundamente triste","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"Matt","chapter":26,"from":37,"to":38,"apiPassage":"mateus 26:37-38","referenceLabel":"Mateus 26:37-38"},
+  {"id":"lucas-22-44","title":"Em agonia, orava mais intensamente","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"Luke","chapter":22,"from":44,"to":44,"apiPassage":"lucas 22:44","referenceLabel":"Lucas 22:44"},
+  {"id":"hebreus-5-7","title":"Com forte clamor e lágrimas","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"Heb","chapter":5,"from":7,"to":7,"apiPassage":"hebreus 5:7","referenceLabel":"Hebreus 5:7"},
+  {"id":"salmo-6-6-7","title":"Estou exausto de tanto gemer","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"Ps","chapter":6,"from":6,"to":7,"apiPassage":"salmos 6:6-7","referenceLabel":"Salmo 6:6-7"},
+  {"id":"exodo-4-10-12","title":"Eu serei com a tua boca","theme":"confianca","themeLabel":"Confiança","book":"Exod","chapter":4,"from":10,"to":12,"apiPassage":"exodo 4:10-12","referenceLabel":"Êxodo 4:10-12"},
+  {"id":"1reis-19-4-8","title":"Levanta-te e come","theme":"ansiedade","themeLabel":"Paz na ansiedade","book":"1Kgs","chapter":19,"from":4,"to":8,"apiPassage":"1 reis 19:4-8","referenceLabel":"1 Reis 19:4-8"},
+  {"id":"2corintios-12-7-9","title":"A minha graça te basta","theme":"confianca","themeLabel":"Confiança","book":"2Cor","chapter":12,"from":7,"to":9,"apiPassage":"2 corintios 12:7-9","referenceLabel":"2 Coríntios 12:7-9"},
+  {"id":"1timoteo-5-23","title":"Usa um pouco de vinho por causa do estômago","theme":"ensino","themeLabel":"Ensino de Jesus","book":"1Tim","chapter":5,"from":23,"to":23,"apiPassage":"1 timoteo 5:23","referenceLabel":"1 Timóteo 5:23"},
+  {"id":"lucas-10-33-34","title":"O samaritano cuidou dele","theme":"ensino","themeLabel":"Ensino de Jesus","book":"Luke","chapter":10,"from":33,"to":34,"apiPassage":"lucas 10:33-34","referenceLabel":"Lucas 10:33-34"}
 ]

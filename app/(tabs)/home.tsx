@@ -594,7 +594,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Abrir Ferramentas e Diário de Gratidão"
+            accessibilityLabel="Abrir Ferramentas — Foto com Jesus"
             onPress={() => router.push('/(tabs)/ferramentas')}
             style={({ pressed }) => [
               styles.toolsBanner,
@@ -603,7 +603,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.toolsBannerTitle}>Ferramentas</Text>
             <Text style={styles.toolsBannerHint}>
-              Diário de Gratidão e outros recursos práticos →
+              Foto com Jesus · R$ 5,00 por imagem →
             </Text>
           </Pressable>
         </View>

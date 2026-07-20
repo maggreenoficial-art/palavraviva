@@ -25,19 +25,19 @@ const FAQ_ITEMS = [
   },
   {
     q: 'O que é o SOS?',
-    a: 'Um áudio curto de alívio imediato, sempre gratuito. Use quando precisar de uma pausa com a Palavra, sem login e sem pagamento.',
+    a: 'Alívio rápido (cerca de 2 minutos) mais a sequência Paz na Ansiedade — sete áudios com Palavra e prática. Sempre gratuito, sem login.',
   },
   {
     q: 'O que posso usar de graça?',
-    a: 'SOS, leituras bíblicas em texto, a jornada dia a dia (conforme o dia liberado) e o primeiro dia de cada série como amostra.',
+    a: 'SOS (alívio rápido + sequência Paz na Ansiedade), leituras bíblicas em texto, a jornada dia a dia (conforme o dia liberado) e o primeiro dia de cada série como amostra.',
   },
   {
     q: 'O que é a Missão+?',
-    a: `Assinatura mensal (${SUBSCRIPTION_PRICE_LABEL}) que libera todos os áudios, séries premium, a jornada completa e as ferramentas utilitárias (como o Diário).`,
+    a: `Assinatura mensal (${SUBSCRIPTION_PRICE_LABEL}) que libera todos os áudios, séries premium e a jornada completa.`,
   },
   {
     q: 'O que são as Ferramentas?',
-    a: 'Na aba Ferramentas você encontra recursos práticos. O Diário de Gratidão já está disponível (primeira entrada grátis; depois compra única ou Missão+). Outras ferramentas chegam em breve.',
+    a: 'Hoje a aba Ferramentas oferece a Foto com Jesus: você envia uma foto, paga R$ 5,00 e, após a confirmação do pagamento, recebe uma imagem artística gerada por IA.',
   },
   {
     q: `O que é o período gratuito de ${TRIAL_HOURS} horas?`,

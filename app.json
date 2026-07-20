@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.palavraviva.app"
+      "bundleIdentifier": "com.palavraviva.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Precisamos da sua foto para gerar a imagem com Jesus."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,7 +44,13 @@
       "expo-router",
       "expo-font",
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Precisamos da sua foto para gerar a imagem com Jesus."
+        }
+      ]
     ],
     "extra": {
       "analyticsUrl": "http://localhost:8787",

@@ -11,7 +11,7 @@
       "joao-14-27"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 128
   },
   "prem-paz-02": {
     "title": "Entregando as Preocupações",
@@ -25,7 +25,7 @@
       "PHILIPPIANS_4_6_7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 112
   },
   "prem-paz-03": {
     "title": "O Poder da Oração Contemplativa",
@@ -39,7 +39,7 @@
       "salmo-46-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 70
   },
   "prem-paz-04": {
     "title": "Confiança em Meio à Tempestade",
@@ -53,7 +53,7 @@
       "MATTHEW_11_28_30"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 79
   },
   "prem-paz-05": {
     "title": "A Graça do Contentamento",
@@ -67,7 +67,7 @@
       "filipenses-4-4-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 113
   },
   "prem-paz-06": {
     "title": "Vivendo um Dia de Cada Vez",
@@ -81,7 +81,7 @@
       "MATTHEW_6_31_34"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 86
   },
   "prem-paz-07": {
     "title": "Renovando a Mente e o Espírito",
@@ -95,7 +95,7 @@
       "romanos-12-1-2"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 89
   },
   "prem-resiliencia-01": {
     "title": "A Força que Vem de Cima",
@@ -109,7 +109,7 @@
       "ISAIAH_41_10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 62
   },
   "prem-resiliencia-02": {
     "title": "Aprendendo com os Gigantes da Fé",
@@ -123,7 +123,7 @@
       "tiago-1-2-5"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 79
   },
   "prem-resiliencia-03": {
     "title": "O Propósito na Prova",
@@ -137,7 +137,7 @@
       "romanos-8-28"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 59
   },
   "prem-resiliencia-04": {
     "title": "Cultivando a Esperança Ativa",
@@ -151,7 +151,7 @@
       "salmo-62-5-8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 78
   },
   "prem-resiliencia-05": {
     "title": "O Legado da Superação",
@@ -165,7 +165,7 @@
       "galatas-6-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 60
   },
   "prem-proposito-01": {
     "title": "Criado com um Propósito",
@@ -179,7 +179,7 @@
       "efesios-2-8-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 78
   },
   "prem-proposito-02": {
     "title": "Além do Eu: Servindo com Amor",
@@ -193,7 +193,7 @@
       "colossenses-3-12-14"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 72
   },
   "prem-proposito-03": {
     "title": "O Chamado no Cotidiano",
@@ -207,7 +207,7 @@
       "colossenses-3-1-4"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 73
   },
   "prem-proposito-04": {
     "title": "Alinhando Valores e Ações",
@@ -221,7 +221,7 @@
       "PROVERBS_16_3"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 49
   },
   "prem-proposito-05": {
     "title": "Deixando um Legado de Fé",
@@ -235,7 +235,7 @@
       "2timoteo-1-7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 51
   },
   "prem-proposito-06": {
     "title": "Alegria no Propósito",
@@ -249,7 +249,7 @@
       "neemias-8-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 59
   },
   "prem-gratidao-01": {
     "title": "O Coração Grato",
@@ -263,7 +263,7 @@
       "salmo-103-1-13"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 135
   },
   "prem-gratidao-02": {
     "title": "Louvor em Todas as Estações",
@@ -277,7 +277,7 @@
       "1tessalonicenses-5-16-18"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 58
   },
   "prem-gratidao-03": {
     "title": "A Ciência da Gratidão",
@@ -291,7 +291,7 @@
       "salmo-9-9-10"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 59
   },
   "prem-gratidao-04": {
     "title": "Expressando Gratidão Ativamente",
@@ -305,7 +305,7 @@
       "colossenses-3-15"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 51
   },
   "prem-gratidao-05": {
     "title": "Um Estilo de Vida de Louvor",
@@ -319,7 +319,7 @@
       "salmo-150"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 78
   },
   "prem-descanso-01": {
     "title": "Entregando o Dia a Deus",
@@ -333,7 +333,7 @@
       "PSALM_4_8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 60
   },
   "prem-descanso-02": {
     "title": "A Presença de Deus na Noite",
@@ -347,7 +347,7 @@
       "salmo-139"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 128
   },
   "prem-descanso-03": {
     "title": "Perdão e Liberação",
@@ -361,7 +361,7 @@
       "efesios-4-29-32"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 79
   },
   "prem-descanso-04": {
     "title": "A Esperança da Manhã",
@@ -375,7 +375,7 @@
       "salmo-30-1-5"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 81
   },
   "prem-descanso-05": {
     "title": "Protegido pelo Amor Divino",
@@ -389,7 +389,7 @@
       "salmo-91"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 138
   },
   "prem-descanso-06": {
     "title": "Silenciando a Mente Ansiosa",
@@ -403,7 +403,7 @@
       "isaias-26-3-4"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 59
   },
   "prem-descanso-07": {
     "title": "Despertar Renovado",
@@ -417,7 +417,7 @@
       "LAMENTATIONS_3_21_23"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 60
   },
   "prem-preocupacao-01": {
     "title": "O Fardo da Preocupação",
@@ -431,7 +431,7 @@
       "mateus-6-25-30"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 115
   },
   "prem-preocupacao-02": {
     "title": "Confiança na Provisão Divina",
@@ -445,7 +445,7 @@
       "MATTHEW_6_31_34"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 79
   },
   "prem-preocupacao-03": {
     "title": "Ação com Fé, Não com Medo",
@@ -459,7 +459,7 @@
       "tiago-4-7-8"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 58
   },
   "prem-preocupacao-04": {
     "title": "Desapego e Controle",
@@ -473,7 +473,7 @@
       "1_PETER_5_7"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 50
   },
   "prem-preocupacao-05": {
     "title": "Pensamentos que Edificam",
@@ -487,7 +487,7 @@
       "filipenses-4-4-9"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 101
   },
   "prem-preocupacao-06": {
     "title": "Vivendo em Liberdade",
@@ -501,6 +501,6 @@
       "galatas-2-20"
     ],
     "ambientVolume": 0.11,
-    "durationSeconds": 300
+    "durationSeconds": 59
   }
 }

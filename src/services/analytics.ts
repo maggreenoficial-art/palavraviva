@@ -14,7 +14,9 @@ export type AnalyticsEventName =
   | 'subscription_start'
   | 'subscription_activated'
   | 'tool_purchase_start'
-  | 'tool_purchase_activated';
+  | 'tool_purchase_activated'
+  | 'foto_jesus_prepare'
+  | 'foto_jesus_success';
 
 export type ContentKind =
   | 'session'

@@ -92,7 +92,7 @@ export function SosButton({ onPress }: SosButtonProps) {
       <View style={styles.body}>
         <Text style={styles.kicker}>Precisa de paz agora?</Text>
         <Text style={styles.title}>SOS — Alívio Imediato</Text>
-        <Text style={styles.subtitle}>Oração e Palavra · 3 min</Text>
+        <Text style={styles.subtitle}>7 áudios · Grátis · Começar agora</Text>
         <View style={styles.cta}>
           <Text style={styles.ctaText}>Começar agora</Text>
         </View>
