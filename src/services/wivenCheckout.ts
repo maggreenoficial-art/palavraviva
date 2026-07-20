@@ -90,10 +90,13 @@ async function postCheckout<T>(
   });
   const data = (await response.json()) as T & { ok?: boolean; error?: string };
   if (!response.ok || !data.ok) {
-    throw new Error(
-      (data as { error?: string }).error ||
-        'Não foi possível processar o pagamento.',
-    );
+    const raw = (data as { error?: string }).error || '';
+    if (raw === 'not_found' || response.status === 404) {
+      throw new Error(
+        'Servidor de pagamentos desatualizado. Reinicie com: npm run payments:server',
+      );
+    }
+    throw new Error(raw || 'Não foi possível processar o pagamento.');
   }
   return data;
 }

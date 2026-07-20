@@ -52,7 +52,13 @@ export async function prepareFotoJesus(input: {
     error?: string;
   };
   if (!response.ok || !data.ok) {
-    throw new Error(data.error || 'Não foi possível enviar a foto.');
+    const raw = data.error || '';
+    if (raw === 'not_found' || response.status === 404) {
+      throw new Error(
+        'Servidor de pagamentos desatualizado. Reinicie com: npm run payments:server',
+      );
+    }
+    throw new Error(raw || 'Não foi possível enviar a foto.');
   }
   return data;
 }

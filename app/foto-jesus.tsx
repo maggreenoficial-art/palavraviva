@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,12 @@ import {
   pollFotoJesusResult,
   prepareFotoJesus,
 } from '../src/services/fotoJesus';
+import {
+  cacheImageAsDataUri,
+  downloadFotoJesusImage,
+  shareFotoJesusInvite,
+} from '../src/services/fotoJesusShare';
+import { useFotoJesusStore } from '../src/store/useFotoJesusStore';
 import { useUserStore } from '../src/store/useUserStore';
 import {
   MIN_TAP,
@@ -39,8 +44,10 @@ export default function FotoJesusScreen() {
   const type = useTypography();
   const tool = getToolById('foto-jesus');
   const userId = useUserStore((s) => s.userId);
+  const saveResult = useFotoJesusStore((s) => s.saveResult);
 
   const [step, setStep] = useState<Step>('pick');
+  const [hydrated, setHydrated] = useState(false);
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState('image/jpeg');
@@ -50,6 +57,29 @@ export default function FotoJesusScreen() {
   const [busy, setBusy] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hydrated) return;
+
+    const finish = () => {
+      const saved = useFotoJesusStore.getState().lastResult;
+      if (saved?.dataUri || saved?.resultUrl) {
+        setResultUrl(saved.dataUri || saved.resultUrl);
+        setGenerationId(saved.generationId);
+        setStep('done');
+      }
+      setHydrated(true);
+    };
+
+    if (useFotoJesusStore.persist.hasHydrated()) {
+      finish();
+      return;
+    }
+
+    const unsub = useFotoJesusStore.persist.onFinishHydration(finish);
+    return unsub;
+  }, [hydrated]);
 
   const styles = useMemo(
     () =>
@@ -125,6 +155,13 @@ export default function FotoJesusScreen() {
           color: colors.white,
           fontFamily: 'DMSans_600SemiBold',
         },
+        actionsRow: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+        },
+        actionHalf: {
+          flex: 1,
+        },
         cta: {
           minHeight: 54,
           borderRadius: radius.md,
@@ -141,10 +178,12 @@ export default function FotoJesusScreen() {
         ctaText: {
           ...type.button,
           color: colors.onAccent,
+          textAlign: 'center',
         },
         ctaTextSecondary: {
           ...type.bodyMedium,
           color: colors.accent,
+          textAlign: 'center',
         },
         status: {
           ...type.body,
@@ -167,15 +206,32 @@ export default function FotoJesusScreen() {
     [type],
   );
 
-  const showExample = !resultUrl && !localUri;
+  const displayImage = resultUrl || localUri;
+  const showExample = !displayImage;
   const previewSource = resultUrl
     ? { uri: resultUrl }
     : localUri
       ? { uri: localUri }
       : examplePhoto;
+  const hasSavedImage = Boolean(resultUrl) && step === 'done';
+
+  const persistGenerated = useCallback(
+    async (generationIdValue: string, remoteUrl: string) => {
+      const dataUri = await cacheImageAsDataUri(remoteUrl);
+      const display = dataUri || remoteUrl;
+      setResultUrl(display);
+      saveResult({
+        generationId: generationIdValue,
+        resultUrl: remoteUrl,
+        dataUri,
+      });
+    },
+    [saveResult],
+  );
 
   const pickPhoto = useCallback(async () => {
     setError(null);
+    setActionMessage(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setError('Permita o acesso às fotos para continuar.');
@@ -247,7 +303,9 @@ export default function FotoJesusScreen() {
     if (!userId || !generationId) return;
     setPaywallVisible(false);
     setStep('generating');
-    setStatusText('Pagamento ok. Criando sua imagem… Isso pode levar 1 a 2 minutos.');
+    setStatusText(
+      'Pagamento ok. Criando sua imagem… Isso pode levar 1 a 2 minutos.',
+    );
     setError(null);
 
     const signal = { cancelled: false };
@@ -273,7 +331,10 @@ export default function FotoJesusScreen() {
     }
 
     if (result.status === 'success' && result.resultUrl) {
-      setResultUrl(result.resultUrl);
+      setStatusText('Salvando sua imagem neste aparelho…');
+      await persistGenerated(generationId, result.resultUrl);
+      setLocalUri(null);
+      setImageBase64(null);
       setStep('done');
       setStatusText(null);
       void trackAnalytics({
@@ -284,8 +345,10 @@ export default function FotoJesusScreen() {
     }
 
     setStep('error');
-    setError(result.error || 'Não foi possível gerar a imagem. Tente outra foto.');
-  }, [generationId, userId]);
+    setError(
+      result.error || 'Não foi possível gerar a imagem. Tente outra foto.',
+    );
+  }, [generationId, persistGenerated, userId]);
 
   const checkStatus = useCallback(async () => {
     if (!userId || !generationId) return;
@@ -297,6 +360,48 @@ export default function FotoJesusScreen() {
       setBusy(false);
     }
   }, [generationId, startPolling, userId]);
+
+  const handleDownload = useCallback(async () => {
+    if (!resultUrl) return;
+    setBusy(true);
+    setActionMessage(null);
+    setError(null);
+    try {
+      await downloadFotoJesusImage(resultUrl);
+      setActionMessage('Download iniciado.');
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Não foi possível baixar a imagem.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [resultUrl]);
+
+  const handleIndicate = useCallback(async () => {
+    setActionMessage(null);
+    try {
+      await shareFotoJesusInvite();
+      setActionMessage('Convite pronto para enviar.');
+      void trackAnalytics({
+        name: 'foto_jesus_success',
+        meta: { action: 'indicate_friend' },
+      });
+    } catch {
+      setError('Não foi possível abrir o compartilhamento.');
+    }
+  }, []);
+
+  const startNewGeneration = useCallback(() => {
+    setStep('pick');
+    setLocalUri(null);
+    setImageBase64(null);
+    setGenerationId(null);
+    setResultUrl(null);
+    setError(null);
+    setActionMessage(null);
+    setStatusText(null);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -317,12 +422,16 @@ export default function FotoJesusScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.lead}>{tool?.title ?? 'Foto com Jesus'}</Text>
         <Text style={styles.body}>
-          {tool?.benefit ??
-            'Envie sua foto. Após o pagamento, geramos uma imagem artística ao seu lado de Jesus.'}
+          {hasSavedImage
+            ? 'Sua foto está salva neste aparelho. Baixe quando quiser ou gere uma nova.'
+            : (tool?.benefit ??
+              'Envie sua foto. Após o pagamento, geramos uma imagem artística ao seu lado de Jesus.')}
         </Text>
-        <Text style={styles.price}>
-          {TOOL_FOTO_JESUS_PRICE_LABEL} por imagem gerada
-        </Text>
+        {!hasSavedImage ? (
+          <Text style={styles.price}>
+            {TOOL_FOTO_JESUS_PRICE_LABEL} por imagem gerada
+          </Text>
+        ) : null}
 
         <View style={styles.preview}>
           <Image
@@ -333,7 +442,9 @@ export default function FotoJesusScreen() {
             accessibilityLabel={
               showExample
                 ? 'Exemplo de foto com Jesus'
-                : 'Prévia da sua foto'
+                : hasSavedImage
+                  ? 'Sua foto com Jesus'
+                  : 'Prévia da sua foto'
             }
           />
           {showExample ? (
@@ -344,9 +455,63 @@ export default function FotoJesusScreen() {
         </View>
 
         {statusText ? <Text style={styles.status}>{statusText}</Text> : null}
+        {actionMessage ? (
+          <Text style={styles.status}>{actionMessage}</Text>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {step === 'pick' || step === 'ready' || step === 'error' ? (
+        {hasSavedImage ? (
+          <>
+            <View style={styles.actionsRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Baixar imagem"
+                disabled={busy}
+                onPress={() => void handleDownload()}
+                style={({ pressed }) => [
+                  styles.cta,
+                  styles.actionHalf,
+                  pressed && styles.pressed,
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.onAccent} />
+                ) : (
+                  <Text style={styles.ctaText}>Baixar</Text>
+                )}
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Indicar para uma amiga"
+                onPress={() => void handleIndicate()}
+                style={({ pressed }) => [
+                  styles.cta,
+                  styles.ctaSecondary,
+                  styles.actionHalf,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.ctaTextSecondary}>Indicar amiga</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={startNewGeneration}
+              style={({ pressed }) => [
+                styles.cta,
+                styles.ctaSecondary,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.ctaTextSecondary}>
+                Gerar outra · {TOOL_FOTO_JESUS_PRICE_LABEL}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+
+        {!hasSavedImage &&
+        (step === 'pick' || step === 'ready' || step === 'error') ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Escolher foto"
@@ -399,38 +564,6 @@ export default function FotoJesusScreen() {
                 <Text style={styles.ctaTextSecondary}>Verificar status</Text>
               </Pressable>
             ) : null}
-          </>
-        ) : null}
-
-        {step === 'done' && resultUrl ? (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void Linking.openURL(resultUrl)}
-              style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
-            >
-              <Text style={styles.ctaText}>Abrir imagem em tela cheia</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setStep('pick');
-                setLocalUri(null);
-                setImageBase64(null);
-                setGenerationId(null);
-                setResultUrl(null);
-                setError(null);
-              }}
-              style={({ pressed }) => [
-                styles.cta,
-                styles.ctaSecondary,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.ctaTextSecondary}>
-                Gerar outra · {TOOL_FOTO_JESUS_PRICE_LABEL}
-              </Text>
-            </Pressable>
           </>
         ) : null}
 
