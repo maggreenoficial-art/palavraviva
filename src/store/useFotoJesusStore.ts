@@ -4,9 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface FotoJesusSavedResult {
   generationId: string;
-  /** URL remota original (pode expirar) */
   resultUrl: string;
-  /** data URI local para exibir/baixar depois */
   dataUri: string | null;
   createdAt: string;
 }
@@ -16,10 +14,12 @@ export interface FotoJesusPending {
   inputUrl: string;
   token: string;
   transactionId: string | null;
+  /** Todos os Pix gerados para esta foto (verifica todos na confirmação) */
+  transactionIds: string[];
+  clientIdentifier: string | null;
   checkoutId: string | null;
   pixCode: string | null;
   pixImage: string | null;
-  /** data:image/...;base64,... — blob: não persiste no web */
   previewDataUri: string | null;
   kieTaskId: string | null;
   createdAt: string;
@@ -37,6 +37,15 @@ interface FotoJesusState {
   patchPending: (patch: Partial<FotoJesusPending>) => void;
   clearPending: () => void;
   clearResult: () => void;
+}
+
+function mergeTransactionIds(
+  current: string[] | undefined,
+  next: string | null | undefined,
+) {
+  const list = Array.isArray(current) ? [...current] : [];
+  if (next && !list.includes(next)) list.push(next);
+  return list;
 }
 
 export const useFotoJesusStore = create<FotoJesusState>()(
@@ -57,12 +66,38 @@ export const useFotoJesusStore = create<FotoJesusState>()(
         });
       },
 
-      savePending: (pending) => set({ pending }),
+      savePending: (pending) => {
+        const txIds = mergeTransactionIds(
+          pending.transactionIds,
+          pending.transactionId,
+        );
+        set({
+          pending: {
+            ...pending,
+            transactionIds: txIds,
+          },
+        });
+      },
 
       patchPending: (patch) => {
         const current = get().pending;
         if (!current) return;
-        set({ pending: { ...current, ...patch } });
+        const nextTx =
+          patch.transactionId !== undefined
+            ? patch.transactionId
+            : current.transactionId;
+        const mergedIds = mergeTransactionIds(
+          patch.transactionIds || current.transactionIds,
+          nextTx,
+        );
+        set({
+          pending: {
+            ...current,
+            ...patch,
+            transactionId: nextTx,
+            transactionIds: mergedIds,
+          },
+        });
       },
 
       clearPending: () => set({ pending: null }),
@@ -72,7 +107,7 @@ export const useFotoJesusStore = create<FotoJesusState>()(
     {
       name: 'palavra-viva-foto-jesus',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
+      version: 4,
       partialize: (state) => ({
         lastResult: state.lastResult,
         pending: state.pending,
@@ -82,11 +117,17 @@ export const useFotoJesusStore = create<FotoJesusState>()(
           lastResult?: FotoJesusSavedResult | null;
           pending?: (FotoJesusPending & { previewUri?: string }) | null;
         };
-        if (state.pending && !state.pending.previewDataUri) {
+        if (state.pending) {
+          const txIds = mergeTransactionIds(
+            state.pending.transactionIds,
+            state.pending.transactionId,
+          );
           state.pending = {
             ...state.pending,
-            previewDataUri: null,
+            previewDataUri: state.pending.previewDataUri ?? null,
             kieTaskId: state.pending.kieTaskId ?? null,
+            clientIdentifier: state.pending.clientIdentifier ?? null,
+            transactionIds: txIds,
           };
         }
         return state;

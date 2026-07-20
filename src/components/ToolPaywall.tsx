@@ -41,6 +41,8 @@ interface ToolPaywallProps {
   }) => void;
   onPixReady?: (info: {
     transactionId: string | null;
+    transactionIds: string[];
+    clientIdentifier: string | null;
     checkoutId: string | null;
     pixCode: string | null;
     pixImage: string | null;
@@ -53,6 +55,8 @@ interface ToolPaywallProps {
   initialPixCode?: string | null;
   initialPixImage?: string | null;
   initialTransactionId?: string | null;
+  initialTransactionIds?: string[] | null;
+  initialClientIdentifier?: string | null;
   consumable?: boolean;
 }
 
@@ -75,6 +79,8 @@ export function ToolPaywall({
   initialPixCode = null,
   initialPixImage = null,
   initialTransactionId = null,
+  initialTransactionIds = null,
+  initialClientIdentifier = null,
   consumable = false,
 }: ToolPaywallProps) {
   const type = useTypography();
@@ -100,10 +106,20 @@ export function ToolPaywall({
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [transactionIds, setTransactionIds] = useState<string[]>([]);
+  const [clientIdentifier, setClientIdentifier] = useState<string | null>(
+    null,
+  );
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const unlockingRef = useRef(false);
   const { isDesktop, shellMaxWidth } = useResponsive();
+
+  function mergeTxIds(current: string[], next: string | null | undefined) {
+    const list = [...current];
+    if (next && !list.includes(next)) list.push(next);
+    return list;
+  }
 
   const priceLabel = tool?.priceLabel ?? TOOL_FOTO_JESUS_PRICE_LABEL;
   const productKey = PRODUCT_BY_TOOL[toolId] ?? `tool-${toolId}`;
@@ -121,6 +137,13 @@ export function ToolPaywall({
     setPixCode(initialPixCode);
     setPixImage(initialPixImage);
     setTransactionId(initialTransactionId);
+    setClientIdentifier(initialClientIdentifier);
+    setTransactionIds(
+      mergeTxIds(
+        Array.isArray(initialTransactionIds) ? initialTransactionIds : [],
+        initialTransactionId,
+      ),
+    );
     if (initialPixCode) {
       setMessage(
         'Pix pronto. Pague no banco e toque em “Já paguei” para continuar.',
@@ -134,6 +157,8 @@ export function ToolPaywall({
     initialPixCode,
     initialPixImage,
     initialTransactionId,
+    initialTransactionIds,
+    initialClientIdentifier,
   ]);
 
   // Poll automático enquanto o Pix está na tela (Vercel precisa do transactionId)
@@ -141,7 +166,7 @@ export function ToolPaywall({
     if (!visible || !pixCode || !isConsumable || !generationId || !userId) {
       return;
     }
-    if (!transactionId && !generationToken) return;
+    if (!transactionId && !clientIdentifier && !generationToken) return;
 
     const signal = { cancelled: false };
     let delay = 4000;
@@ -154,6 +179,8 @@ export function ToolPaywall({
         inputUrl,
         token: generationToken,
         transactionId,
+        transactionIds,
+        clientIdentifier,
       });
       if (signal.cancelled || unlockingRef.current) return;
 
@@ -201,6 +228,8 @@ export function ToolPaywall({
     generationId,
     userId,
     transactionId,
+    transactionIds,
+    clientIdentifier,
     generationToken,
     inputUrl,
     toolId,
@@ -550,7 +579,7 @@ export function ToolPaywall({
   async function handlePayPix() {
     if (pixCode && transactionId) {
       setMessage(
-        'Este Pix já foi gerado. Pague este mesmo código no banco e toque em “Já paguei”. Não gere outro Pix.',
+        'Este Pix já está na tela. Pague ESTE código no banco e toque em “Já paguei”. Se você pagou um Pix antigo desta mesma foto, toque só em “Já paguei” — vamos conferir todos os códigos salvos.',
       );
       return;
     }
@@ -582,12 +611,18 @@ export function ToolPaywall({
         generationToken,
       });
       const tx = result.transactionId ?? null;
+      const identifier = result.identifier ?? null;
+      const nextIds = mergeTxIds(transactionIds, tx);
       setPixCode(result.pixCode);
       setPixImage(result.pixImage);
       setTransactionId(tx);
+      setClientIdentifier(identifier);
+      setTransactionIds(nextIds);
       setCheckoutId(result.checkoutId ?? null);
       onPixReady?.({
         transactionId: tx,
+        transactionIds: nextIds,
+        clientIdentifier: identifier,
         checkoutId: result.checkoutId ?? checkoutId ?? null,
         pixCode: result.pixCode,
         pixImage: result.pixImage,
@@ -621,6 +656,8 @@ export function ToolPaywall({
           inputUrl,
           token: generationToken,
           transactionId,
+          transactionIds,
+          clientIdentifier,
         });
 
         if (
@@ -649,7 +686,9 @@ export function ToolPaywall({
           );
         } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
           setMessage(
-            'O banco ainda não confirmou o Pix (pendente). Aguarde uns 20 segundos e toque de novo em “Já paguei”.',
+            transactionIds.length > 1
+              ? 'Nenhum dos Pix desta foto está confirmado ainda. Se pagou há pouco, aguarde ~20s e toque de novo em “Já paguei”.'
+              : 'O banco ainda não confirmou o Pix (pendente). Aguarde uns 20 segundos e toque de novo em “Já paguei”.',
           );
         } else if (status?.paymentCheck?.error) {
           setError(

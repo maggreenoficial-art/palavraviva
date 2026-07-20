@@ -514,18 +514,33 @@ function isPaidStatus(status) {
 function isPaidTransaction(tx) {
   if (!tx) return false;
   if (Array.isArray(tx)) return isPaidTransaction(tx[0]);
+  if (Array.isArray(tx.items)) return isPaidTransaction(tx.items[0]);
   const nested = tx.data ?? tx.transaction ?? null;
   if (Array.isArray(nested)) return isPaidTransaction(nested[0]);
   if (isPaidStatus(extractTxStatus(tx))) return true;
-  if (tx.paid === true || tx.isPaid === true || nested?.paid === true) return true;
+  if (tx.paid === true || tx.isPaid === true || nested?.paid === true) {
+    return true;
+  }
   const paidAt =
     tx.payedAt ||
     tx.paidAt ||
     tx.paymentSettlementDate ||
+    tx.paid_at ||
     nested?.payedAt ||
     nested?.paidAt ||
     null;
-  return Boolean(paidAt);
+  if (paidAt) return true;
+  // alguns retornos marcam e2e / endToEnd só após liquidar
+  const e2e =
+    tx.endToEnd ||
+    tx.e2eId ||
+    tx.pixInformation?.endToEnd ||
+    tx.pixInformation?.e2eId ||
+    null;
+  if (e2e && String(extractTxStatus(tx) || '').toUpperCase() !== 'PENDING') {
+    return true;
+  }
+  return false;
 }
 
 /** Na criação via cartão, OK costuma indicar captura imediata. */
@@ -615,26 +630,75 @@ async function createWivenCardCharge(input) {
   };
 }
 
-async function fetchWivenTransaction(transactionId) {
-  if (!transactionId) return null;
-  return wivenGet(
-    `/gateway/transactions?id=${encodeURIComponent(transactionId)}`,
-  );
+/** Normaliza respostas Wiven (objeto único, items[], data[], etc.). */
+function unwrapWivenTransaction(data) {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return pickPreferredTransaction(data);
+  }
+  if (Array.isArray(data.items)) {
+    return pickPreferredTransaction(data.items);
+  }
+  if (Array.isArray(data.data)) {
+    return pickPreferredTransaction(data.data);
+  }
+  if (data.data && typeof data.data === 'object') {
+    return data.data;
+  }
+  if (data.transaction && typeof data.transaction === 'object') {
+    return data.transaction;
+  }
+  if (data.result && typeof data.result === 'object') {
+    return data.result;
+  }
+  return data;
+}
+
+function pickPreferredTransaction(list) {
+  if (!Array.isArray(list) || !list.length) return null;
+  const paid = list.find((item) => isPaidTransaction(item));
+  return paid || list[0] || null;
+}
+
+async function fetchWivenTransaction(transactionId, clientIdentifier = null) {
+  if (transactionId) {
+    try {
+      const data = await wivenGet(
+        `/gateway/transactions?id=${encodeURIComponent(transactionId)}`,
+      );
+      return unwrapWivenTransaction(data);
+    } catch (error) {
+      if (!clientIdentifier) throw error;
+    }
+  }
+  if (clientIdentifier) {
+    const data = await wivenGet(
+      `/gateway/transactions?clientIdentifier=${encodeURIComponent(clientIdentifier)}`,
+    );
+    return unwrapWivenTransaction(data);
+  }
+  return null;
 }
 
 /** Extrai status de pagamento de respostas variadas da Wiven. */
 function extractTxStatus(tx) {
   if (!tx) return null;
   if (Array.isArray(tx)) return extractTxStatus(tx[0]);
+  if (Array.isArray(tx.items)) return extractTxStatus(tx.items[0]);
+  if (Array.isArray(tx.data) && tx.data[0] && typeof tx.data[0] === 'object') {
+    return extractTxStatus(tx.data[0]);
+  }
   const nested = tx.data ?? tx.transaction ?? tx.result ?? null;
   if (Array.isArray(nested)) return extractTxStatus(nested[0]);
   return (
     tx.status ||
     tx.payment_status ||
     tx.paymentStatus ||
+    tx.operationStatus ||
     nested?.status ||
     nested?.payment_status ||
     nested?.paymentStatus ||
+    nested?.operationStatus ||
     null
   );
 }
@@ -654,14 +718,16 @@ async function tryConfirmGenerationPayment({
   source,
   startGeneration = false,
   kieTaskId = null,
+  clientIdentifier = null,
 }) {
-  if (!transactionId) {
+  if (!transactionId && !clientIdentifier) {
     return { generation: null, paymentCheck: { error: 'transactionId_ausente' } };
   }
-  const tx = await fetchWivenTransaction(transactionId);
+  const tx = await fetchWivenTransaction(transactionId, clientIdentifier);
   const wivenStatus = extractTxStatus(tx);
   const paymentCheck = {
-    transactionId,
+    transactionId: transactionId || tx?.id || null,
+    clientIdentifier: clientIdentifier || tx?.clientIdentifier || null,
     wivenStatus,
     paid: isPaidTransaction(tx),
     payedAt: tx?.payedAt || tx?.paidAt || null,
@@ -674,8 +740,9 @@ async function tryConfirmGenerationPayment({
     const all = readCheckouts();
     const idx = all.findIndex(
       (c) =>
-        c.transactionId === transactionId ||
-        (checkoutId && c.id === checkoutId),
+        (transactionId && c.transactionId === transactionId) ||
+        (checkoutId && c.id === checkoutId) ||
+        (clientIdentifier && c.identifier === clientIdentifier),
     );
     if (idx >= 0) {
       all[idx].status = 'paid';
@@ -689,11 +756,10 @@ async function tryConfirmGenerationPayment({
   const generation = await fulfillFotoJesusPayment(generationId, userId, {
     checkoutId: checkoutId || null,
     source: source || 'tx_confirm',
-    providerRef: transactionId,
+    providerRef: paymentCheck.transactionId,
     inputUrl: inputUrl || null,
     token: token || null,
     kieTaskId: kieTaskId || null,
-    // Se já tem kieTaskId, fulfill só retoma; senão só cria se startGeneration
     startGeneration: Boolean(kieTaskId) ? true : Boolean(startGeneration),
   });
   return { generation, paymentCheck };
@@ -1146,6 +1212,7 @@ const serverHandler = async (req, res) => {
         method: 'pix',
         checkoutId,
         transactionId: wiven.transactionId,
+        identifier: wiven.identifier,
         product: product.productKey,
         generationId: generationId || null,
         pixCode: wiven.pixCode,
@@ -1429,6 +1496,21 @@ const serverHandler = async (req, res) => {
       const transactionId = String(
         body.transactionId || url.searchParams.get('transactionId') || '',
       ).trim();
+      const clientIdentifier = String(
+        body.clientIdentifier ||
+          body.identifier ||
+          url.searchParams.get('clientIdentifier') ||
+          '',
+      ).trim();
+      const transactionIdsRaw = Array.isArray(body.transactionIds)
+        ? body.transactionIds
+        : typeof body.transactionIds === 'string'
+          ? body.transactionIds.split(',')
+          : [];
+      const transactionIds = [
+        ...transactionIdsRaw.map((id) => String(id || '').trim()).filter(Boolean),
+        ...(transactionId ? [transactionId] : []),
+      ].filter((id, index, arr) => arr.indexOf(id) === index);
       const startGeneration = Boolean(
         body.startGeneration === true ||
           body.startGeneration === 1 ||
@@ -1501,7 +1583,20 @@ const serverHandler = async (req, res) => {
       // Sem kieTaskId: confirma pagamento; só cria job se startGeneration=true
       if (generation.status === 'awaiting_payment' || generation.status === 'paid') {
         const txCandidates = [];
-        if (transactionId) txCandidates.push({ transactionId, checkoutId: null });
+        for (const tid of transactionIds) {
+          txCandidates.push({
+            transactionId: tid,
+            checkoutId: null,
+            clientIdentifier: null,
+          });
+        }
+        if (clientIdentifier) {
+          txCandidates.push({
+            transactionId: null,
+            checkoutId: null,
+            clientIdentifier,
+          });
+        }
 
         try {
           const openCheckouts = readCheckouts()
@@ -1510,22 +1605,28 @@ const serverHandler = async (req, res) => {
                 c.userId === userId &&
                 c.generationId === generationId &&
                 (c.status === 'opened' || c.status === 'paid') &&
-                c.transactionId,
+                (c.transactionId || c.identifier),
             )
-            .slice(-3)
+            .slice(-8)
             .reverse();
           for (const checkout of openCheckouts) {
-            if (
-              !txCandidates.some((t) => t.transactionId === checkout.transactionId)
-            ) {
+            const already = txCandidates.some(
+              (t) =>
+                (checkout.transactionId &&
+                  t.transactionId === checkout.transactionId) ||
+                (checkout.identifier &&
+                  t.clientIdentifier === checkout.identifier),
+            );
+            if (!already) {
               txCandidates.push({
-                transactionId: checkout.transactionId,
+                transactionId: checkout.transactionId || null,
                 checkoutId: checkout.id,
+                clientIdentifier: checkout.identifier || null,
               });
             }
           }
         } catch {
-          // /tmp ausente no Vercel — usa só transactionId do cliente
+          // /tmp ausente no Vercel — usa só IDs do cliente
         }
 
         if (!txCandidates.length) {
@@ -1535,6 +1636,7 @@ const serverHandler = async (req, res) => {
           };
         }
 
+        let lastPendingCheck = null;
         for (const candidate of txCandidates) {
           try {
             const confirmed = await tryConfirmGenerationPayment({
@@ -1544,11 +1646,15 @@ const serverHandler = async (req, res) => {
               token: token || null,
               transactionId: candidate.transactionId,
               checkoutId: candidate.checkoutId,
+              clientIdentifier: candidate.clientIdentifier,
               source: startGeneration ? 'status_start' : 'status_poll',
               startGeneration,
               kieTaskId: null,
             });
             paymentCheck = confirmed.paymentCheck;
+            if (confirmed.paymentCheck && !confirmed.paymentCheck.paid) {
+              lastPendingCheck = confirmed.paymentCheck;
+            }
             if (confirmed.generation) {
               generation = confirmed.generation;
               break;
@@ -1559,6 +1665,20 @@ const serverHandler = async (req, res) => {
               error: String(error.message || error),
             };
           }
+        }
+        if (
+          generation.status === 'awaiting_payment' &&
+          lastPendingCheck &&
+          !paymentCheck?.paid
+        ) {
+          paymentCheck = {
+            ...lastPendingCheck,
+            checkedCount: txCandidates.length,
+            hint:
+              txCandidates.length > 1
+                ? 'Nenhum dos Pix desta foto está pago ainda na Wiven.'
+                : lastPendingCheck.hint,
+          };
         }
       }
 

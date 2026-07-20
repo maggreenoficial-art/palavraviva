@@ -86,6 +86,16 @@ export async function prepareFotoJesus(input: {
   return data;
 }
 
+function collectTransactionIds(
+  transactionId?: string | null,
+  transactionIds?: string[] | null,
+): string[] {
+  return [
+    ...(Array.isArray(transactionIds) ? transactionIds : []),
+    ...(transactionId ? [transactionId] : []),
+  ].filter((id, i, arr) => Boolean(id) && arr.indexOf(id) === i);
+}
+
 export async function fetchFotoJesusStatus(input: {
   generationId: string;
   userId: string;
@@ -93,11 +103,17 @@ export async function fetchFotoJesusStatus(input: {
   token?: string | null;
   kieTaskId?: string | null;
   transactionId?: string | null;
+  transactionIds?: string[] | null;
+  clientIdentifier?: string | null;
   /** true = pode criar 1 job Kie se pago e ainda não houver kieTaskId */
   startGeneration?: boolean;
 }): Promise<FotoJesusStatusResult | null> {
   try {
     const base = paymentsBaseUrl();
+    const ids = collectTransactionIds(
+      input.transactionId,
+      input.transactionIds,
+    );
     const response = await fetch(`${base}/api/foto-jesus/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -107,7 +123,9 @@ export async function fetchFotoJesusStatus(input: {
         inputUrl: input.inputUrl || null,
         token: input.token || null,
         kieTaskId: input.kieTaskId || null,
-        transactionId: input.transactionId || null,
+        transactionId: input.transactionId || ids[0] || null,
+        transactionIds: ids,
+        clientIdentifier: input.clientIdentifier || null,
         startGeneration: Boolean(input.startGeneration) && !input.kieTaskId,
       }),
     });
@@ -137,6 +155,8 @@ export async function checkFotoJesusPayment(input: {
   inputUrl?: string | null;
   token?: string | null;
   transactionId?: string | null;
+  transactionIds?: string[] | null;
+  clientIdentifier?: string | null;
   kieTaskId?: string | null;
 }): Promise<FotoJesusStatusResult | null> {
   return fetchFotoJesusStatus({
@@ -155,6 +175,8 @@ export async function startFotoJesusGenerationOnce(input: {
   inputUrl?: string | null;
   token?: string | null;
   transactionId?: string | null;
+  transactionIds?: string[] | null;
+  clientIdentifier?: string | null;
   kieTaskId?: string | null;
 }): Promise<FotoJesusStatusResult | null> {
   if (input.kieTaskId) {
@@ -186,6 +208,8 @@ export async function pollFotoJesusResult(
     token?: string | null;
     kieTaskId?: string | null;
     transactionId?: string | null;
+    transactionIds?: string[] | null;
+    clientIdentifier?: string | null;
   },
   options?: {
     maxAttempts?: number;
@@ -200,7 +224,6 @@ export async function pollFotoJesusResult(
   let kieTaskId = input.kieTaskId ?? null;
   let last: FotoJesusStatusResult | null = null;
 
-  // Garante 1 único start se ainda não tiver tarefa
   if (!kieTaskId) {
     const started = await startFotoJesusGenerationOnce(input);
     if (started) {
@@ -221,7 +244,6 @@ export async function pollFotoJesusResult(
     await new Promise((resolve) => setTimeout(resolve, delay));
     if (signal?.cancelled) return last;
 
-    // Poll NUNCA pede startGeneration de novo
     const status = await fetchFotoJesusStatus({
       ...input,
       kieTaskId,

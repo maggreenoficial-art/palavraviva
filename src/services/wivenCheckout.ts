@@ -50,6 +50,7 @@ export type PixCheckoutResult = {
   ok: true;
   checkoutId: string;
   transactionId?: string | null;
+  identifier?: string | null;
   pixCode: string | null;
   pixImage: string | null;
 };

@@ -61,6 +61,10 @@ export default function FotoJesusScreen() {
   const [inputUrl, setInputUrl] = useState<string | null>(null);
   const [generationToken, setGenerationToken] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [transactionIds, setTransactionIds] = useState<string[]>([]);
+  const [clientIdentifier, setClientIdentifier] = useState<string | null>(
+    null,
+  );
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
   const [kieTaskId, setKieTaskId] = useState<string | null>(null);
@@ -84,6 +88,14 @@ export default function FotoJesusScreen() {
         setInputUrl(open.inputUrl);
         setGenerationToken(open.token);
         setTransactionId(open.transactionId);
+        setTransactionIds(
+          Array.isArray(open.transactionIds)
+            ? open.transactionIds
+            : open.transactionId
+              ? [open.transactionId]
+              : [],
+        );
+        setClientIdentifier(open.clientIdentifier ?? null);
         setPixCode(open.pixCode);
         setPixImage(open.pixImage);
         setKieTaskId(open.kieTaskId);
@@ -405,6 +417,7 @@ export default function FotoJesusScreen() {
 
       const activeKieTaskId = seed?.kieTaskId || kieTaskId;
       const signal = { cancelled: false };
+      const openPending = useFotoJesusStore.getState().pending;
       const result = await pollFotoJesusResult(
         {
           generationId,
@@ -412,7 +425,14 @@ export default function FotoJesusScreen() {
           inputUrl,
           token: generationToken,
           kieTaskId: activeKieTaskId,
-          transactionId,
+          transactionId:
+            transactionId || openPending?.transactionId || null,
+          transactionIds:
+            transactionIds.length > 0
+              ? transactionIds
+              : openPending?.transactionIds || [],
+          clientIdentifier:
+            clientIdentifier || openPending?.clientIdentifier || null,
         },
         {
           signal,
@@ -482,6 +502,7 @@ export default function FotoJesusScreen() {
     },
     [
       clearPending,
+      clientIdentifier,
       generationId,
       generationToken,
       inputUrl,
@@ -489,6 +510,7 @@ export default function FotoJesusScreen() {
       patchPending,
       persistGenerated,
       transactionId,
+      transactionIds,
       userId,
     ],
   );
@@ -517,6 +539,8 @@ export default function FotoJesusScreen() {
             inputUrl: open.inputUrl,
             token: open.token,
             transactionId: open.transactionId,
+            transactionIds: open.transactionIds,
+            clientIdentifier: open.clientIdentifier,
             kieTaskId: open.kieTaskId,
           });
           if (
@@ -550,6 +574,13 @@ export default function FotoJesusScreen() {
     const activeInputUrl = inputUrl || open?.inputUrl || null;
     const activeToken = generationToken || open?.token || null;
     const activeTx = transactionId || open?.transactionId || null;
+    const activeTxIds =
+      transactionIds.length > 0
+        ? transactionIds
+        : open?.transactionIds ||
+          (activeTx ? [activeTx] : []);
+    const activeIdentifier =
+      clientIdentifier || open?.clientIdentifier || null;
     const activeKie = kieTaskId || open?.kieTaskId || null;
 
     if (!userId || !activeGenerationId) {
@@ -563,6 +594,14 @@ export default function FotoJesusScreen() {
       setInputUrl(open.inputUrl);
       setGenerationToken(open.token);
       setTransactionId(open.transactionId);
+      setTransactionIds(
+        Array.isArray(open.transactionIds)
+          ? open.transactionIds
+          : open.transactionId
+            ? [open.transactionId]
+            : [],
+      );
+      setClientIdentifier(open.clientIdentifier ?? null);
       setPixCode(open.pixCode);
       setPixImage(open.pixImage);
       setKieTaskId(open.kieTaskId);
@@ -587,6 +626,8 @@ export default function FotoJesusScreen() {
         inputUrl: activeInputUrl,
         token: activeToken,
         transactionId: activeTx,
+        transactionIds: activeTxIds,
+        clientIdentifier: activeIdentifier,
       });
 
       if (!payment) {
@@ -620,7 +661,9 @@ export default function FotoJesusScreen() {
         );
       } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
         setStatusText(
-          'O banco ainda mostra Pix pendente. Se já pagou, aguarde ~30s e verifique de novo — sem gerar outro Pix.',
+          activeTxIds.length > 1
+            ? 'Ainda não achamos um Pix pago nesta foto. Se pagou agora, aguarde ~30s e verifique de novo — sem gerar outro código.'
+            : 'O banco ainda mostra Pix pendente. Se já pagou, aguarde ~30s e verifique de novo — sem gerar outro Pix.',
         );
       } else {
         setStatusText(
@@ -631,6 +674,7 @@ export default function FotoJesusScreen() {
       setBusy(false);
     }
   }, [
+    clientIdentifier,
     generationId,
     generationToken,
     inputUrl,
@@ -638,6 +682,7 @@ export default function FotoJesusScreen() {
     patchPending,
     startPolling,
     transactionId,
+    transactionIds,
     userId,
   ]);
 
@@ -919,8 +964,12 @@ export default function FotoJesusScreen() {
         initialPixCode={pixCode}
         initialPixImage={pixImage}
         initialTransactionId={transactionId}
+        initialTransactionIds={transactionIds}
+        initialClientIdentifier={clientIdentifier}
         onPixReady={(info) => {
           setTransactionId(info.transactionId);
+          setTransactionIds(info.transactionIds);
+          setClientIdentifier(info.clientIdentifier);
           setPixCode(info.pixCode);
           setPixImage(info.pixImage);
           if (generationId && inputUrl && generationToken) {
@@ -929,6 +978,8 @@ export default function FotoJesusScreen() {
               inputUrl,
               token: generationToken,
               transactionId: info.transactionId,
+              transactionIds: info.transactionIds,
+              clientIdentifier: info.clientIdentifier,
               checkoutId: info.checkoutId,
               pixCode: info.pixCode,
               pixImage: info.pixImage,
