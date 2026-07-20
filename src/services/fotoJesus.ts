@@ -33,6 +33,9 @@ export type FotoJesusStatusResult = {
   paymentCheck?: FotoJesusPaymentCheck | null;
 };
 
+/** Evita várias criações Kie em paralelo (reload / Já paguei / poll). */
+const startLocks = new Map<string, Promise<FotoJesusStatusResult | null>>();
+
 export async function prepareFotoJesus(input: {
   userId: string;
   imageBase64: string;
@@ -90,10 +93,11 @@ export async function fetchFotoJesusStatus(input: {
   token?: string | null;
   kieTaskId?: string | null;
   transactionId?: string | null;
+  /** true = pode criar 1 job Kie se pago e ainda não houver kieTaskId */
+  startGeneration?: boolean;
 }): Promise<FotoJesusStatusResult | null> {
   try {
     const base = paymentsBaseUrl();
-    // POST evita URL enorme (inputUrl da Kie estoura GET e quebra a verificação)
     const response = await fetch(`${base}/api/foto-jesus/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,6 +108,7 @@ export async function fetchFotoJesusStatus(input: {
         token: input.token || null,
         kieTaskId: input.kieTaskId || null,
         transactionId: input.transactionId || null,
+        startGeneration: Boolean(input.startGeneration) && !input.kieTaskId,
       }),
     });
     const rawText = await response.text();
@@ -121,6 +126,56 @@ export async function fetchFotoJesusStatus(input: {
   } catch {
     return null;
   }
+}
+
+/**
+ * Confirma pagamento SEM criar job na Kie.
+ */
+export async function checkFotoJesusPayment(input: {
+  generationId: string;
+  userId: string;
+  inputUrl?: string | null;
+  token?: string | null;
+  transactionId?: string | null;
+  kieTaskId?: string | null;
+}): Promise<FotoJesusStatusResult | null> {
+  return fetchFotoJesusStatus({
+    ...input,
+    startGeneration: false,
+  });
+}
+
+/**
+ * Inicia a geração Kie no máximo 1 vez por generationId (mutex no cliente).
+ * Se já houver kieTaskId, só consulta o status.
+ */
+export async function startFotoJesusGenerationOnce(input: {
+  generationId: string;
+  userId: string;
+  inputUrl?: string | null;
+  token?: string | null;
+  transactionId?: string | null;
+  kieTaskId?: string | null;
+}): Promise<FotoJesusStatusResult | null> {
+  if (input.kieTaskId) {
+    return fetchFotoJesusStatus({
+      ...input,
+      startGeneration: false,
+    });
+  }
+
+  const key = input.generationId;
+  const existing = startLocks.get(key);
+  if (existing) return existing;
+
+  const promise = fetchFotoJesusStatus({
+    ...input,
+    startGeneration: true,
+  }).finally(() => {
+    startLocks.delete(key);
+  });
+  startLocks.set(key, promise);
+  return promise;
 }
 
 export async function pollFotoJesusResult(
@@ -145,14 +200,32 @@ export async function pollFotoJesusResult(
   let kieTaskId = input.kieTaskId ?? null;
   let last: FotoJesusStatusResult | null = null;
 
+  // Garante 1 único start se ainda não tiver tarefa
+  if (!kieTaskId) {
+    const started = await startFotoJesusGenerationOnce(input);
+    if (started) {
+      last = started;
+      options?.onUpdate?.(started);
+      if (started.kieTaskId) kieTaskId = started.kieTaskId;
+      if (started.status === 'success' || started.status === 'fail') {
+        return started;
+      }
+      if (started.status === 'awaiting_payment') {
+        return started;
+      }
+    }
+  }
+
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (signal?.cancelled) return last;
     await new Promise((resolve) => setTimeout(resolve, delay));
     if (signal?.cancelled) return last;
 
+    // Poll NUNCA pede startGeneration de novo
     const status = await fetchFotoJesusStatus({
       ...input,
       kieTaskId,
+      startGeneration: false,
     });
     if (!status) {
       delay = Math.min(delay + 500, 8_000);
@@ -164,11 +237,6 @@ export async function pollFotoJesusResult(
 
     if (status.status === 'success' || status.status === 'fail') {
       return status;
-    }
-
-    // Se a Kie reportou erro mas o status ainda não virou fail
-    if (status.error && status.status === 'generating' && attempt > 8) {
-      // continua um pouco; erro transitório de rede entre lambdas
     }
 
     delay = Math.min(delay + 500, 8_000);

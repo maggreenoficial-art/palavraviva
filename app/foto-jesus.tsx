@@ -366,11 +366,17 @@ export default function FotoJesusScreen() {
     }
   }, [imageBase64, mimeType, userId]);
 
+  const resumeRef = useRef(false);
+  const pollingLockRef = useRef(false);
+
   const startPolling = useCallback(
     async (seed?: { kieTaskId?: string | null; resultUrl?: string | null }) => {
       if (!userId || !generationId) return;
+      if (pollingLockRef.current) return;
+      pollingLockRef.current = true;
       setPaywallVisible(false);
 
+      try {
       if (seed?.resultUrl) {
         setStatusText('Salvando sua imagem neste aparelho…');
         await persistGenerated(generationId, seed.resultUrl);
@@ -466,6 +472,9 @@ export default function FotoJesusScreen() {
       setError(
         result.error || 'Não foi possível gerar a imagem. Tente outra foto.',
       );
+      } finally {
+        pollingLockRef.current = false;
+      }
     },
     [
       clearPending,
@@ -481,7 +490,6 @@ export default function FotoJesusScreen() {
   );
 
   // Retoma geração só quando a página reabriu com pending.kieTaskId
-  const resumeRef = useRef(false);
   useEffect(() => {
     if (!hydrated || resumeRef.current) return;
     const open = useFotoJesusStore.getState().pending;

@@ -641,6 +641,8 @@ function extractTxStatus(tx) {
 
 /**
  * Confirma Pix/cartão consultando a Wiven (não depende do /tmp entre lambdas).
+ * startGeneration: false = só marca pago (padrão no poll); true = cria job Kie.
+ * kieTaskId: se já existe, nunca cria outro job.
  */
 async function tryConfirmGenerationPayment({
   generationId,
@@ -650,6 +652,8 @@ async function tryConfirmGenerationPayment({
   transactionId,
   checkoutId,
   source,
+  startGeneration = false,
+  kieTaskId = null,
 }) {
   if (!transactionId) {
     return { generation: null, paymentCheck: { error: 'transactionId_ausente' } };
@@ -688,6 +692,9 @@ async function tryConfirmGenerationPayment({
     providerRef: transactionId,
     inputUrl: inputUrl || null,
     token: token || null,
+    kieTaskId: kieTaskId || null,
+    // Se já tem kieTaskId, fulfill só retoma; senão só cria se startGeneration
+    startGeneration: Boolean(kieTaskId) ? true : Boolean(startGeneration),
   });
   return { generation, paymentCheck };
 }
@@ -1422,6 +1429,12 @@ const serverHandler = async (req, res) => {
       const transactionId = String(
         body.transactionId || url.searchParams.get('transactionId') || '',
       ).trim();
+      const startGeneration = Boolean(
+        body.startGeneration === true ||
+          body.startGeneration === 1 ||
+          body.startGeneration === '1' ||
+          url.searchParams.get('startGeneration') === '1',
+      );
       if (!generationId || !userId) {
         send(res, 400, {
           ok: false,
@@ -1460,8 +1473,33 @@ const serverHandler = async (req, res) => {
       }
 
       let paymentCheck = null;
-      // Só tenta cobrança se ainda não temos tarefa Kie (evita recriar jobs)
-      if (generation.status === 'awaiting_payment' && !generation.kieTaskId) {
+
+      // Já tem tarefa Kie → só consulta progresso (nunca cria outra)
+      if (kieTaskId || generation.kieTaskId) {
+        const taskId = kieTaskId || generation.kieTaskId;
+        if (!generation.kieTaskId && taskId) {
+          generation =
+            updateGeneration(generationId, {
+              kieTaskId: taskId,
+              status: 'generating',
+            }) || generation;
+        }
+        generation =
+          (await refreshGenerationFromKie(generationId)) || generation;
+        send(res, 200, {
+          ok: true,
+          generationId: generation.id,
+          status: generation.status,
+          resultUrl: generation.resultUrl || null,
+          kieTaskId: generation.kieTaskId || null,
+          error: generation.error || null,
+          paymentCheck: null,
+        });
+        return;
+      }
+
+      // Sem kieTaskId: confirma pagamento; só cria job se startGeneration=true
+      if (generation.status === 'awaiting_payment' || generation.status === 'paid') {
         const txCandidates = [];
         if (transactionId) txCandidates.push({ transactionId, checkoutId: null });
 
@@ -1471,7 +1509,7 @@ const serverHandler = async (req, res) => {
               (c) =>
                 c.userId === userId &&
                 c.generationId === generationId &&
-                c.status === 'opened' &&
+                (c.status === 'opened' || c.status === 'paid') &&
                 c.transactionId,
             )
             .slice(-3)
@@ -1506,7 +1544,9 @@ const serverHandler = async (req, res) => {
               token: token || null,
               transactionId: candidate.transactionId,
               checkoutId: candidate.checkoutId,
-              source: 'status_poll',
+              source: startGeneration ? 'status_start' : 'status_poll',
+              startGeneration,
+              kieTaskId: null,
             });
             paymentCheck = confirmed.paymentCheck;
             if (confirmed.generation) {
@@ -1523,9 +1563,10 @@ const serverHandler = async (req, res) => {
       }
 
       if (
-        generation.status === 'generating' ||
-        generation.status === 'paid' ||
-        (generation.kieTaskId && generation.status !== 'success')
+        generation.kieTaskId &&
+        (generation.status === 'generating' ||
+          generation.status === 'paid' ||
+          generation.status !== 'success')
       ) {
         generation =
           (await refreshGenerationFromKie(generationId)) || generation;

@@ -265,6 +265,8 @@ export function ensureGenerationFromClient({
 
 /**
  * Após pagamento confirmado: inicia (ou retoma) a geração Kie.
+ * Se meta.kieTaskId existir, NUNCA cria outra tarefa — só retoma.
+ * Se meta.startGeneration === false, só marca como paid (sem chamar Kie).
  */
 export async function fulfillFotoJesusPayment(generationId, userId, meta = {}) {
   let gen = getGeneration(generationId);
@@ -274,6 +276,7 @@ export async function fulfillFotoJesusPayment(generationId, userId, meta = {}) {
       userId,
       inputUrl: meta.inputUrl,
       token: meta.token,
+      kieTaskId: meta.kieTaskId || null,
     });
   }
   if (!gen) {
@@ -287,8 +290,32 @@ export async function fulfillFotoJesusPayment(generationId, userId, meta = {}) {
     return gen;
   }
 
-  if (gen.kieTaskId && (gen.status === 'generating' || gen.status === 'paid')) {
+  // Retomar tarefa já existente (cliente ou /tmp)
+  const existingTaskId = meta.kieTaskId || gen.kieTaskId;
+  if (existingTaskId) {
+    if (!gen.kieTaskId) {
+      gen =
+        updateGeneration(generationId, {
+          kieTaskId: existingTaskId,
+          status: 'generating',
+          paidAt: gen.paidAt || new Date().toISOString(),
+          checkoutId: meta.checkoutId || gen.checkoutId || null,
+          error: null,
+        }) || gen;
+    }
     return refreshGenerationFromKie(generationId);
+  }
+
+  // Só confirmar pagamento, sem criar job na Kie
+  if (meta.startGeneration === false) {
+    return (
+      updateGeneration(generationId, {
+        status: 'paid',
+        paidAt: new Date().toISOString(),
+        checkoutId: meta.checkoutId || gen.checkoutId || null,
+        error: null,
+      }) || gen
+    );
   }
 
   updateGeneration(generationId, {

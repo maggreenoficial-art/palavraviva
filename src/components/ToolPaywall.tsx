@@ -20,7 +20,7 @@ import {
 } from '../constants/toolsCatalog';
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
-import { fetchFotoJesusStatus } from '../services/fotoJesus';
+import { checkFotoJesusPayment } from '../services/fotoJesus';
 import {
   formatCardNumber,
   formatCpf,
@@ -148,7 +148,7 @@ export function ToolPaywall({
 
     const tick = async () => {
       if (signal.cancelled || unlockingRef.current) return;
-      const status = await fetchFotoJesusStatus({
+      const status = await checkFotoJesusPayment({
         generationId,
         userId,
         inputUrl,
@@ -161,7 +161,8 @@ export function ToolPaywall({
         status &&
         (status.status === 'paid' ||
           status.status === 'generating' ||
-          status.status === 'success')
+          status.status === 'success' ||
+          status.paymentCheck?.paid)
       ) {
         unlockingRef.current = true;
         void trackAnalytics({
@@ -608,7 +609,7 @@ export function ToolPaywall({
       setError(null);
       setMessage('Confirmando seu pagamento…');
       try {
-        const status = await fetchFotoJesusStatus({
+        const status = await checkFotoJesusPayment({
           generationId,
           userId,
           inputUrl,
@@ -620,7 +621,8 @@ export function ToolPaywall({
           status &&
           (status.status === 'paid' ||
             status.status === 'generating' ||
-            status.status === 'success')
+            status.status === 'success' ||
+            status.paymentCheck?.paid)
         ) {
           void trackAnalytics({
             name: 'tool_purchase_activated',
