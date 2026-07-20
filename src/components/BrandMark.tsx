@@ -2,7 +2,8 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 import { colors } from '../theme';
 
 const iconSource = require('../../assets/brand/icon.png');
-const logoSource = require('../../assets/brand/logo.png');
+/** Logo com fundo branco — melhor nitidez no app/web */
+const logoSource = require('../../assets/brand/logo-fundobranco.png');
 
 type BrandMarkProps = {
   /** ícone quadrado | logo horizontal (ícone + texto) */
@@ -12,9 +13,9 @@ type BrandMarkProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-const LOGO_ASPECT = 877 / 227;
+const LOGO_ASPECT = 888 / 281;
 
-/** Marca Palavra Viva — ícone ou logo horizontal recortada. */
+/** Marca Palavra Viva — ícone ou logo horizontal. */
 export function BrandMark({
   variant = 'wordmark',
   size = 36,
@@ -38,7 +39,7 @@ export function BrandMark({
     <View style={[styles.wrap, style]} accessibilityRole="header" accessibilityLabel="Palavra Viva">
       <Image
         source={logoSource}
-        style={{ width, height }}
+        style={{ width, height, borderRadius: Math.min(8, height * 0.12) }}
         resizeMode="contain"
         accessibilityIgnoresInvertColors
       />

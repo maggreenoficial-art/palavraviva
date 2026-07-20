@@ -15,7 +15,7 @@ import { AnalyticsBootstrap } from '../src/components/AnalyticsBootstrap';
 import { useResponsive } from '../src/hooks/useResponsive';
 import { colors } from '../src/theme';
 
-const splashLogo = require('../assets/brand/logo.png');
+const splashLogo = require('../assets/brand/logo-fundobranco.png');
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
   },
   loadingLogo: {
-    width: 240,
-    height: 62,
+    width: 260,
+    height: 82,
   },
 });
 
