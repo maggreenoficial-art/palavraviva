@@ -15,6 +15,10 @@ import {
   type BiblicalPrayerMeta,
   type PrayerTheme,
 } from '../../src/constants/biblicalPrayers';
+import {
+  hasBiblicalPrayerAudio,
+  sortBiblicalPrayersWithAudioFirst,
+} from '../../src/constants/biblicalPrayerAudio';
 import { listValidBiblicalPrayers } from '../../src/services/biblicalContent';
 import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
@@ -41,7 +45,7 @@ const moreThemes = prayerThemes.filter(
   (item) => !['todas', 'ansiedade', 'protecao'].includes(item.id),
 );
 
-export default function OracoesScreen() {
+export default function BibliaScreen() {
   const type = useTypography();
   const [theme, setTheme] = useState<FilterId>('todas');
   const [query, setQuery] = useState('');
@@ -211,20 +215,22 @@ export default function OracoesScreen() {
     }
 
     const q = query.trim().toLowerCase();
-    if (!q) return list;
+    const searched = q
+      ? list.filter((prayer) => {
+          const haystack = [
+            prayer.title,
+            prayer.referenceLabel,
+            prayer.themeLabel,
+            prayer.theme,
+            prayer.apiPassage,
+          ]
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(q);
+        })
+      : list;
 
-    return list.filter((prayer) => {
-      const haystack = [
-        prayer.title,
-        prayer.referenceLabel,
-        prayer.themeLabel,
-        prayer.theme,
-        prayer.apiPassage,
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
-    });
+    return sortBiblicalPrayersWithAudioFirst(searched);
   }, [activeTheme, validPrayers, favorites, query]);
 
   function selectFilter(id: FilterId) {
@@ -251,7 +257,11 @@ export default function OracoesScreen() {
             {item.title}
           </Text>
           <Text style={styles.reference}>{item.referenceLabel}</Text>
-          <Text style={styles.badge}>Texto bíblico</Text>
+          <Text style={styles.badge}>
+            {hasBiblicalPrayerAudio(item.id)
+              ? 'Texto + áudio'
+              : 'Texto bíblico'}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -272,7 +282,7 @@ export default function OracoesScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.heading} accessibilityRole="header">
-          Orações
+          Bíblia
         </Text>
         <Text style={styles.support}>
           Passagens bíblicas verificadas

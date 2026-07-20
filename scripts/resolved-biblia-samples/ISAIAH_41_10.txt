@@ -1,0 +1,7 @@
+Não temas, porque eu sou contigo.
+<break time="0.6s" />
+Texto bíblico. Isaías 41:10.
+<break time="1.0s" />
+Não temas, porque eu estou contigo; não te assombres, porque eu sou teu Deus. Eu te fortaleço, te ajudo, e te sustento com a minha mão direita de justiça.
+<break time="0.8s" />
+Fim da passagem.

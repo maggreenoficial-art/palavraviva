@@ -1,0 +1,7 @@
+Não andeis ansiosos.
+<break time="0.6s" />
+Texto bíblico. Filipenses 4:6-7.
+<break time="1.0s" />
+Não estejais ansiosos por coisa alguma; mas em tudo, por meio de orações e súplicas com ações de gratidão, sejam os vossos pedidos conhecidos por Deus; e a paz de Deus, que excede todo entendimento, guardará os vossos corações e as vossas mentes em Cristo Jesus.
+<break time="0.8s" />
+Fim da passagem.

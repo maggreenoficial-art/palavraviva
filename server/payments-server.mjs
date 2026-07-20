@@ -1002,8 +1002,40 @@ const serverHandler = async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/checkout')) {
+  // Checkout Missão+ só em /checkout — a raiz não é o app Expo.
+  if (req.method === 'GET' && url.pathname === '/checkout') {
     send(res, 200, checkoutHtml(), 'text/html');
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/') {
+    send(
+      res,
+      200,
+      `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API de pagamentos · Palavra Viva</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#121A21; color:#F2F5F7;
+      max-width:520px; margin:48px auto; padding:0 20px; line-height:1.5; }
+    a { color:#3DDC97; }
+    code { background:#1A2430; padding:2px 6px; border-radius:6px; }
+    .muted { color:#8A97A5; }
+  </style>
+</head>
+<body>
+  <h1>API de pagamentos</h1>
+  <p>Esta porta (<code>${PORT}</code>) é o backend de Pix/cartão e Foto com Jesus — <strong>não é o app</strong>.</p>
+  <p>O app gratuito roda com <code>npm start</code> (Expo), em geral em
+    <a href="http://localhost:8081">http://localhost:8081</a>.</p>
+  <p class="muted">Missão+ (checkout): <a href="/checkout">/checkout</a> · Saúde: <a href="/api/health">/api/health</a></p>
+</body>
+</html>`,
+      'text/html',
+    );
     return;
   }
 

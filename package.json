@@ -56,6 +56,7 @@
     "build:sos-anxiety": "node scripts/build-sos-anxiety-scripts.mjs",
     "generate:sos-anxiety": "node scripts/generate-sos-anxiety-audios.mjs",
     "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
+    "generate:biblia-samples": "node scripts/generate-biblia-sample-audios.mjs",
     "analytics:server": "node server/analytics-server.mjs",
     "payments:server": "node server/payments-server.mjs",
     "capture:creatives": "node scripts/capture-creatives.mjs",

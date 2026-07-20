@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BiblicalPassage } from '../../src/components/BiblicalPassage';
+import { SyncedScriptureReader } from '../../src/components/SyncedScriptureReader';
+import { getBiblicalPrayerAudioSource } from '../../src/constants/biblicalPrayerAudio';
 import { trackAnalytics } from '../../src/services/analytics';
 import {
   getBiblicalTextById,
@@ -24,6 +26,7 @@ export default function OracaoDetailScreen() {
     () => (id ? getBiblicalTextById(id) : null),
     [id],
   );
+  const audioSource = id ? getBiblicalPrayerAudioSource(id) : undefined;
   const isFavorite = useFavoritesStore((s) => s.isFavorite('prayer', id ?? ''));
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const related = useMemo(() => {
@@ -94,43 +97,62 @@ export default function OracaoDetailScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.theme}>{passage.themeLabel}</Text>
-        <Text style={styles.title}>{passage.title}</Text>
-        <BiblicalPassage passage={passage} />
-
-        <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Compartilhar referência"
-            onPress={() => void shareReference()}
-            style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
-          >
-            <Text style={styles.actionText}>Compartilhar referência</Text>
-          </Pressable>
-        </View>
-
-        {related.length > 0 ? (
-          <View style={styles.related}>
-            <Text style={styles.relatedTitle}>
-              Outras passagens sobre {passage.themeLabel.toLowerCase()}
-            </Text>
-            {related.map((item) => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={item.referenceLabel}
-                onPress={() => router.push(`/oracao/${item.id}`)}
-                style={styles.relatedLink}
-              >
-                <Text style={styles.relatedText}>
-                  · {item.referenceLabel}
-                </Text>
-              </Pressable>
-            ))}
+      {audioSource ? (
+        <>
+          <View style={styles.meta}>
+            <Text style={styles.theme}>{passage.themeLabel}</Text>
+            <Text style={styles.title}>{passage.title}</Text>
           </View>
-        ) : null}
-      </ScrollView>
+          <SyncedScriptureReader
+            passage={passage}
+            audioSource={audioSource}
+            subtitle="Acompanhe o texto enquanto a narração avança"
+            analyticsId={passage.id}
+            analyticsTitle={passage.title}
+          />
+        </>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.theme}>{passage.themeLabel}</Text>
+          <Text style={styles.title}>{passage.title}</Text>
+          <BiblicalPassage passage={passage} />
+
+          <View style={styles.actions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar referência"
+              onPress={() => void shareReference()}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.actionText}>Compartilhar referência</Text>
+            </Pressable>
+          </View>
+
+          {related.length > 0 ? (
+            <View style={styles.related}>
+              <Text style={styles.relatedTitle}>
+                Outras passagens sobre {passage.themeLabel.toLowerCase()}
+              </Text>
+              {related.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.referenceLabel}
+                  onPress={() => router.push(`/oracao/${item.id}`)}
+                  style={styles.relatedLink}
+                >
+                  <Text style={styles.relatedText}>
+                    · {item.referenceLabel}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -155,6 +177,11 @@ const styles = StyleSheet.create({
   fav: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
+  },
+  meta: {
+    paddingHorizontal: spacing.screen,
+    paddingBottom: spacing.sm,
+    gap: 4,
   },
   content: {
     paddingHorizontal: spacing.screen,
@@ -198,29 +225,28 @@ const styles = StyleSheet.create({
   relatedTitle: {
     ...typography.section,
     color: colors.textPrimary,
-    fontSize: 16,
   },
   relatedLink: {
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: 'center',
   },
   relatedText: {
     ...typography.body,
-    color: colors.cyan,
+    color: colors.textSecondary,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: spacing.screen,
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
   },
   error: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.85,
   },
 });

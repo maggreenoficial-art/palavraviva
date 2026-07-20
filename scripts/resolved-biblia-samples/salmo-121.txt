@@ -1,0 +1,7 @@
+O Senhor é o teu guarda.
+<break time="0.6s" />
+Texto bíblico. Salmo 121:1-8.
+<break time="1.0s" />
+Cântico dos degraus: Levanto meus olhos aos montes. De onde virá meu socorro? Meu socorro do SENHOR, que fez os céus e a terra. Ele não deixará o teu pé se abalar, nem cochilará o teu guardião. Eis que não cochilará nem dormirá o Guardião de Israel. O SENHOR é o teu guardião; o SENHOR é a sombra à tua direita. O sol não te ferirá durante o dia, nem a lua durante a noite. O SENHOR te guardará de todo mal; ele guardará a tua alma. O SENHOR guardará tua saída e tua entrada, desde agora e para sempre.
+<break time="0.8s" />
+Fim da passagem.

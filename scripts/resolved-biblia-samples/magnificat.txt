@@ -1,0 +1,7 @@
+Cântico de Maria.
+<break time="0.6s" />
+Texto bíblico. Lucas 1:46-55.
+<break time="1.0s" />
+Então Maria disse: A minha alma engrandece ao Senhor, e o meu espírito se alegra em Deus meu Salvador. Porque ele observou a humilde condição da sua serva; pois eis que desde agora todas as gerações me chamarão bendita. Pois o Poderoso me fez grandes coisas; e santo o seu nome. E a sua misericórdia é de geração em geração sobre os que o temem. Com o seu braço manifestou poder; dispersou os soberbos no pensamento dos seus corações. Derrubou os poderosos dos tronos, e elevou os humildes. Encheu de bens aos famintos, e despediu vazios os ricos. Auxiliou ao seu servo Israel, lembrando-se da misericórdia, como falou aos nossos ancestrais, a Abraão, e à sua descendência, para sempre.
+<break time="0.8s" />
+Fim da passagem.

@@ -30,7 +30,7 @@ const onboardedState = {
 const screens = [
   { file: '01-onboarding', path: '/onboarding', fresh: true },
   { file: '02-home', path: '/home' },
-  { file: '03-oracoes', path: '/oracoes' },
+  { file: '03-oracoes', path: '/biblia' },
   { file: '04-sos', path: '/sos' },
   { file: '05-player-ansiedade', path: '/player/ansiedade-01' },
   { file: '06-player-sos', path: '/player/sos-paz' },

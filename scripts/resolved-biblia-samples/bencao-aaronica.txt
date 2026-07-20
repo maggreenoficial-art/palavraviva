@@ -1,0 +1,7 @@
+Bênção Aarônica.
+<break time="0.6s" />
+Texto bíblico. Números 6:24-26.
+<break time="1.0s" />
+O SENHOR te abençoe, e te guarde: Faça resplandecer o SENHOR seu rosto sobre ti, e tenha de ti misericórdia: O SENHOR levante a ti seu rosto, e ponha em ti paz.
+<break time="0.8s" />
+Fim da passagem.

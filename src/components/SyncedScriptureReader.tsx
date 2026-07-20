@@ -56,6 +56,13 @@ export function SyncedScriptureReader({
     passage.verses,
     positionMs,
     durationMs,
+    {
+      // Intro curta (título + referência); lead antecipa o destaque
+      introWeight: 64,
+      outroWeight: 56,
+      pauseWeight: 22,
+      leadMs: 850,
+    },
   );
 
   useEffect(() => {
@@ -72,7 +79,7 @@ export function SyncedScriptureReader({
         const source = resolvePlaybackSource(audioSource);
         const { sound } = await Audio.Sound.createAsync(
           source,
-          { shouldPlay: false, progressUpdateIntervalMillis: 200 },
+          { shouldPlay: false, progressUpdateIntervalMillis: 100 },
           (status) => {
             if (!mounted || !status.isLoaded) return;
             setPositionMs(status.positionMillis);
@@ -111,9 +118,10 @@ export function SyncedScriptureReader({
     if (!followReading || userScrolling.current) return;
     const y = verseY.current[activeIndex];
     if (y == null) return;
+    // Sem animação: o destaque já muda; scroll animado atrasava a leitura
     scrollRef.current?.scrollTo({
-      y: Math.max(0, y - 80),
-      animated: true,
+      y: Math.max(0, y - 72),
+      animated: false,
     });
   }, [activeIndex, followReading]);
 
@@ -150,7 +158,7 @@ export function SyncedScriptureReader({
   function onScrollEndDrag(_e: NativeSyntheticEvent<NativeScrollEvent>) {
     setTimeout(() => {
       userScrolling.current = false;
-    }, 1200);
+    }, 500);
   }
 
   const displayDurationMs = durationMs > 0 ? durationMs : 0;

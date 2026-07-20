@@ -30,7 +30,7 @@ export function hasFullAudioAccess(accessKind: AccessKind) {
   return accessKind === 'trial' || accessKind === 'subscribed';
 }
 
-/** Texto bíblico (aba Orações) é sempre gratuito. */
+/** Texto bíblico (aba Bíblia) é sempre gratuito. */
 export function canAccessBiblicalReading() {
   return true;
 }

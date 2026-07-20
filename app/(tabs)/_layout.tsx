@@ -40,9 +40,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="oracoes"
+        name="biblia"
         options={{
-          title: 'Orações',
+          title: 'Bíblia',
           tabBarIcon: ({ color }) => (
             <Ionicons name="book-outline" size={26} color={color} />
           ),

@@ -608,9 +608,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Leituras e orações */}
+        {/* Bíblia */}
         <View style={styles.blockHeader}>
-          <Text style={styles.blockTitle}>Leituras e orações</Text>
+          <Text style={styles.blockTitle}>Bíblia</Text>
           <Text style={styles.blockHint}>
             Textos bíblicos sempre disponíveis para ler com calma.
           </Text>
@@ -642,7 +642,7 @@ export default function HomeScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver todas as passagens"
-            onPress={() => router.push('/(tabs)/oracoes')}
+            onPress={() => router.push('/(tabs)/biblia')}
             style={styles.linkBtn}
           >
             <Text style={styles.linkText}>Ver todas as passagens</Text>

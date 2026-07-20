@@ -1,0 +1,7 @@
+Aquele que habita no esconderijo do Altíssimo.
+<break time="0.6s" />
+Texto bíblico. Salmo 91:1-16.
+<break time="1.0s" />
+Aquele que mora no esconderijo do Altíssimo, à sombra do Todo-Poderoso habitará. Direi ao SENHOR: meu refúgio e minha fortaleza; Deus meu, em quem confio. Porque ele te livrará do laço do caçador e da peste maligna. Com suas penas ele te cobrirá, e debaixo de suas asas estarás protegido; a verdade dele é escudo grande e protetor. Não terás medo do terror da noite, da flecha que voa de dia; da peste que anda às escuras, da mortandade que assola ao meio-dia. Cairão mil ao teu lado, e dez mil à tua direita, a ti nada alcançará. Somente verás com teus olhos, e observarás o pagamento dos perversos; Porque tu fizeste como morada ao SENHOR: o meu refúgio, o Altíssimo. Mal nenhum te sucederá, nem praga alguma chegará à tua tenda; Porque ele ordenou aos anjos quanto a ti, para que guardem todos os teus caminhos. Pelas mãos te levarão, para que não tropeces teu pé em alguma pedra. Tu pisarás sobre o leão e a cobra; passarás esmagando ao filho do leão e à serpente. Por ele ter me amado tanto, eu também o livrarei; em alto retiro eu o porei, porque ele conhece o meu nome. Ele me chamará, e eu o responderei; estarei com ele na angústia; eu o livrarei, e o honrarei. Eu o satisfarei com uma longa vida , e lhe mostrarei a minha salvação.
+<break time="0.8s" />
+Fim da passagem.

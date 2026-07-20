@@ -1,0 +1,7 @@
+Pai Nosso.
+<break time="0.6s" />
+Texto bíblico. Mateus 6:9-13.
+<break time="1.0s" />
+Vós, portanto, orareis assim: Pai nosso, que estás nos céus, santificado seja o teu nome. Venha o teu Reino. Seja feita a tua vontade, tanto na terra, assim como no céu. O pão nosso de cada dia nos dá hoje. E perdoa-nos nossas dívidas, assim como nós também perdoamos aos nossos devedores. E não nos conduzas à tentação, mas livra-nos do mal; porque teu é o Reino, o poder, e a glória, para sempre, Amém.
+<break time="0.8s" />
+Fim da passagem.
