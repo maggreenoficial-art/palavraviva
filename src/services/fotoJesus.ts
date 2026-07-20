@@ -166,6 +166,11 @@ export async function pollFotoJesusResult(
       return status;
     }
 
+    // Se a Kie reportou erro mas o status ainda não virou fail
+    if (status.error && status.status === 'generating' && attempt > 8) {
+      // continua um pouco; erro transitório de rede entre lambdas
+    }
+
     delay = Math.min(delay + 500, 8_000);
   }
 

@@ -139,14 +139,23 @@ export async function fetchKieTask(taskId) {
 }
 
 export function extractResultUrl(taskData) {
-  if (!taskData?.resultJson) return null;
+  if (!taskData) return null;
+  if (!taskData?.resultJson) {
+    // alguns retornos já vêm com URL direta
+    if (typeof taskData.resultUrl === 'string') return taskData.resultUrl;
+    if (Array.isArray(taskData.resultUrls) && taskData.resultUrls[0]) {
+      return taskData.resultUrls[0];
+    }
+    return null;
+  }
   try {
     const parsed =
       typeof taskData.resultJson === 'string'
         ? JSON.parse(taskData.resultJson)
         : taskData.resultJson;
-    const urls = parsed?.resultUrls;
+    const urls = parsed?.resultUrls || parsed?.urls || parsed?.images;
     if (Array.isArray(urls) && typeof urls[0] === 'string') return urls[0];
+    if (typeof parsed?.resultUrl === 'string') return parsed.resultUrl;
   } catch {
     // ignore
   }
@@ -219,12 +228,15 @@ export function updateGeneration(generationId, patch) {
 
 /**
  * Garante registro local (útil no Vercel, onde /tmp não é compartilhado).
+ * Aceita kieTaskId do cliente para retomar geração entre lambdas.
  */
 export function ensureGenerationFromClient({
   generationId,
   userId,
   inputUrl,
   token,
+  kieTaskId = null,
+  status = null,
 }) {
   if (
     !verifyFotoJesusPayload({
@@ -236,7 +248,19 @@ export function ensureGenerationFromClient({
   ) {
     throw new Error('Token da geração inválido. Envie a foto novamente.');
   }
-  return upsertGeneration({ generationId, userId, inputUrl });
+  let gen = upsertGeneration({ generationId, userId, inputUrl });
+  const patch = {};
+  if (kieTaskId && !gen.kieTaskId) {
+    patch.kieTaskId = kieTaskId;
+    patch.status =
+      status === 'success' || status === 'fail' || status === 'generating'
+        ? status
+        : 'generating';
+  }
+  if (Object.keys(patch).length) {
+    gen = updateGeneration(generationId, patch) || gen;
+  }
+  return gen;
 }
 
 /**
@@ -300,7 +324,7 @@ export async function refreshGenerationFromKie(generationId) {
     const task = await fetchKieTask(gen.kieTaskId);
     const state = String(task?.state || '').toLowerCase();
 
-    if (state === 'success') {
+    if (state === 'success' || state === 'completed' || state === 'complete') {
       const resultUrl = extractResultUrl(task);
       return updateGeneration(generationId, {
         status: 'success',
@@ -309,19 +333,30 @@ export async function refreshGenerationFromKie(generationId) {
       });
     }
 
-    if (state === 'fail') {
+    if (
+      state === 'fail' ||
+      state === 'failed' ||
+      state === 'error' ||
+      state === 'cancelled' ||
+      state === 'canceled'
+    ) {
       return updateGeneration(generationId, {
         status: 'fail',
-        error: task?.failMsg || 'A geração falhou. Tente outra foto.',
+        error:
+          task?.failMsg ||
+          task?.failCode ||
+          'A geração falhou. Tente outra foto.',
       });
     }
 
     return updateGeneration(generationId, {
       status: 'generating',
       error: null,
+      kieState: state || null,
     });
   } catch (error) {
     return updateGeneration(generationId, {
+      status: 'generating',
       error: String(error.message || error),
     });
   }

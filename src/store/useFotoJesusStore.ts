@@ -19,7 +19,9 @@ export interface FotoJesusPending {
   checkoutId: string | null;
   pixCode: string | null;
   pixImage: string | null;
-  previewUri: string | null;
+  /** data:image/...;base64,... — blob: não persiste no web */
+  previewDataUri: string | null;
+  kieTaskId: string | null;
   createdAt: string;
 }
 
@@ -32,13 +34,14 @@ interface FotoJesusState {
     dataUri?: string | null;
   }) => void;
   savePending: (pending: FotoJesusPending) => void;
+  patchPending: (patch: Partial<FotoJesusPending>) => void;
   clearPending: () => void;
   clearResult: () => void;
 }
 
 export const useFotoJesusStore = create<FotoJesusState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       lastResult: null,
       pending: null,
 
@@ -56,6 +59,12 @@ export const useFotoJesusStore = create<FotoJesusState>()(
 
       savePending: (pending) => set({ pending }),
 
+      patchPending: (patch) => {
+        const current = get().pending;
+        if (!current) return;
+        set({ pending: { ...current, ...patch } });
+      },
+
       clearPending: () => set({ pending: null }),
 
       clearResult: () => set({ lastResult: null }),
@@ -63,11 +72,25 @@ export const useFotoJesusStore = create<FotoJesusState>()(
     {
       name: 'palavra-viva-foto-jesus',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         lastResult: state.lastResult,
         pending: state.pending,
       }),
+      migrate: (persisted: unknown) => {
+        const state = (persisted || {}) as {
+          lastResult?: FotoJesusSavedResult | null;
+          pending?: (FotoJesusPending & { previewUri?: string }) | null;
+        };
+        if (state.pending && !state.pending.previewDataUri) {
+          state.pending = {
+            ...state.pending,
+            previewDataUri: null,
+            kieTaskId: state.pending.kieTaskId ?? null,
+          };
+        }
+        return state;
+      },
     },
   ),
 );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -46,12 +46,14 @@ export default function FotoJesusScreen() {
   const userId = useUserStore((s) => s.userId);
   const saveResult = useFotoJesusStore((s) => s.saveResult);
   const savePending = useFotoJesusStore((s) => s.savePending);
+  const patchPending = useFotoJesusStore((s) => s.patchPending);
   const clearPending = useFotoJesusStore((s) => s.clearPending);
   const pending = useFotoJesusStore((s) => s.pending);
 
   const [step, setStep] = useState<Step>('pick');
   const [hydrated, setHydrated] = useState(false);
   const [localUri, setLocalUri] = useState<string | null>(null);
+  const [previewDataUri, setPreviewDataUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState('image/jpeg');
   const [generationId, setGenerationId] = useState<string | null>(null);
@@ -60,7 +62,6 @@ export default function FotoJesusScreen() {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
-  // checkoutId fica no pending store via onPixReady
   const [kieTaskId, setKieTaskId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -91,13 +92,24 @@ export default function FotoJesusScreen() {
         setTransactionId(open.transactionId);
         setPixCode(open.pixCode);
         setPixImage(open.pixImage);
-        if (open.previewUri) setLocalUri(open.previewUri);
-        setStep('paying');
-        setStatusText(
-          open.transactionId
-            ? 'Há um Pix em aberto. Toque em “Abrir Pix” ou “Verificar pagamento”.'
-            : 'Continue o pagamento para gerar sua imagem.',
-        );
+        setKieTaskId(open.kieTaskId);
+        if (open.previewDataUri) {
+          setPreviewDataUri(open.previewDataUri);
+          setLocalUri(open.previewDataUri);
+        }
+        if (open.kieTaskId) {
+          setStep('generating');
+          setStatusText(
+            'Continuando a criação da sua imagem… Isso pode levar 1 a 2 minutos.',
+          );
+        } else {
+          setStep('paying');
+          setStatusText(
+            open.transactionId
+              ? 'Há um Pix em aberto. Toque em “Abrir Pix” ou “Verificar pagamento”.'
+              : 'Continue o pagamento para gerar sua imagem.',
+          );
+        }
       }
       setHydrated(true);
     };
@@ -215,10 +227,22 @@ export default function FotoJesusScreen() {
           color: colors.accent,
           textAlign: 'center',
         },
+        previewEmpty: {
+          ...StyleSheet.absoluteFill,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.lg,
+        },
+        previewEmptyText: {
+          ...type.bodyMedium,
+          color: colors.textMuted,
+          textAlign: 'center',
+        },
         status: {
           ...type.body,
           color: colors.cyan,
           textAlign: 'center',
+          lineHeight: Math.round(type.body.fontSize * 1.4),
         },
         error: {
           ...type.caption,
@@ -236,13 +260,15 @@ export default function FotoJesusScreen() {
     [type],
   );
 
-  const displayImage = resultUrl || localUri;
+  const displayImage = resultUrl || previewDataUri || localUri;
   const showExample = !displayImage;
   const previewSource = resultUrl
     ? { uri: resultUrl }
-    : localUri
-      ? { uri: localUri }
-      : examplePhoto;
+    : previewDataUri
+      ? { uri: previewDataUri }
+      : localUri
+        ? { uri: localUri }
+        : examplePhoto;
   const hasSavedImage = Boolean(resultUrl) && step === 'done';
 
   const persistGenerated = useCallback(
@@ -284,6 +310,8 @@ export default function FotoJesusScreen() {
       return;
     }
     setLocalUri(asset.uri);
+    const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+    setPreviewDataUri(dataUri);
     setImageBase64(asset.base64);
     setMimeType(asset.mimeType || 'image/jpeg');
     setGenerationId(null);
@@ -354,7 +382,10 @@ export default function FotoJesusScreen() {
         return;
       }
 
-      if (seed?.kieTaskId) setKieTaskId(seed.kieTaskId);
+      if (seed?.kieTaskId) {
+        setKieTaskId(seed.kieTaskId);
+        patchPending({ kieTaskId: seed.kieTaskId });
+      }
 
       setStep('generating');
       setStatusText(
@@ -362,6 +393,7 @@ export default function FotoJesusScreen() {
       );
       setError(null);
 
+      const activeKieTaskId = seed?.kieTaskId || kieTaskId;
       const signal = { cancelled: false };
       const result = await pollFotoJesusResult(
         {
@@ -369,7 +401,7 @@ export default function FotoJesusScreen() {
           userId,
           inputUrl,
           token: generationToken,
-          kieTaskId: seed?.kieTaskId || kieTaskId,
+          kieTaskId: activeKieTaskId,
           transactionId,
         },
         {
@@ -377,7 +409,10 @@ export default function FotoJesusScreen() {
           initialDelayMs: 2500,
           maxAttempts: 72,
           onUpdate: (status) => {
-            if (status.kieTaskId) setKieTaskId(status.kieTaskId);
+            if (status.kieTaskId) {
+              setKieTaskId(status.kieTaskId);
+              patchPending({ kieTaskId: status.kieTaskId });
+            }
             if (status.status === 'awaiting_payment') {
               setStatusText(
                 'Aguardando confirmação do pagamento… Se já pagou, toque em “Verificar pagamento”.',
@@ -386,7 +421,11 @@ export default function FotoJesusScreen() {
               status.status === 'paid' ||
               status.status === 'generating'
             ) {
-              setStatusText('Gerando sua imagem com Jesus…');
+              setStatusText(
+                status.error
+                  ? `Gerando… (${status.error})`
+                  : 'Gerando sua imagem com Jesus… Pode levar 1 a 2 minutos.',
+              );
             }
           },
         },
@@ -434,22 +473,37 @@ export default function FotoJesusScreen() {
       generationToken,
       inputUrl,
       kieTaskId,
+      patchPending,
       persistGenerated,
       transactionId,
       userId,
     ],
   );
 
+  // Retoma geração só quando a página reabriu com pending.kieTaskId
+  const resumeRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || resumeRef.current) return;
+    const open = useFotoJesusStore.getState().pending;
+    if (!open?.kieTaskId) {
+      resumeRef.current = true;
+      return;
+    }
+    if (step !== 'generating' || !generationId || !userId) return;
+    resumeRef.current = true;
+    void startPolling({ kieTaskId: open.kieTaskId });
+  }, [hydrated, step, generationId, userId, startPolling]);
+
   const checkStatus = useCallback(async () => {
     if (!userId || !generationId) return;
     setBusy(true);
     setError(null);
     try {
-      await startPolling();
+      await startPolling({ kieTaskId });
     } finally {
       setBusy(false);
     }
-  }, [generationId, startPolling, userId]);
+  }, [generationId, kieTaskId, startPolling, userId]);
 
   const handleDownload = useCallback(async () => {
     if (!resultUrl) return;
@@ -485,6 +539,7 @@ export default function FotoJesusScreen() {
   const startNewGeneration = useCallback(() => {
     setStep('pick');
     setLocalUri(null);
+    setPreviewDataUri(null);
     setImageBase64(null);
     setGenerationId(null);
     setInputUrl(null);
@@ -547,6 +602,13 @@ export default function FotoJesusScreen() {
           {showExample ? (
             <View style={styles.exampleBadge}>
               <Text style={styles.exampleBadgeText}>Exemplo</Text>
+            </View>
+          ) : null}
+          {!showExample && !displayImage ? (
+            <View style={styles.previewEmpty}>
+              <Text style={styles.previewEmptyText}>
+                Sua foto aparece aqui depois de escolher na galeria
+              </Text>
             </View>
           ) : null}
         </View>
@@ -728,7 +790,12 @@ export default function FotoJesusScreen() {
               checkoutId: info.checkoutId,
               pixCode: info.pixCode,
               pixImage: info.pixImage,
-              previewUri: localUri,
+              previewDataUri:
+                previewDataUri ||
+                (imageBase64
+                  ? `data:${mimeType};base64,${imageBase64}`
+                  : null),
+              kieTaskId: kieTaskId,
               createdAt: new Date().toISOString(),
             });
           }

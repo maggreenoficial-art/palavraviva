@@ -1437,7 +1437,14 @@ const serverHandler = async (req, res) => {
           userId,
           inputUrl,
           token,
+          kieTaskId: kieTaskId || null,
         });
+      } else if (generation && kieTaskId && !generation.kieTaskId) {
+        generation =
+          updateGeneration(generationId, {
+            kieTaskId,
+            status: 'generating',
+          }) || generation;
       }
       if (!generation || generation.userId !== userId) {
         send(res, 404, {
@@ -1452,16 +1459,9 @@ const serverHandler = async (req, res) => {
         return;
       }
 
-      if (kieTaskId && !generation.kieTaskId) {
-        generation =
-          updateGeneration(generationId, {
-            kieTaskId,
-            status: 'generating',
-          }) || generation;
-      }
-
       let paymentCheck = null;
-      if (generation.status === 'awaiting_payment') {
+      // Só tenta cobrança se ainda não temos tarefa Kie (evita recriar jobs)
+      if (generation.status === 'awaiting_payment' && !generation.kieTaskId) {
         const txCandidates = [];
         if (transactionId) txCandidates.push({ transactionId, checkoutId: null });
 
