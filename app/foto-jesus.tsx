@@ -52,6 +52,9 @@ export default function FotoJesusScreen() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState('image/jpeg');
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [inputUrl, setInputUrl] = useState<string | null>(null);
+  const [generationToken, setGenerationToken] = useState<string | null>(null);
+  const [kieTaskId, setKieTaskId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [paywallVisible, setPaywallVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -242,7 +245,7 @@ export default function FotoJesusScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.72,
+      quality: 0.55,
       base64: true,
       exif: false,
     });
@@ -257,6 +260,9 @@ export default function FotoJesusScreen() {
     setImageBase64(asset.base64);
     setMimeType(asset.mimeType || 'image/jpeg');
     setGenerationId(null);
+    setInputUrl(null);
+    setGenerationToken(null);
+    setKieTaskId(null);
     setResultUrl(null);
     setStep('ready');
     setStatusText(null);
@@ -282,6 +288,8 @@ export default function FotoJesusScreen() {
         mimeType,
       });
       setGenerationId(prepared.generationId);
+      setInputUrl(prepared.inputUrl);
+      setGenerationToken(prepared.token);
       setStep('paying');
       setPaywallVisible(true);
       void trackAnalytics({
@@ -299,56 +307,92 @@ export default function FotoJesusScreen() {
     }
   }, [imageBase64, mimeType, userId]);
 
-  const startPolling = useCallback(async () => {
-    if (!userId || !generationId) return;
-    setPaywallVisible(false);
-    setStep('generating');
-    setStatusText(
-      'Pagamento ok. Criando sua imagem… Isso pode levar 1 a 2 minutos.',
-    );
-    setError(null);
+  const startPolling = useCallback(
+    async (seed?: { kieTaskId?: string | null; resultUrl?: string | null }) => {
+      if (!userId || !generationId) return;
+      setPaywallVisible(false);
 
-    const signal = { cancelled: false };
-    const result = await pollFotoJesusResult(generationId, userId, {
-      signal,
-      initialDelayMs: 2500,
-      maxAttempts: 72,
-      onUpdate: (status) => {
-        if (status.status === 'awaiting_payment') {
-          setStatusText('Aguardando confirmação do pagamento…');
-        } else if (status.status === 'paid' || status.status === 'generating') {
-          setStatusText('Gerando sua imagem com Jesus…');
-        }
-      },
-    });
+      if (seed?.resultUrl) {
+        setStatusText('Salvando sua imagem neste aparelho…');
+        await persistGenerated(generationId, seed.resultUrl);
+        setLocalUri(null);
+        setImageBase64(null);
+        setStep('done');
+        setStatusText(null);
+        return;
+      }
 
-    if (!result) {
+      if (seed?.kieTaskId) setKieTaskId(seed.kieTaskId);
+
+      setStep('generating');
+      setStatusText(
+        'Pagamento ok. Criando sua imagem… Isso pode levar 1 a 2 minutos.',
+      );
+      setError(null);
+
+      const signal = { cancelled: false };
+      const result = await pollFotoJesusResult(
+        {
+          generationId,
+          userId,
+          inputUrl,
+          token: generationToken,
+          kieTaskId: seed?.kieTaskId || kieTaskId,
+        },
+        {
+          signal,
+          initialDelayMs: 2500,
+          maxAttempts: 72,
+          onUpdate: (status) => {
+            if (status.kieTaskId) setKieTaskId(status.kieTaskId);
+            if (status.status === 'awaiting_payment') {
+              setStatusText('Aguardando confirmação do pagamento…');
+            } else if (
+              status.status === 'paid' ||
+              status.status === 'generating'
+            ) {
+              setStatusText('Gerando sua imagem com Jesus…');
+            }
+          },
+        },
+      );
+
+      if (!result) {
+        setStep('error');
+        setError(
+          'A geração demorou mais que o esperado. Toque em “Verificar status” em instantes.',
+        );
+        return;
+      }
+
+      if (result.status === 'success' && result.resultUrl) {
+        setStatusText('Salvando sua imagem neste aparelho…');
+        await persistGenerated(generationId, result.resultUrl);
+        setLocalUri(null);
+        setImageBase64(null);
+        setStep('done');
+        setStatusText(null);
+        void trackAnalytics({
+          name: 'foto_jesus_success',
+          meta: { generationId },
+        });
+        return;
+      }
+
       setStep('error');
       setError(
-        'A geração demorou mais que o esperado. Toque em “Verificar status” em instantes.',
+        result.error || 'Não foi possível gerar a imagem. Tente outra foto.',
       );
-      return;
-    }
-
-    if (result.status === 'success' && result.resultUrl) {
-      setStatusText('Salvando sua imagem neste aparelho…');
-      await persistGenerated(generationId, result.resultUrl);
-      setLocalUri(null);
-      setImageBase64(null);
-      setStep('done');
-      setStatusText(null);
-      void trackAnalytics({
-        name: 'foto_jesus_success',
-        meta: { generationId },
-      });
-      return;
-    }
-
-    setStep('error');
-    setError(
-      result.error || 'Não foi possível gerar a imagem. Tente outra foto.',
-    );
-  }, [generationId, persistGenerated, userId]);
+    },
+    [
+      generationId,
+      generationToken,
+      inputUrl,
+      kieTaskId,
+      persistGenerated,
+      userId,
+    ],
+  );
 
   const checkStatus = useCallback(async () => {
     if (!userId || !generationId) return;
@@ -397,6 +441,9 @@ export default function FotoJesusScreen() {
     setLocalUri(null);
     setImageBase64(null);
     setGenerationId(null);
+    setInputUrl(null);
+    setGenerationToken(null);
+    setKieTaskId(null);
     setResultUrl(null);
     setError(null);
     setActionMessage(null);
@@ -578,12 +625,14 @@ export default function FotoJesusScreen() {
         toolId="foto-jesus"
         consumable
         generationId={generationId}
+        inputUrl={inputUrl}
+        generationToken={generationToken}
         onClose={() => {
           setPaywallVisible(false);
           if (step === 'paying') setStep('ready');
         }}
-        onUnlocked={() => {
-          void startPolling();
+        onUnlocked={(meta) => {
+          void startPolling(meta);
         }}
       />
     </SafeAreaView>

@@ -1,30 +1,5 @@
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-
-function paymentsBaseUrl() {
-  const fromExtra = (
-    Constants.expoConfig?.extra as { paymentsUrl?: string } | undefined
-  )?.paymentsUrl;
-  const base = (
-    process.env.EXPO_PUBLIC_PAYMENTS_URL ||
-    fromExtra ||
-    'http://localhost:8788'
-  ).replace(/\/$/, '');
-
-  // Em builds de produção web, preferir HTTPS (webhook Wiven exige URL pública).
-  if (
-    typeof process !== 'undefined' &&
-    process.env.NODE_ENV === 'production' &&
-    base.startsWith('http://') &&
-    !/localhost|127\.0\.0\.1/i.test(base)
-  ) {
-    console.warn(
-      '[pagamentos] EXPO_PUBLIC_PAYMENTS_URL deveria usar HTTPS em produção.',
-    );
-  }
-
-  return base;
-}
+import { paymentsBaseUrl } from './paymentsUrl';
 
 export type CardCheckoutInput = {
   userId: string;
@@ -36,6 +11,8 @@ export type CardCheckoutInput = {
   product?: string | null;
   /** Obrigatório para tool-foto-jesus */
   generationId?: string | null;
+  inputUrl?: string | null;
+  generationToken?: string | null;
   card: {
     number: string;
     owner: string;
@@ -52,6 +29,8 @@ export type PixCheckoutInput = {
   document: string;
   product?: string | null;
   generationId?: string | null;
+  inputUrl?: string | null;
+  generationToken?: string | null;
 };
 
 export type CardCheckoutResult = {
@@ -63,6 +42,8 @@ export type CardCheckoutResult = {
   unlockedTools?: string[];
   generationId?: string | null;
   generationStatus?: string | null;
+  kieTaskId?: string | null;
+  resultUrl?: string | null;
 };
 
 export type PixCheckoutResult = {
@@ -83,17 +64,24 @@ async function postCheckout<T>(
   body: Record<string, unknown>,
 ): Promise<T> {
   const base = paymentsBaseUrl();
-  const response = await fetch(`${base}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(
+      'Não foi possível conectar ao servidor de pagamentos. Verifique sua conexão e tente de novo.',
+    );
+  }
   const data = (await response.json()) as T & { ok?: boolean; error?: string };
   if (!response.ok || !data.ok) {
     const raw = (data as { error?: string }).error || '';
     if (raw === 'not_found' || response.status === 404) {
       throw new Error(
-        'Servidor de pagamentos desatualizado. Reinicie com: npm run payments:server',
+        'API de pagamentos indisponível neste ambiente. Confira o deploy das rotas /api no Vercel.',
       );
     }
     throw new Error(raw || 'Não foi possível processar o pagamento.');
@@ -113,6 +101,8 @@ export async function payWithCard(
     document: input.document,
     product: input.product ?? null,
     generationId: input.generationId ?? null,
+    inputUrl: input.inputUrl ?? null,
+    generationToken: input.generationToken ?? null,
     card: input.card,
     clientIp: Platform.OS === 'web' ? undefined : '127.0.0.1',
   });
@@ -130,6 +120,8 @@ export async function payWithPix(
     document: input.document,
     product: input.product ?? null,
     generationId: input.generationId ?? null,
+    inputUrl: input.inputUrl ?? null,
+    generationToken: input.generationToken ?? null,
   });
 }
 

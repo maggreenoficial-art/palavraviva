@@ -5,18 +5,22 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
   createGenerationRecord,
+  ensureGenerationFromClient,
   fulfillFotoJesusPayment,
   getGeneration,
   refreshGenerationFromKie,
+  signFotoJesusPayload,
+  updateGeneration,
   uploadImageBase64ToKie,
 } from './foto-jesus.mjs';
+import { dataDir } from './payments-shared.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-const dataDir = path.join(__dirname, 'data');
-const subscriptionsPath = path.join(dataDir, 'subscriptions.json');
-const checkoutsPath = path.join(dataDir, 'checkouts.json');
-const toolEntitlementsPath = path.join(dataDir, 'tool-entitlements.json');
+const paymentsDataDir = dataDir();
+const subscriptionsPath = path.join(paymentsDataDir, 'subscriptions.json');
+const checkoutsPath = path.join(paymentsDataDir, 'checkouts.json');
+const toolEntitlementsPath = path.join(paymentsDataDir, 'tool-entitlements.json');
 
 function loadEnv() {
   const envPath = path.join(root, '.env');
@@ -63,10 +67,11 @@ const TOOL_PRODUCTS = {
 const PUBLIC_BASE_URL = (
   process.env.PAYMENTS_PUBLIC_URL ||
   process.env.EXPO_PUBLIC_PAYMENTS_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
   `http://localhost:${PORT}`
 ).replace(/\/$/, '');
 
-fs.mkdirSync(dataDir, { recursive: true });
+fs.mkdirSync(paymentsDataDir, { recursive: true });
 if (!fs.existsSync(subscriptionsPath)) {
   fs.writeFileSync(subscriptionsPath, '{}', 'utf8');
 }
@@ -79,18 +84,53 @@ if (!fs.existsSync(toolEntitlementsPath)) {
 
 function send(res, status, body, type = 'application/json') {
   const payload = typeof body === 'string' ? body : JSON.stringify(body);
-  res.writeHead(status, {
+  const headers = {
     'Content-Type': `${type}; charset=utf-8`,
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers':
       'Content-Type, x-admin-password, x-wiven-secret, x-wiven-signature',
-  });
+  };
+  // Vercel Serverless: prefer setHeader/statusCode (writeHead nem sempre existe)
+  if (typeof res.setHeader === 'function') {
+    for (const [key, value] of Object.entries(headers)) {
+      res.setHeader(key, value);
+    }
+    res.statusCode = status;
+    res.end(payload);
+    return;
+  }
+  res.writeHead(status, headers);
   res.end(payload);
 }
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
+    // Vercel / frameworks às vezes já entregam o body parseado
+    if (req.body != null) {
+      try {
+        if (typeof req.body === 'string') {
+          resolve({
+            raw: req.body,
+            json: req.body ? JSON.parse(req.body) : {},
+          });
+          return;
+        }
+        if (Buffer.isBuffer(req.body)) {
+          const raw = req.body.toString('utf8');
+          resolve({ raw, json: raw ? JSON.parse(raw) : {} });
+          return;
+        }
+        if (typeof req.body === 'object') {
+          resolve({ raw: JSON.stringify(req.body), json: req.body });
+          return;
+        }
+      } catch (error) {
+        reject(error);
+        return;
+      }
+    }
+
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
@@ -346,7 +386,14 @@ function resolveProduct(productKey) {
   };
 }
 
-function buildChargePayload({ userId, client, product, generationId }) {
+function buildChargePayload({
+  userId,
+  client,
+  product,
+  generationId,
+  inputUrl,
+  generationToken,
+}) {
   const resolved = product || resolveProduct(null);
   const identifier = `pv_${userId}_${Date.now().toString(36)}`;
   const productId = `pv_${resolved.productKey}_${crypto
@@ -374,6 +421,8 @@ function buildChargePayload({ userId, client, product, generationId }) {
       toolId: resolved.toolId,
       kind: resolved.kind,
       generationId: generationId || null,
+      inputUrl: inputUrl || null,
+      generationToken: generationToken || null,
     },
   };
 
@@ -453,6 +502,8 @@ async function createWivenPixCharge(input) {
     client,
     product,
     generationId: input.generationId || null,
+    inputUrl: input.inputUrl || null,
+    generationToken: input.generationToken || null,
   });
   const data = await wivenPost('/gateway/pix/receive', payload);
   return {
@@ -474,6 +525,8 @@ async function createWivenCardCharge(input) {
     client,
     product,
     generationId: input.generationId || null,
+    inputUrl: input.inputUrl || null,
+    generationToken: input.generationToken || null,
   });
 
   const number = onlyDigits(input.card?.number);
@@ -758,8 +811,8 @@ function checkoutHtml() {
 </html>`;
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host}`);
+const serverHandler = async (req, res) => {
+  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
 
   if (req.method === 'OPTIONS') {
     send(res, 204, '');
@@ -824,6 +877,14 @@ const server = http.createServer(async (req, res) => {
       const product = resolveProduct(productKey || null);
       const generationId =
         typeof body.generationId === 'string' ? body.generationId.trim() : '';
+      const generationInputUrl =
+        typeof body.inputUrl === 'string' ? body.inputUrl.trim() : '';
+      const generationToken =
+        typeof body.generationToken === 'string'
+          ? body.generationToken.trim()
+          : typeof body.token === 'string'
+            ? body.token.trim()
+            : '';
 
       if (product.kind === 'generation') {
         if (!generationId) {
@@ -833,7 +894,15 @@ const server = http.createServer(async (req, res) => {
           });
           return;
         }
-        const gen = getGeneration(generationId);
+        let gen = getGeneration(generationId);
+        if (!gen && generationInputUrl && generationToken) {
+          gen = ensureGenerationFromClient({
+            generationId,
+            userId,
+            inputUrl: generationInputUrl,
+            token: generationToken,
+          });
+        }
         if (!gen || gen.userId !== userId) {
           send(res, 400, {
             ok: false,
@@ -858,6 +927,8 @@ const server = http.createServer(async (req, res) => {
           card: body.card || {},
           product: product.productKey,
           generationId: generationId || null,
+          inputUrl: generationInputUrl || null,
+          generationToken: generationToken || null,
         });
 
         let subscription = null;
@@ -869,6 +940,8 @@ const server = http.createServer(async (req, res) => {
               checkoutId,
               source: 'wiven_card',
               providerRef: wiven.transactionId,
+              inputUrl: generationInputUrl || null,
+              token: generationToken || null,
             });
           } else if (product.kind === 'tool' && product.toolId) {
             const ent = grantTool(userId, product.toolId, {
@@ -892,6 +965,8 @@ const server = http.createServer(async (req, res) => {
           toolId: product.toolId,
           kind: product.kind,
           generationId: generationId || null,
+          inputUrl: generationInputUrl || null,
+          generationToken: generationToken || null,
           displayName: displayName || null,
           whatsapp: whatsapp || null,
           identifier: wiven.identifier,
@@ -911,6 +986,8 @@ const server = http.createServer(async (req, res) => {
           product: product.productKey,
           generationId: generationId || null,
           generationStatus: generation?.status || null,
+          kieTaskId: generation?.kieTaskId || null,
+          resultUrl: generation?.resultUrl || null,
           unlockedTools,
           subscriptionExpiresAt: subscription?.expiresAt || null,
         });
@@ -925,6 +1002,8 @@ const server = http.createServer(async (req, res) => {
         document,
         product: product.productKey,
         generationId: generationId || null,
+        inputUrl: generationInputUrl || null,
+        generationToken: generationToken || null,
       });
 
       saveCheckoutRecord({
@@ -935,6 +1014,8 @@ const server = http.createServer(async (req, res) => {
         toolId: product.toolId,
         kind: product.kind,
         generationId: generationId || null,
+        inputUrl: generationInputUrl || null,
+        generationToken: generationToken || null,
         displayName: displayName || null,
         whatsapp: whatsapp || null,
         identifier: wiven.identifier,
@@ -1038,6 +1119,8 @@ const server = http.createServer(async (req, res) => {
             checkoutId: matched?.id || null,
             source: 'wiven_webhook',
             providerRef,
+            inputUrl: matched?.inputUrl || null,
+            token: matched?.generationToken || null,
           },
         );
         send(res, 200, {
@@ -1177,11 +1260,17 @@ const server = http.createServer(async (req, res) => {
         inputUrl: uploaded.fileUrl,
         fileId: uploaded.fileId,
       });
+      const token = signFotoJesusPayload({
+        userId,
+        generationId: generation.id,
+        inputUrl: generation.inputUrl,
+      });
 
       send(res, 201, {
         ok: true,
         generationId: generation.id,
         inputUrl: generation.inputUrl,
+        token,
       });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
@@ -1193,6 +1282,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const generationId = (url.searchParams.get('generationId') || '').trim();
       const userId = (url.searchParams.get('userId') || '').trim();
+      const inputUrl = (url.searchParams.get('inputUrl') || '').trim();
+      const token = (url.searchParams.get('token') || '').trim();
+      const kieTaskId = (url.searchParams.get('kieTaskId') || '').trim();
       if (!generationId || !userId) {
         send(res, 400, {
           ok: false,
@@ -1202,9 +1294,25 @@ const server = http.createServer(async (req, res) => {
       }
 
       let generation = getGeneration(generationId);
+      if (!generation && inputUrl && token) {
+        generation = ensureGenerationFromClient({
+          generationId,
+          userId,
+          inputUrl,
+          token,
+        });
+      }
       if (!generation || generation.userId !== userId) {
         send(res, 404, { ok: false, error: 'geracao_nao_encontrada' });
         return;
+      }
+
+      if (kieTaskId && !generation.kieTaskId) {
+        generation =
+          updateGeneration(generationId, {
+            kieTaskId,
+            status: 'generating',
+          }) || generation;
       }
 
       if (generation.status === 'awaiting_payment') {
@@ -1237,6 +1345,8 @@ const server = http.createServer(async (req, res) => {
               checkoutId: checkout.id,
               source: 'status_poll',
               providerRef: checkout.transactionId,
+              inputUrl: checkout.inputUrl || inputUrl || null,
+              token: checkout.generationToken || token || null,
             });
             break;
           } catch {
@@ -1259,6 +1369,7 @@ const server = http.createServer(async (req, res) => {
         generationId: generation.id,
         status: generation.status,
         resultUrl: generation.resultUrl || null,
+        kieTaskId: generation.kieTaskId || null,
         error: generation.error || null,
       });
     } catch (error) {
@@ -1289,21 +1400,34 @@ const server = http.createServer(async (req, res) => {
   }
 
   send(res, 404, { error: 'not_found' });
-});
+};
 
-server.listen(PORT, () => {
-  console.log(`\nPagamentos Palavra Viva (Wiven Pix)`);
-  console.log(`  Checkout: http://localhost:${PORT}/checkout`);
-  console.log(`  POST /api/checkout`);
-  console.log(`  POST /api/webhooks/wiven`);
-  console.log(`  GET  /api/access?userId=...`);
-  console.log(`  POST /api/foto-jesus/prepare`);
-  console.log(`  GET  /api/foto-jesus/status`);
-  console.log(`  Produto: ${PRODUCT_NAME} · R$ ${PRODUCT_PRICE.toFixed(2)}`);
-  console.log(
-    `  Foto Jesus: R$ ${Number(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE || 5).toFixed(2)} · Kie: ${process.env.KIE_API_KEY ? 'ok' : 'AUSENTE'}`,
-  );
-  console.log(
-    `  Chaves: ${WIVEN_PUBLIC_KEY ? 'ok' : 'AUSENTES'} · Callback: ${PUBLIC_BASE_URL}/api/webhooks/wiven\n`,
-  );
-});
+export async function handlePaymentsRequest(req, res) {
+  return serverHandler(req, res);
+}
+
+const shouldListen =
+  !process.env.VERCEL && process.argv[1] && process.argv[1].includes('payments-server');
+
+if (shouldListen || process.env.PAYMENTS_FORCE_LISTEN === '1') {
+  const server = http.createServer((req, res) => {
+    void serverHandler(req, res);
+  });
+
+  server.listen(PORT, () => {
+    console.log(`\nPagamentos Palavra Viva (Wiven Pix)`);
+    console.log(`  Checkout: http://localhost:${PORT}/checkout`);
+    console.log(`  POST /api/checkout`);
+    console.log(`  POST /api/webhooks/wiven`);
+    console.log(`  GET  /api/access?userId=...`);
+    console.log(`  POST /api/foto-jesus/prepare`);
+    console.log(`  GET  /api/foto-jesus/status`);
+    console.log(`  Produto: ${PRODUCT_NAME} · R$ ${PRODUCT_PRICE.toFixed(2)}`);
+    console.log(
+      `  Foto Jesus: R$ ${Number(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE || 5).toFixed(2)} · Kie: ${process.env.KIE_API_KEY ? 'ok' : 'AUSENTE'}`,
+    );
+    console.log(
+      `  Chaves: ${WIVEN_PUBLIC_KEY ? 'ok' : 'AUSENTES'} · Callback: ${PUBLIC_BASE_URL}/api/webhooks/wiven\n`,
+    );
+  });
+}

@@ -34,9 +34,14 @@ interface ToolPaywallProps {
   visible: boolean;
   toolId: ToolId;
   onClose: () => void;
-  onUnlocked?: () => void;
+  onUnlocked?: (meta?: {
+    kieTaskId?: string | null;
+    resultUrl?: string | null;
+  }) => void;
   /** Para cobrança por imagem (Foto com Jesus) */
   generationId?: string | null;
+  inputUrl?: string | null;
+  generationToken?: string | null;
   consumable?: boolean;
 }
 
@@ -53,6 +58,8 @@ export function ToolPaywall({
   onClose,
   onUnlocked,
   generationId = null,
+  inputUrl = null,
+  generationToken = null,
   consumable = false,
 }: ToolPaywallProps) {
   const type = useTypography();
@@ -322,7 +329,10 @@ export function ToolPaywall({
     [type],
   );
 
-  async function handleSuccess() {
+  async function handleSuccess(meta?: {
+    kieTaskId?: string | null;
+    resultUrl?: string | null;
+  }) {
     setMessage(
       isConsumable
         ? 'Pagamento confirmado. Gerando sua imagem…'
@@ -330,7 +340,7 @@ export function ToolPaywall({
     );
     setTimeout(() => {
       setMessage(null);
-      onUnlocked?.();
+      onUnlocked?.(meta);
       onClose();
     }, 700);
   }
@@ -355,6 +365,8 @@ export function ToolPaywall({
         document,
         product: productKey,
         generationId,
+        inputUrl,
+        generationToken,
         card: {
           number: cardNumber,
           owner: cardOwner,
@@ -371,7 +383,10 @@ export function ToolPaywall({
           name: 'tool_purchase_activated',
           meta: { toolId, method: 'card', consumable: isConsumable },
         });
-        await handleSuccess();
+        await handleSuccess({
+          kieTaskId: result.kieTaskId,
+          resultUrl: result.resultUrl,
+        });
         return;
       }
       setMessage(
@@ -410,6 +425,8 @@ export function ToolPaywall({
         document,
         product: productKey,
         generationId,
+        inputUrl,
+        generationToken,
       });
       setPixCode(result.pixCode);
       setPixImage(result.pixImage);

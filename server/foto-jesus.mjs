@@ -6,15 +6,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import {
+  dataDir,
+  signFotoJesusPayload,
+  verifyFotoJesusPayload,
+} from './payments-shared.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, 'data');
-const generationsPath = path.join(dataDir, 'foto-jesus-generations.json');
+const generationsPath = path.join(dataDir(), 'foto-jesus-generations.json');
 
 const KIE_API_BASE = 'https://api.kie.ai';
 const KIE_UPLOAD_BASE = 'https://kieai.redpandaai.co';
 
 export const FOTO_JESUS_PROMPT = `Create a warm, respectful photorealistic image of the person from the reference photo standing gently beside Jesus Christ. Preserve the person's face, age, skin tone, hair, and identity with high accuracy. Jesus should appear kind, peaceful, and approachable, with soft warm natural light, serene atmosphere, tasteful Christian art style, high photographic quality. No text, no watermark, no logos, no dramatic horror elements.`;
+
+export { signFotoJesusPayload, verifyFotoJesusPayload };
 
 function readJson(filePath, fallback) {
   try {
@@ -151,12 +157,36 @@ export function createGenerationRecord({ userId, inputUrl, fileId }) {
   const generationId = `fj_${Date.now().toString(36)}_${crypto
     .randomBytes(4)
     .toString('hex')}`;
+  return upsertGeneration({
+    generationId,
+    userId,
+    inputUrl,
+    fileId,
+  });
+}
+
+export function upsertGeneration({
+  generationId,
+  userId,
+  inputUrl,
+  fileId = null,
+}) {
+  if (!generationId || !userId || !inputUrl) {
+    throw new Error('Dados da geração incompletos.');
+  }
   const all = readGenerations();
+  const current = all[generationId];
+  if (current) {
+    if (current.userId !== userId) {
+      throw new Error('Geração não pertence a este usuário.');
+    }
+    return current;
+  }
   all[generationId] = {
     id: generationId,
     userId,
     inputUrl,
-    fileId: fileId || null,
+    fileId,
     status: 'awaiting_payment',
     kieTaskId: null,
     resultUrl: null,
@@ -188,10 +218,40 @@ export function updateGeneration(generationId, patch) {
 }
 
 /**
+ * Garante registro local (útil no Vercel, onde /tmp não é compartilhado).
+ */
+export function ensureGenerationFromClient({
+  generationId,
+  userId,
+  inputUrl,
+  token,
+}) {
+  if (
+    !verifyFotoJesusPayload({
+      userId,
+      generationId,
+      inputUrl,
+      token,
+    })
+  ) {
+    throw new Error('Token da geração inválido. Envie a foto novamente.');
+  }
+  return upsertGeneration({ generationId, userId, inputUrl });
+}
+
+/**
  * Após pagamento confirmado: inicia (ou retoma) a geração Kie.
  */
 export async function fulfillFotoJesusPayment(generationId, userId, meta = {}) {
-  const gen = getGeneration(generationId);
+  let gen = getGeneration(generationId);
+  if (!gen && meta.inputUrl && meta.token) {
+    gen = ensureGenerationFromClient({
+      generationId,
+      userId,
+      inputUrl: meta.inputUrl,
+      token: meta.token,
+    });
+  }
   if (!gen) {
     throw new Error('Geração não encontrada. Envie a foto novamente.');
   }
