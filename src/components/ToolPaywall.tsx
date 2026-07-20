@@ -548,6 +548,12 @@ export function ToolPaywall({
   }
 
   async function handlePayPix() {
+    if (pixCode && transactionId) {
+      setMessage(
+        'Este Pix já foi gerado. Pague este mesmo código no banco e toque em “Já paguei”. Não gere outro Pix.',
+      );
+      return;
+    }
     if (!userId) {
       setError('Faça o onboarding novamente para gerar seu ID.');
       return;

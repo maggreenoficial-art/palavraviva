@@ -18,6 +18,7 @@ import {
 } from '../src/constants/toolsCatalog';
 import { trackAnalytics } from '../src/services/analytics';
 import {
+  checkFotoJesusPayment,
   pollFotoJesusResult,
   prepareFotoJesus,
 } from '../src/services/fotoJesus';
@@ -75,16 +76,9 @@ export default function FotoJesusScreen() {
 
     const finish = () => {
       const state = useFotoJesusStore.getState();
-      const saved = state.lastResult;
-      if (saved?.dataUri || saved?.resultUrl) {
-        setResultUrl(saved.dataUri || saved.resultUrl);
-        setGenerationId(saved.generationId);
-        setStep('done');
-        setHydrated(true);
-        return;
-      }
-
       const open = state.pending;
+
+      // Pix / geração em andamento tem prioridade sobre a última foto salva
       if (open?.generationId && open.inputUrl && open.token) {
         setGenerationId(open.generationId);
         setInputUrl(open.inputUrl);
@@ -93,6 +87,7 @@ export default function FotoJesusScreen() {
         setPixCode(open.pixCode);
         setPixImage(open.pixImage);
         setKieTaskId(open.kieTaskId);
+        setResultUrl(null);
         if (open.previewDataUri) {
           setPreviewDataUri(open.previewDataUri);
           setLocalUri(open.previewDataUri);
@@ -106,10 +101,19 @@ export default function FotoJesusScreen() {
           setStep('paying');
           setStatusText(
             open.transactionId
-              ? 'Há um Pix em aberto. Toque em “Abrir Pix” ou “Verificar pagamento”.'
+              ? 'Há um Pix em aberto nesta foto. Toque em “Verificar pagamento” (não gere outro Pix se já pagou).'
               : 'Continue o pagamento para gerar sua imagem.',
           );
         }
+        setHydrated(true);
+        return;
+      }
+
+      const saved = state.lastResult;
+      if (saved?.dataUri || saved?.resultUrl) {
+        setResultUrl(saved.dataUri || saved.resultUrl);
+        setGenerationId(saved.generationId);
+        setStep('done');
       }
       setHydrated(true);
     };
@@ -489,29 +493,153 @@ export default function FotoJesusScreen() {
     ],
   );
 
-  // Retoma geração só quando a página reabriu com pending.kieTaskId
+  // Retoma pending ao reabrir: gera se já tem kieTaskId; senão tenta confirmar Pix 1x
   useEffect(() => {
     if (!hydrated || resumeRef.current) return;
     const open = useFotoJesusStore.getState().pending;
-    if (!open?.kieTaskId) {
+    if (!open?.generationId || !userId) {
       resumeRef.current = true;
       return;
     }
-    if (step !== 'generating' || !generationId || !userId) return;
     resumeRef.current = true;
-    void startPolling({ kieTaskId: open.kieTaskId });
-  }, [hydrated, step, generationId, userId, startPolling]);
+    if (open.kieTaskId) {
+      void startPolling({ kieTaskId: open.kieTaskId });
+      return;
+    }
+    if (open.transactionId && (step === 'paying' || step === 'generating')) {
+      void (async () => {
+        setBusy(true);
+        setStatusText('Verificando seu pagamento…');
+        try {
+          const payment = await checkFotoJesusPayment({
+            generationId: open.generationId,
+            userId,
+            inputUrl: open.inputUrl,
+            token: open.token,
+            transactionId: open.transactionId,
+            kieTaskId: open.kieTaskId,
+          });
+          if (
+            payment &&
+            (payment.paymentCheck?.paid ||
+              payment.status === 'paid' ||
+              payment.status === 'generating' ||
+              payment.status === 'success' ||
+              payment.kieTaskId)
+          ) {
+            if (payment.kieTaskId) {
+              setKieTaskId(payment.kieTaskId);
+              patchPending({ kieTaskId: payment.kieTaskId });
+            }
+            await startPolling({ kieTaskId: payment.kieTaskId });
+            return;
+          }
+          setStatusText(
+            'Se você já pagou este Pix, toque em “Verificar pagamento”. Não gere outro código.',
+          );
+        } finally {
+          setBusy(false);
+        }
+      })();
+    }
+  }, [hydrated, step, userId, startPolling, patchPending]);
 
   const checkStatus = useCallback(async () => {
-    if (!userId || !generationId) return;
+    const open = useFotoJesusStore.getState().pending;
+    const activeGenerationId = generationId || open?.generationId || null;
+    const activeInputUrl = inputUrl || open?.inputUrl || null;
+    const activeToken = generationToken || open?.token || null;
+    const activeTx = transactionId || open?.transactionId || null;
+    const activeKie = kieTaskId || open?.kieTaskId || null;
+
+    if (!userId || !activeGenerationId) {
+      setError('Envie a foto e gere o Pix antes de verificar.');
+      return;
+    }
+
+    // Sincroniza estado se veio só do pending
+    if (!generationId && open) {
+      setGenerationId(open.generationId);
+      setInputUrl(open.inputUrl);
+      setGenerationToken(open.token);
+      setTransactionId(open.transactionId);
+      setPixCode(open.pixCode);
+      setPixImage(open.pixImage);
+      setKieTaskId(open.kieTaskId);
+      if (open.previewDataUri) {
+        setPreviewDataUri(open.previewDataUri);
+        setLocalUri(open.previewDataUri);
+      }
+    }
+
     setBusy(true);
     setError(null);
+    setStatusText('Verificando seu pagamento…');
     try {
-      await startPolling({ kieTaskId });
+      if (activeKie) {
+        await startPolling({ kieTaskId: activeKie });
+        return;
+      }
+
+      const payment = await checkFotoJesusPayment({
+        generationId: activeGenerationId,
+        userId,
+        inputUrl: activeInputUrl,
+        token: activeToken,
+        transactionId: activeTx,
+      });
+
+      if (!payment) {
+        setError(
+          'Não foi possível verificar agora. Confira a conexão e tente de novo.',
+        );
+        setStep('paying');
+        return;
+      }
+
+      if (
+        payment.paymentCheck?.paid ||
+        payment.status === 'paid' ||
+        payment.status === 'generating' ||
+        payment.status === 'success' ||
+        payment.kieTaskId
+      ) {
+        if (payment.kieTaskId) {
+          setKieTaskId(payment.kieTaskId);
+          patchPending({ kieTaskId: payment.kieTaskId });
+        }
+        await startPolling({ kieTaskId: payment.kieTaskId });
+        return;
+      }
+
+      const wiven = payment.paymentCheck?.wivenStatus;
+      setStep('paying');
+      if (payment.paymentCheck?.error === 'transactionId_ausente') {
+        setStatusText(
+          'Abra o Pix desta foto e pague. Depois toque em Verificar pagamento.',
+        );
+      } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
+        setStatusText(
+          'O banco ainda mostra Pix pendente. Se já pagou, aguarde ~30s e verifique de novo — sem gerar outro Pix.',
+        );
+      } else {
+        setStatusText(
+          'Pagamento ainda não confirmado. Use o mesmo Pix desta foto (não gere outro).',
+        );
+      }
     } finally {
       setBusy(false);
     }
-  }, [generationId, kieTaskId, startPolling, userId]);
+  }, [
+    generationId,
+    generationToken,
+    inputUrl,
+    kieTaskId,
+    patchPending,
+    startPolling,
+    transactionId,
+    userId,
+  ]);
 
   const handleDownload = useCallback(async () => {
     if (!resultUrl) return;
@@ -561,6 +689,8 @@ export default function FotoJesusScreen() {
     setActionMessage(null);
     setStatusText(null);
     clearPending();
+    // Mantém lastResult no storage, mas a UI não mostra até concluir a nova
+    resumeRef.current = true;
   }, [clearPending]);
 
   return (
@@ -727,7 +857,7 @@ export default function FotoJesusScreen() {
               style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
             >
               <Text style={styles.ctaText}>
-                {pixCode ? 'Abrir Pix de novo' : 'Abrir pagamento Pix'}
+                {pixCode ? 'Ver código Pix' : 'Abrir pagamento Pix'}
               </Text>
             </Pressable>
             <Pressable
@@ -746,6 +876,10 @@ export default function FotoJesusScreen() {
                 <Text style={styles.ctaTextSecondary}>Verificar pagamento</Text>
               )}
             </Pressable>
+            <Text style={styles.tip}>
+              Se já pagou, toque só em “Verificar pagamento”. Gerar outro Pix
+              cria um código novo e o pagamento anterior não libera a foto.
+            </Text>
           </>
         ) : null}
 
