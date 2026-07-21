@@ -346,35 +346,20 @@ export function trackMetaEvent(
 }
 
 /**
- * Com ?test_event_code= na URL, dispara conversões pelo Pixel do navegador.
+ * Com ?test_event_code= — não dispara ViewContent (confundia com checkout).
+ * Mantido só para debug manual se precisar.
  */
 export function trackMetaTestCheckoutProbe() {
   if (Platform.OS !== 'web') return;
   const code = captureMetaTestEventCode();
   if (!code) return;
   try {
-    if (window.sessionStorage.getItem('meta_test_probe_v2') === '1') return;
-    window.sessionStorage.setItem('meta_test_probe_v2', '1');
+    if (window.sessionStorage.getItem('meta_test_probe_v3') === '1') return;
+    window.sessionStorage.setItem('meta_test_probe_v3', '1');
   } catch {
-    // segue mesmo se sessionStorage falhar
+    // ignore
   }
-  const params = {
-    content_name: 'missao_plus',
-    content_category: 'subscription',
-    currency: 'BRL',
-    value: 19.9,
-    num_items: 1,
-  };
-  trackMetaEvent('ViewContent', params);
-  setTimeout(() => trackMetaEvent('InitiateCheckout', params), 800);
-  setTimeout(
-    () =>
-      trackMetaEvent('AddPaymentInfo', {
-        ...params,
-        payment_type: 'pix',
-      }),
-    1600,
-  );
+  // Probe desativado automaticamente — eventos reais vêm do paywall.
 }
 
 export function getMetaPixelId() {

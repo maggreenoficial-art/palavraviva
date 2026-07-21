@@ -954,6 +954,38 @@ async function tryConfirmGenerationPayment({
     kieTaskId: kieTaskId || null,
     startGeneration: Boolean(kieTaskId) ? true : Boolean(startGeneration),
   });
+
+  if (claimMetaPurchaseOnce(checkoutId)) {
+    let productKey = 'tool-foto-jesus';
+    let price = 5;
+    try {
+      const ck = readCheckouts().find((c) => c.id === checkoutId);
+      if (ck?.product) productKey = ck.product;
+      if (ck?.amount != null || ck?.price != null) {
+        price = Number(ck.amount || ck.price);
+      } else {
+        price = resolveProduct(productKey).price;
+      }
+    } catch {
+      // mantém defaults
+    }
+    await fireMetaCapiSafe({
+      eventName: 'Purchase',
+      userId,
+      eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+      customData: {
+        currency: 'BRL',
+        value: price,
+        content_name: productKey,
+        content_ids: [productKey],
+        content_type: 'product',
+        content_category: 'tool',
+        num_items: 1,
+        payment_type: 'pix',
+      },
+    });
+  }
+
   return { generation, paymentCheck };
 }
 
@@ -965,6 +997,22 @@ function saveCheckoutRecord(record) {
     type: 'checkout',
     checkout: record,
   });
+}
+
+/** Evita Purchase CAPI duplicado (webhook + poll + status). */
+function claimMetaPurchaseOnce(checkoutId) {
+  if (!checkoutId) return true;
+  try {
+    const all = readCheckouts();
+    const idx = all.findIndex((c) => c.id === checkoutId);
+    if (idx < 0) return true;
+    if (all[idx].metaPurchaseSentAt) return false;
+    all[idx].metaPurchaseSentAt = new Date().toISOString();
+    writeCheckouts(all);
+    return true;
+  } catch {
+    return true;
+  }
 }
 
 function checkoutHtml() {
@@ -1419,12 +1467,28 @@ const serverHandler = async (req, res) => {
               inputUrl: generationInputUrl || null,
               token: generationToken || null,
             });
+            await fireMetaCapiSafe({
+              eventName: 'Purchase',
+              ...metaUser,
+              customData: {
+                ...metaCheckoutData,
+                payment_type: 'card',
+              },
+            });
           } else if (product.kind === 'tool' && product.toolId) {
             const ent = grantTool(userId, product.toolId, {
               source: 'wiven_card',
               providerRef: wiven.transactionId,
             });
             unlockedTools = ent?.tools || unlockedTools;
+            await fireMetaCapiSafe({
+              eventName: 'Purchase',
+              ...metaUser,
+              customData: {
+                ...metaCheckoutData,
+                payment_type: 'card',
+              },
+            });
           } else {
             subscription = grantSubscription(userId, {
               source: 'wiven_card',
@@ -1436,9 +1500,7 @@ const serverHandler = async (req, res) => {
               eventName: 'Subscribe',
               ...metaUser,
               customData: {
-                currency: 'BRL',
-                value: product.price,
-                content_name: product.productKey,
+                ...metaCheckoutData,
                 content_category: 'subscription',
               },
             });
@@ -1452,6 +1514,7 @@ const serverHandler = async (req, res) => {
           product: product.productKey,
           toolId: product.toolId,
           kind: product.kind,
+          amount: product.price,
           generationId: generationId || null,
           inputUrl: generationInputUrl || null,
           generationToken: generationToken || null,
@@ -1462,6 +1525,10 @@ const serverHandler = async (req, res) => {
           status: wiven.approved ? 'paid' : 'opened',
           paidAt: wiven.approved ? new Date().toISOString() : null,
           createdAt: new Date().toISOString(),
+          metaPurchaseSentAt:
+            wiven.approved && product.kind !== 'subscription'
+              ? new Date().toISOString()
+              : null,
         });
 
         send(res, 201, {
@@ -1510,6 +1577,7 @@ const serverHandler = async (req, res) => {
         product: product.productKey,
         toolId: product.toolId,
         kind: product.kind,
+        amount: product.price,
         generationId: generationId || null,
         inputUrl: generationInputUrl || null,
         generationToken: generationToken || null,
@@ -1631,6 +1699,22 @@ const serverHandler = async (req, res) => {
             token: metaToken,
           },
         );
+        if (claimMetaPurchaseOnce(matched?.id)) {
+          await fireMetaCapiSafe({
+            eventName: 'Purchase',
+            userId,
+            eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+            customData: {
+              currency: 'BRL',
+              value: resolved.price,
+              content_name: resolved.productKey,
+              content_ids: [resolved.productKey],
+              content_type: 'product',
+              content_category: 'tool',
+              num_items: 1,
+            },
+          });
+        }
         send(res, 200, {
           ok: true,
           generationId: metaGenerationId,
@@ -1644,6 +1728,22 @@ const serverHandler = async (req, res) => {
           lastWebhookAt: new Date().toISOString(),
           providerRef,
         });
+        if (claimMetaPurchaseOnce(matched?.id)) {
+          await fireMetaCapiSafe({
+            eventName: 'Purchase',
+            userId,
+            eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+            customData: {
+              currency: 'BRL',
+              value: resolved.price,
+              content_name: resolved.productKey,
+              content_ids: [resolved.productKey],
+              content_type: 'product',
+              content_category: 'tool',
+              num_items: 1,
+            },
+          });
+        }
         send(res, 200, { ok: true, unlockedTools: ent?.tools || [] });
         return;
       }
@@ -1713,12 +1813,46 @@ const serverHandler = async (req, res) => {
             source: 'wiven_poll',
             providerRef: checkout.transactionId,
           });
+          if (claimMetaPurchaseOnce(checkout.id)) {
+            await fireMetaCapiSafe({
+              eventName: 'Purchase',
+              userId,
+              eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+              customData: {
+                currency: 'BRL',
+                value: Number(checkout.amount || checkout.price || 5),
+                content_name: checkout.product || 'tool-foto-jesus',
+                content_ids: [checkout.product || 'tool-foto-jesus'],
+                content_type: 'product',
+                content_category: 'tool',
+                num_items: 1,
+                payment_type: 'pix',
+              },
+            });
+          }
         } else if (checkout.kind === 'tool' && checkout.toolId) {
           const ent = grantTool(userId, checkout.toolId, {
             source: 'wiven_poll',
             providerRef: checkout.transactionId,
           });
           unlockedTools = ent?.tools || unlockedTools;
+          if (claimMetaPurchaseOnce(checkout.id)) {
+            await fireMetaCapiSafe({
+              eventName: 'Purchase',
+              userId,
+              eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+              customData: {
+                currency: 'BRL',
+                value: Number(checkout.amount || checkout.price || 5),
+                content_name: checkout.product || checkout.toolId,
+                content_ids: [checkout.product || checkout.toolId],
+                content_type: 'product',
+                content_category: 'tool',
+                num_items: 1,
+                payment_type: 'pix',
+              },
+            });
+          }
         } else if (!active) {
           sub = grantSubscription(userId, {
             source: 'wiven_poll',
@@ -1728,6 +1862,17 @@ const serverHandler = async (req, res) => {
           });
           expiresAt = sub.expiresAt;
           active = true;
+          await fireMetaCapiSafe({
+            eventName: 'Subscribe',
+            userId,
+            eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+            customData: {
+              currency: 'BRL',
+              value: Number(checkout.amount || checkout.price || 19.9),
+              content_name: checkout.product || 'missao-plus',
+              content_category: 'subscription',
+            },
+          });
         }
       } catch {
         // ignora falha de consulta pontual

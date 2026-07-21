@@ -552,6 +552,13 @@ export function ToolPaywall({
     kieTaskId?: string | null;
     resultUrl?: string | null;
   }) {
+    trackMetaEvent('Purchase', {
+      content_name: toolId,
+      content_category: 'tool',
+      currency: 'BRL',
+      value: Number(tool?.price ?? 5),
+      num_items: 1,
+    });
     setMessage(
       isConsumable
         ? 'Pagamento confirmado! Gerando sua imagem…'
@@ -581,6 +588,18 @@ export function ToolPaywall({
     setError(null);
     setMessage(null);
     try {
+      void trackAnalytics({
+        name: 'tool_purchase_start',
+        meta: { toolId, method: 'card', consumable: isConsumable },
+      });
+      trackMetaEvent('AddPaymentInfo', {
+        content_name: toolId,
+        content_category: 'tool',
+        currency: 'BRL',
+        value: Number(tool?.price ?? 5),
+        payment_type: 'card',
+        num_items: 1,
+      });
       const result = await payWithCard({
         userId,
         displayName,
@@ -596,10 +615,6 @@ export function ToolPaywall({
           expiresAt: expiry,
           cvv,
         },
-      });
-      void trackAnalytics({
-        name: 'tool_purchase_start',
-        meta: { toolId, method: 'card', consumable: isConsumable },
       });
       if (result.approved) {
         void trackAnalytics({
@@ -661,6 +676,14 @@ export function ToolPaywall({
       void trackAnalytics({
         name: 'tool_purchase_start',
         meta: { toolId, method: 'pix', consumable: isConsumable },
+      });
+      trackMetaEvent('AddPaymentInfo', {
+        content_name: toolId,
+        content_category: 'tool',
+        currency: 'BRL',
+        value: Number(tool?.price ?? 5),
+        payment_type: 'pix',
+        num_items: 1,
       });
       const result = await payWithPix({
         userId,

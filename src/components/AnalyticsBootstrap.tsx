@@ -9,7 +9,6 @@ import {
   ensureMetaClickIds,
   initMetaPixel,
   trackMetaPageView,
-  trackMetaTestCheckoutProbe,
 } from '../services/metaPixel';
 import { syncSubscriptionAccess } from '../services/wivenCheckout';
 import { useUserStore } from '../store/useUserStore';
@@ -42,15 +41,10 @@ export function AnalyticsBootstrap() {
   useEffect(() => {
     if (!pathname) return;
     trackMetaPageView();
-    // Atrasa 1.5s para o fbq carregar e a aba de teste capturar
-    const timer = setTimeout(() => {
-      trackMetaTestCheckoutProbe();
-    }, 1500);
     void trackAnalytics({
       name: 'screen_view',
       path: pathname,
     });
-    return () => clearTimeout(timer);
   }, [pathname, userId, displayName, whatsapp]);
 
   return null;
