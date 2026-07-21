@@ -1503,6 +1503,7 @@ const serverHandler = async (req, res) => {
               customData: {
                 ...metaCheckoutData,
                 content_category: 'subscription',
+                predicted_ltv: product.price,
               },
             });
           }

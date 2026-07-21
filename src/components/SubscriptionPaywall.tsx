@@ -162,6 +162,7 @@ export function SubscriptionPaywall({
       content_category: 'subscription',
       currency: 'BRL',
       value: 19.9,
+      predicted_ltv: 19.9,
       num_items: 1,
     });
     setError(null);

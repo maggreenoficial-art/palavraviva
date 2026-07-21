@@ -107,17 +107,34 @@ function buildUserData(input = {}) {
   return userData;
 }
 
-/** Normaliza custom_data para o formato padrão da Meta (value/currency etc.). */
-function normalizeCustomData(input = {}) {
+/** Normaliza custom_data para o formato padrão da Meta (value/currency etc.).
+ * @see https://eventsmanager.facebook.com/business/help/402791146561655
+ */
+function normalizeCustomData(input = {}, eventName = '') {
   const out = { ...input };
-  if (out.value != null && typeof out.value !== 'number') {
+
+  // value: número (Meta aceita string no Pixel; CAPI prefere number)
+  if (out.value != null) {
     const n = Number(out.value);
     if (Number.isFinite(n)) out.value = n;
+    else delete out.value;
   }
   if (out.currency && typeof out.currency === 'string') {
     out.currency = out.currency.toUpperCase();
+  } else if (out.value != null) {
+    out.currency = 'BRL';
   }
 
+  // Subscribe (Missão+): predicted_ltv recomendado pela Meta
+  if (
+    eventName === 'Subscribe' &&
+    out.predicted_ltv == null &&
+    typeof out.value === 'number'
+  ) {
+    out.predicted_ltv = out.value;
+  }
+
+  // Purchase / InitiateCheckout / AddPaymentInfo: reforça catálogo
   const contentId =
     (typeof out.content_name === 'string' && out.content_name.trim()) ||
     (Array.isArray(out.content_ids) && out.content_ids[0]) ||
@@ -134,9 +151,15 @@ function normalizeCustomData(input = {}) {
         {
           id: String(contentId),
           quantity: Number.isFinite(qty) && qty > 0 ? qty : 1,
+          ...(typeof out.value === 'number' ? { item_price: out.value } : {}),
         },
       ];
     }
+  }
+
+  // Remove null/undefined (ex.: ph:[null] do exemplo da Meta quebra matching)
+  for (const key of Object.keys(out)) {
+    if (out[key] == null) delete out[key];
   }
 
   return out;
@@ -175,7 +198,7 @@ export async function sendMetaConversionEvent({
         user_data: buildUserData(user),
         custom_data:
           customData && Object.keys(customData).length
-            ? normalizeCustomData(customData)
+            ? normalizeCustomData(customData, eventName)
             : undefined,
       },
     ],
