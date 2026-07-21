@@ -19,10 +19,16 @@ declare global {
 const PIXEL_ID =
   (process.env.EXPO_PUBLIC_META_PIXEL_ID || '4474411989514975').trim();
 
-/** Pixel do navegador desativado — só Conversions API. */
-const META_BROWSER_PIXEL_ENABLED = false;
+/**
+ * Pixel do navegador: só em modo teste (?test_event_code=).
+ * Produção = só Conversions API (sem fbq).
+ */
+function browserPixelAllowed() {
+  return Boolean(getTestEventCodeNow());
+}
 
 let bootstrapped = false;
+let pixelScriptReady = false;
 let clickIdsReady: Promise<void> | null = null;
 
 function canUseWebMeta() {
@@ -265,12 +271,91 @@ function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
 }
 
 /**
- * Bootstrap Meta (CAPI only) — cookies fbp/fbc para matching; sem fbq.
+ * Bootstrap Meta.
+ * - Sempre: cookies fbp/fbc + CAPI
+ * - Com ?test_event_code=: também carrega fbq (aba Eventos de teste precisa do Pixel)
  */
 export function initMetaPixel() {
-  if (!canUseWebMeta() || bootstrapped) return;
-  bootstrapped = true;
-  void ensureMetaClickIds();
+  if (!canUseWebMeta()) return;
+  if (!bootstrapped) {
+    bootstrapped = true;
+    void ensureMetaClickIds();
+  }
+  if (!browserPixelAllowed() || pixelScriptReady) return;
+  if (typeof window === 'undefined') return;
+
+  // Já injetado pelo index.html no modo teste
+  if (typeof (window as Window & { fbq?: unknown }).fbq === 'function') {
+    pixelScriptReady = true;
+    try {
+      (window as Window & { fbq: (...a: unknown[]) => void }).fbq(
+        'set',
+        'test_event_code',
+        getTestEventCodeNow(),
+      );
+    } catch {
+      // ignore
+    }
+    return;
+  }
+
+  const f = window as Window & {
+    fbq?: ((...a: unknown[]) => void) & {
+      callMethod?: (...a: unknown[]) => void;
+      queue: unknown[];
+      push: (...a: unknown[]) => void;
+      loaded: boolean;
+      version: string;
+    };
+    _fbq?: unknown;
+  };
+  const b = document;
+  const e = 'script';
+  const v = 'https://connect.facebook.net/en_US/fbevents.js';
+
+  const n = function (...args: unknown[]) {
+    if (n.callMethod) n.callMethod(...args);
+    else n.queue.push(args);
+  } as NonNullable<typeof f.fbq>;
+  if (!f._fbq) f._fbq = n;
+  f.fbq = n;
+  n.push = n;
+  n.loaded = true;
+  n.version = '2.0';
+  n.queue = [];
+
+  const t = b.createElement(e) as HTMLScriptElement;
+  t.async = true;
+  t.src = v;
+  const s = b.getElementsByTagName(e)[0];
+  s?.parentNode?.insertBefore(t, s);
+
+  n('init', PIXEL_ID);
+  n('set', 'test_event_code', getTestEventCodeNow());
+  pixelScriptReady = true;
+}
+
+function callFbq(...args: unknown[]) {
+  if (!browserPixelAllowed()) return;
+  const fbq = (window as Window & { fbq?: (...a: unknown[]) => void }).fbq;
+  if (typeof fbq === 'function') fbq(...args);
+}
+
+function toPixelParams(
+  params?: Record<string, string | number | boolean | string[]>,
+): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  if (!params) return out;
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      if (key === 'content_ids' && value[0] != null) {
+        out.content_name = out.content_name ?? String(value[0]);
+      }
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 /** Endpoint CAPI: em web online sempre same-origin. */
@@ -367,7 +452,15 @@ export function trackMetaPageView() {
   if (!canUseWebMeta()) return;
   persistMetaTestEventCodeInUrl();
   initMetaPixel();
-  void sendCapi('PageView', createEventId('PageView'));
+  const testCode = getTestEventCodeNow();
+  const eventId = createEventId('PageView');
+  // Em teste: Pixel + CAPI com event_id distinto (mostra Navegador + Servidor)
+  const capiId = testCode ? `${eventId}_srv` : eventId;
+  if (testCode) {
+    callFbq('set', 'test_event_code', testCode);
+    callFbq('track', 'PageView', {}, { eventID: eventId });
+  }
+  void sendCapi('PageView', capiId);
 }
 
 export function trackMetaEvent(
@@ -376,19 +469,27 @@ export function trackMetaEvent(
 ) {
   if (!canUseWebMeta()) return;
   persistMetaTestEventCodeInUrl();
+  initMetaPixel();
+  const testCode = getTestEventCodeNow();
   const eventId = createEventId(event);
+  const capiId = testCode ? `${eventId}_srv` : eventId;
+  const pixelParams = toPixelParams(params);
 
   debugMetaCheckout(event, {
     stage: 'track_start',
     eventId,
-    testEventCode: getTestEventCodeNow() || null,
+    capiId,
+    testEventCode: testCode || null,
     href: typeof window !== 'undefined' ? window.location.href : null,
-    browserPixel: META_BROWSER_PIXEL_ENABLED,
+    browserPixel: Boolean(testCode),
     params: params || {},
   });
 
-  initMetaPixel();
-  void sendCapi(event, eventId, params);
+  if (testCode) {
+    callFbq('set', 'test_event_code', testCode);
+    callFbq('track', event, pixelParams, { eventID: eventId });
+  }
+  void sendCapi(event, capiId, params);
 }
 
 /** Atalhos do funil Missão+ — use nos cliques (abrir paywall / pagar). */

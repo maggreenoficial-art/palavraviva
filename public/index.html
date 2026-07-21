@@ -138,7 +138,7 @@
         } catch (e) {}
       })();
     </script>
-    <!-- Meta CAPI only — sem Pixel do navegador (fbq). Eventos via /api/meta/capi -->
+    <!-- Meta: produção = só CAPI. Com ?test_event_code= também carrega Pixel (aba Eventos de teste). -->
     <script>
       (function () {
         var code = '';
@@ -156,6 +156,11 @@
           code =
             params.get('test_event_code') || params.get('testEventCode') || '';
           code = (code && code.trim()) || '';
+          if (!code) {
+            try {
+              code = (sessionStorage.getItem('meta_test_event_code') || '').trim();
+            } catch (e) {}
+          }
           if (code) {
             sessionStorage.setItem('meta_test_event_code', code);
             try {
@@ -164,7 +169,7 @@
           }
         } catch (e) {}
 
-        // PageView CAPI imediato (antes do React)
+        // CAPI PageView (sempre) — origem Servidor
         try {
           var eid =
             'PageView_boot_' +
@@ -173,12 +178,16 @@
             Math.random().toString(36).slice(2, 8);
           var body = {
             eventName: 'PageView',
-            eventId: eid,
+            eventId: code ? eid + '_srv' : eid,
             eventSourceUrl: location.href,
             userAgent: navigator.userAgent,
             country: 'br',
           };
           if (code) body.testEventCode = code;
+          try {
+            var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/);
+            if (fbpMatch) body.fbp = decodeURIComponent(fbpMatch[1]);
+          } catch (e) {}
           fetch('/api/meta/capi', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -186,6 +195,35 @@
             body: JSON.stringify(body),
           }).catch(function () {});
         } catch (e) {}
+
+        // Pixel só no modo teste (Eventos de teste da Meta)
+        if (!code) return;
+        !(function (f, b, e, v, n, t, s) {
+          if (f.fbq) return;
+          n = f.fbq = function () {
+            n.callMethod
+              ? n.callMethod.apply(n, arguments)
+              : n.queue.push(arguments);
+          };
+          if (!f._fbq) f._fbq = n;
+          n.push = n;
+          n.loaded = !0;
+          n.version = '2.0';
+          n.queue = [];
+          t = b.createElement(e);
+          t.async = !0;
+          t.src = v;
+          s = b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t, s);
+        })(
+          window,
+          document,
+          'script',
+          'https://connect.facebook.net/en_US/fbevents.js',
+        );
+        fbq('init', '4474411989514975');
+        fbq('set', 'test_event_code', code);
+        fbq('track', 'PageView');
       })();
     </script>
   </head>
