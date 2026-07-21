@@ -165,17 +165,49 @@
       );
       fbq('init', '4474411989514975');
       (function () {
+        var code = '';
         try {
           var params = new URLSearchParams(location.search);
-          var code =
-            params.get('test_event_code') || params.get('testEventCode');
-          if (code && code.trim()) {
-            code = code.trim();
+          if (
+            params.get('clear_test_event') === '1' ||
+            params.get('clearTestEvent') === '1'
+          ) {
+            try {
+              sessionStorage.removeItem('meta_test_event_code');
+              localStorage.removeItem('meta_test_event_code');
+            } catch (e) {}
+          }
+          code =
+            params.get('test_event_code') || params.get('testEventCode') || '';
+          code = (code && code.trim()) || '';
+          if (code) {
             sessionStorage.setItem('meta_test_event_code', code);
             try {
-              localStorage.setItem('meta_test_event_code', code);
+              localStorage.removeItem('meta_test_event_code');
             } catch (e) {}
             fbq('set', 'test_event_code', code);
+            // CAPI imediato (origem Servidor) — não depende do React/bundle
+            try {
+              var eid =
+                'PageView_boot_' +
+                Date.now().toString(36) +
+                '_' +
+                Math.random().toString(36).slice(2, 8) +
+                '_srv';
+              fetch('/api/meta/capi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                keepalive: true,
+                body: JSON.stringify({
+                  eventName: 'PageView',
+                  eventId: eid,
+                  eventSourceUrl: location.href,
+                  testEventCode: code,
+                  userAgent: navigator.userAgent,
+                  country: 'br',
+                }),
+              }).catch(function () {});
+            } catch (e) {}
           }
         } catch (e) {}
         // PageView imediato (antes do React) — essencial em aba anônima / SW cache

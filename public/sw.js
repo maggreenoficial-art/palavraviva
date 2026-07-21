@@ -1,5 +1,5 @@
 /* Service worker mínimo — necessário para o navegador oferecer "Instalar app". */
-const CACHE = 'palavraviva-shell-v4';
+const CACHE = 'palavraviva-shell-v5';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

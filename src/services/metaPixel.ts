@@ -357,14 +357,28 @@ export function initMetaPixel() {
   if (testCode) callFbq('set', 'test_event_code', testCode);
 }
 
+/** Endpoint CAPI: em web online sempre same-origin (evita localhost do bundle). */
+function metaCapiUrl() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    const isLocal =
+      host === 'localhost' || host === '127.0.0.1' || host === '';
+    if (!isLocal) {
+      return `${window.location.origin.replace(/\/$/, '')}/api/meta/capi`;
+    }
+  }
+  const base = paymentsBaseUrl();
+  return base ? `${base.replace(/\/$/, '')}/api/meta/capi` : '';
+}
+
 async function sendCapi(
   eventName: string,
   eventId: string,
   params?: Record<string, string | number | boolean | string[]>,
 ) {
-  const base = paymentsBaseUrl();
-  if (!base) {
-    debugMetaCheckout(eventName, { stage: 'capi_skip', reason: 'no_base_url' });
+  const url = metaCapiUrl();
+  if (!url) {
+    debugMetaCheckout(eventName, { stage: 'capi_skip', reason: 'no_capi_url' });
     return;
   }
 
@@ -404,13 +418,13 @@ async function sendCapi(
     stage: 'capi_post',
     eventId,
     testEventCode: testEventCode || null,
-    base,
-    url: `${base}/api/meta/capi`,
+    url,
   });
   try {
-    const res = await fetch(`${base}/api/meta/capi`, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
       body: JSON.stringify(body),
     });
     const text = await res.text();
