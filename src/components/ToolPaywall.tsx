@@ -134,8 +134,13 @@ export function ToolPaywall({
   const priceLabel = tool?.priceLabel ?? TOOL_FOTO_JESUS_PRICE_LABEL;
   const productKey = PRODUCT_BY_TOOL[toolId] ?? `tool-${toolId}`;
 
+  const checkoutTrackedRef = useRef(false);
+
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      checkoutTrackedRef.current = false;
+      return;
+    }
     unlockingRef.current = false;
     setMethod(isConsumable ? 'pix' : 'card');
     setLoading(false);
@@ -159,6 +164,8 @@ export function ToolPaywall({
         'Pix pronto. Pague no banco e toque em “Já paguei” para continuar.',
       );
     }
+    if (checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
     trackMetaEvent('InitiateCheckout', {
       content_name: toolId,
       content_ids: [toolId],

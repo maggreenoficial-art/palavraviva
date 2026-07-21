@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -85,8 +85,13 @@ export function SubscriptionPaywall({
   );
   const pixReady = Boolean(pixCode);
 
+  const checkoutTrackedRef = useRef(false);
+
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      checkoutTrackedRef.current = false;
+      return;
+    }
     setMethod('card');
     setLoading(false);
     setMessage(null);
@@ -96,6 +101,10 @@ export function SubscriptionPaywall({
     setCopied(false);
     setSuccess(false);
     setCardOwner((prev) => prev || displayName || '');
+  }, [visible, displayName]);
+
+  useEffect(() => {
+    if (!visible) return;
     if (
       computeAccessKind(
         useUserStore.getState().trialStartedAt,
@@ -104,21 +113,19 @@ export function SubscriptionPaywall({
     ) {
       return;
     }
+    if (checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
     captureMetaTestEventCode();
-    // Pequeno atraso: garante fbq + test_event_code na sessão antes do track
-    const timer = setTimeout(() => {
-      trackMetaEvent('InitiateCheckout', {
-        content_name: 'missao_plus',
-        content_ids: ['missao_plus'],
-        content_type: 'product',
-        content_category: 'subscription',
-        currency: 'BRL',
-        value: 19.9,
-        num_items: 1,
-      });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [visible, displayName]);
+    trackMetaEvent('InitiateCheckout', {
+      content_name: 'missao_plus',
+      content_ids: ['missao_plus'],
+      content_type: 'product',
+      content_category: 'subscription',
+      currency: 'BRL',
+      value: 19.9,
+      num_items: 1,
+    });
+  }, [visible]);
 
   // Polling automático após gerar Pix (backoff)
   useEffect(() => {

@@ -8,6 +8,7 @@ import {
   captureMetaTestEventCode,
   ensureMetaClickIds,
   initMetaPixel,
+  persistMetaTestEventCodeInUrl,
   trackMetaPageView,
 } from '../services/metaPixel';
 import { syncSubscriptionAccess } from '../services/wivenCheckout';
@@ -40,6 +41,7 @@ export function AnalyticsBootstrap() {
 
   useEffect(() => {
     if (!pathname) return;
+    persistMetaTestEventCodeInUrl();
     trackMetaPageView();
     void trackAnalytics({
       name: 'screen_view',

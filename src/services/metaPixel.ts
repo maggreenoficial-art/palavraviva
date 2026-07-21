@@ -214,8 +214,19 @@ function applyPixelTestEventCode(code?: string) {
   return resolved;
 }
 
-function readMetaTestEventCode() {
-  return captureMetaTestEventCode();
+/** Mantém ?test_event_code= na URL ao navegar (SPA), senão a aba de teste perde o vínculo. */
+export function persistMetaTestEventCodeInUrl() {
+  if (typeof window === 'undefined') return;
+  const code = captureMetaTestEventCode();
+  if (!code) return;
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('test_event_code') === code) return;
+    url.searchParams.set('test_event_code', code);
+    window.history.replaceState(window.history.state, '', url.toString());
+  } catch {
+    // ignore
+  }
 }
 
 function splitName(fullName: string) {
@@ -362,6 +373,7 @@ export function trackMetaEvent(
 ) {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
+  persistMetaTestEventCodeInUrl();
   void ensureMetaClickIds();
   const eventId = createEventId(event);
   // Dual Pixel+CAPI com o mesmo event_id — origem Servidor vem do POST /api/meta/capi
@@ -369,8 +381,21 @@ export function trackMetaEvent(
   if (!canUsePixel()) return;
   initMetaPixel();
   applyPixelTestEventCode();
+  // Pixel: content_ids como array nativo; demais campos primitivos
+  const pixelParams: Record<string, unknown> = {};
   if (params) {
-    callFbq('track', event, params, { eventID: eventId });
+    for (const [key, value] of Object.entries(params)) {
+      if (key === 'content_ids' && Array.isArray(value)) {
+        pixelParams[key] = value.map(String);
+      } else if (!Array.isArray(value)) {
+        pixelParams[key] = value;
+      } else {
+        pixelParams[key] = value;
+      }
+    }
+  }
+  if (Object.keys(pixelParams).length) {
+    callFbq('track', event, pixelParams, { eventID: eventId });
   } else {
     callFbq('track', event, {}, { eventID: eventId });
   }
