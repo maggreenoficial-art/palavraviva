@@ -199,13 +199,15 @@ export function captureMetaTestEventCode() {
 }
 
 /** Faz o Pixel do navegador marcar eventos na aba Eventos de teste. */
-function applyPixelTestEventCode(code: string) {
-  if (!code || typeof window === 'undefined') return;
+function applyPixelTestEventCode(code?: string) {
+  const resolved = (code || captureMetaTestEventCode()).trim();
+  if (!resolved || typeof window === 'undefined') return '';
   try {
-    callFbq('set', 'test_event_code', code);
+    callFbq('set', 'test_event_code', resolved);
   } catch {
     // fbq pode ainda não existir — initMetaPixel reaplica
   }
+  return resolved;
 }
 
 function readMetaTestEventCode() {
@@ -259,9 +261,8 @@ export function initMetaPixel() {
   const advanced = advancedMatching();
 
   if (typeof window.fbq === 'function') {
-    callFbq('init', PIXEL_ID, advanced);
-    const testCode = captureMetaTestEventCode();
-    if (testCode) callFbq('set', 'test_event_code', testCode);
+    // index.html já fez init — não reinicializar (resetaria test_event_code)
+    applyPixelTestEventCode();
     return;
   }
 
@@ -352,9 +353,9 @@ export function trackMetaPageView() {
   captureMetaTestEventCode();
   void ensureMetaClickIds();
   const eventId = createEventId('PageView');
-  void sendCapi('PageView', eventId);
   if (!canUsePixel()) return;
   initMetaPixel();
+  applyPixelTestEventCode();
   callFbq('track', 'PageView', {}, { eventID: eventId });
 }
 
@@ -366,9 +367,11 @@ export function trackMetaEvent(
   captureMetaTestEventCode();
   void ensureMetaClickIds();
   const eventId = createEventId(event);
-  void sendCapi(event, eventId, params);
+  // Checkout/conversão: só Pixel no navegador. CAPI vem do servidor (/api/checkout).
+  // Enviar CAPI daqui com token fraco na Vercel faz a Meta deduplicar e sumir o evento.
   if (!canUsePixel()) return;
   initMetaPixel();
+  applyPixelTestEventCode();
   if (params) {
     callFbq('track', event, params, { eventID: eventId });
   } else {

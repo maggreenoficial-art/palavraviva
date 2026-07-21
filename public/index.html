@@ -164,6 +164,19 @@
         'https://connect.facebook.net/en_US/fbevents.js',
       );
       fbq('init', '4474411989514975');
+      (function () {
+        try {
+          var params = new URLSearchParams(location.search);
+          var code =
+            params.get('test_event_code') || params.get('testEventCode');
+          if (code && code.trim()) {
+            code = code.trim();
+            sessionStorage.setItem('meta_test_event_code', code);
+            localStorage.setItem('meta_test_event_code', code);
+            fbq('set', 'test_event_code', code);
+          }
+        } catch (e) {}
+      })();
     </script>
     <noscript
       ><img
