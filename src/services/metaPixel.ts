@@ -167,11 +167,31 @@ export function ensureMetaClickIds() {
   return clickIdsReady;
 }
 
-/** Código da aba Eventos de teste — prioriza window.location.search no instante do disparo. */
+/**
+ * Código da aba Eventos de teste.
+ * Só na URL ou sessionStorage (mesma aba / SPA). NÃO usa localStorage —
+ * senão um único teste deixa o browser mandando test_event_code para sempre
+ * e o Ads Manager não libera objetivos de conversão.
+ */
 export function getTestEventCodeNow(): string {
   if (typeof window === 'undefined') return '';
   try {
     const params = new URLSearchParams(window.location.search);
+    const clearFlag = (
+      params.get('clear_test_event') ||
+      params.get('clearTestEvent') ||
+      ''
+    ).trim();
+    if (clearFlag === '1' || clearFlag.toLowerCase() === 'true') {
+      try {
+        window.sessionStorage.removeItem('meta_test_event_code');
+        window.localStorage.removeItem('meta_test_event_code');
+      } catch {
+        // ignore
+      }
+      return '';
+    }
+
     const fromQuery = (
       params.get('test_event_code') ||
       params.get('testEventCode') ||
@@ -180,17 +200,24 @@ export function getTestEventCodeNow(): string {
     if (fromQuery) {
       try {
         window.sessionStorage.setItem('meta_test_event_code', fromQuery);
-        window.localStorage.setItem('meta_test_event_code', fromQuery);
+        // Limpa legado que prendia o browser em modo teste
+        window.localStorage.removeItem('meta_test_event_code');
       } catch {
         // ignore
       }
       return fromQuery;
     }
-    const fromSession = (
+
+    // Sem param na URL: produção. Não herdar localStorage antigo.
+    try {
+      window.localStorage.removeItem('meta_test_event_code');
+    } catch {
+      // ignore
+    }
+
+    return (
       window.sessionStorage.getItem('meta_test_event_code') || ''
     ).trim();
-    if (fromSession) return fromSession;
-    return (window.localStorage.getItem('meta_test_event_code') || '').trim();
   } catch {
     return '';
   }
@@ -232,9 +259,21 @@ export function persistMetaTestEventCodeInUrl() {
 
 function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
   if (typeof console === 'undefined') return;
-  if (!getTestEventCodeNow()) return;
   if (event !== 'InitiateCheckout' && event !== 'AddPaymentInfo') return;
+  const testCode = getTestEventCodeNow();
+  if (!testCode && detail.stage !== 'capi_response' && detail.stage !== 'capi_error') {
+    return;
+  }
   console.info('[meta-checkout]', event, detail);
+  if (testCode && detail.stage === 'track_start') {
+    console.warn(
+      '[meta-checkout] Modo TESTE ativo (' +
+        testCode +
+        '). Isso aparece no console e em Eventos de teste, ' +
+        'mas NÃO libera objetivo no Gerenciador de Anúncios. ' +
+        'Para liberar: abra o site SEM ?test_event_code= (ou com ?clear_test_event=1) e gere o Pix de novo.',
+    );
+  }
 }
 
 function splitName(fullName: string) {
