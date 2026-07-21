@@ -5,6 +5,7 @@ import {
   trackAnalytics,
 } from '../services/analytics';
 import {
+  captureMetaTestEventCode,
   initMetaPixel,
   trackMetaPageView,
 } from '../services/metaPixel';
@@ -23,6 +24,7 @@ export function AnalyticsBootstrap() {
   const pathname = usePathname();
 
   useEffect(() => {
+    captureMetaTestEventCode();
     useUserStore.getState().ensureGuestAccess();
     initMetaPixel();
     void bootstrapAnalytics();

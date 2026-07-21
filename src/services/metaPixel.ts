@@ -28,12 +28,12 @@ function readCookie(name: string) {
 }
 
 /** Código da aba Eventos de teste (?test_event_code=TEST94275). */
-function readMetaTestEventCode() {
+export function captureMetaTestEventCode() {
   if (typeof window === 'undefined') return '';
   try {
-    const fromQuery = new URLSearchParams(window.location.search).get(
-      'test_event_code',
-    );
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery =
+      params.get('test_event_code') || params.get('testEventCode');
     if (fromQuery?.trim()) {
       const code = fromQuery.trim();
       window.sessionStorage.setItem('meta_test_event_code', code);
@@ -43,6 +43,10 @@ function readMetaTestEventCode() {
   } catch {
     return '';
   }
+}
+
+function readMetaTestEventCode() {
+  return captureMetaTestEventCode();
 }
 
 function paymentsBaseUrl() {
@@ -181,15 +185,18 @@ export function trackMetaEvent(
   event: string,
   params?: Record<string, string | number | boolean>,
 ) {
+  const eventId = createEventId(event);
+  // CAPI mesmo se o Pixel do browser falhar (adblock) — essencial na aba de teste
+  if (Platform.OS === 'web') {
+    void sendCapi(event, eventId, params);
+  }
   if (!canUsePixel()) return;
   initMetaPixel();
-  const eventId = createEventId(event);
   if (params) {
     callFbq('track', event, params, { eventID: eventId });
   } else {
     callFbq('track', event, {}, { eventID: eventId });
   }
-  void sendCapi(event, eventId, params);
 }
 
 export function getMetaPixelId() {

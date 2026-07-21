@@ -18,7 +18,10 @@ import {
   useUserStore,
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
-import { trackMetaEvent } from '../services/metaPixel';
+import {
+  captureMetaTestEventCode,
+  trackMetaEvent,
+} from '../services/metaPixel';
 import {
   formatCpf,
   formatExpiry,
@@ -70,11 +73,13 @@ export function SubscriptionPaywall({
   const [cvv, setCvv] = useState('');
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { isDesktop, shellMaxWidth } = useResponsive();
   const cardBrand = useMemo(
     () => detectCardBrand(cardNumber),
     [cardNumber],
   );
+  const pixReady = Boolean(pixCode);
 
   useEffect(() => {
     if (!visible) return;
@@ -84,7 +89,9 @@ export function SubscriptionPaywall({
     setError(null);
     setPixCode(null);
     setPixImage(null);
+    setCopied(false);
     setCardOwner((prev) => prev || displayName || '');
+    captureMetaTestEventCode();
     trackMetaEvent('InitiateCheckout', {
       content_name: 'missao_plus',
       content_category: 'subscription',
@@ -286,10 +293,15 @@ export function SubscriptionPaywall({
         navigator.clipboard
       ) {
         await navigator.clipboard.writeText(pixCode);
-        setMessage('Código Pix copiado.');
+        setCopied(true);
+        setMessage('Código Pix copiado! Cole no app do seu banco.');
+        setTimeout(() => setCopied(false), 2500);
         return;
       }
       await Share.share({ message: pixCode });
+      setCopied(true);
+      setMessage('Código Pix pronto para colar no banco.');
+      setTimeout(() => setCopied(false), 2500);
     } catch {
       setMessage('Selecione e copie o código Pix abaixo.');
     }
@@ -341,78 +353,89 @@ export function SubscriptionPaywall({
               liberados. A Missão+ é opcional e libera todos os áudios premium.
             </Text>
 
-            <View style={styles.benefits}>
-              <Text style={styles.benefitsTitle}>Com a Missão+ você tem</Text>
-              <Text style={styles.benefitItem}>
-                · Todos os áudios e séries premium
-              </Text>
-              <Text style={styles.benefitItem}>
-                · Jornada de 7 dias completa
-              </Text>
-              <Text style={styles.benefitItem}>
-                · Novos conteúdos sem bloqueio
-              </Text>
-            </View>
+            {!pixReady ? (
+              <>
+                <View style={styles.benefits}>
+                  <Text style={styles.benefitsTitle}>Com a Missão+ você tem</Text>
+                  <Text style={styles.benefitItem}>
+                    · Todos os áudios e séries premium
+                  </Text>
+                  <Text style={styles.benefitItem}>
+                    · Jornada de 7 dias completa
+                  </Text>
+                  <Text style={styles.benefitItem}>
+                    · Novos conteúdos sem bloqueio
+                  </Text>
+                </View>
 
-            <View style={styles.compare}>
-              <View style={styles.compareCol}>
-                <Text style={styles.compareHead}>Grátis</Text>
-                <Text style={styles.compareItem}>SOS imediato</Text>
-                <Text style={styles.compareItem}>Leituras em texto</Text>
-                <Text style={styles.compareItem}>1º dia de cada série</Text>
-              </View>
-              <View style={[styles.compareCol, styles.compareColAccent]}>
-                <Text style={[styles.compareHead, styles.compareHeadAccent]}>
-                  Missão+
-                </Text>
-                <Text style={styles.compareItem}>Tudo do plano grátis</Text>
-                <Text style={styles.compareItem}>Todos os áudios</Text>
-                <Text style={styles.compareItem}>Séries e jornadas</Text>
-              </View>
-            </View>
+                <View style={styles.compare}>
+                  <View style={styles.compareCol}>
+                    <Text style={styles.compareHead}>Grátis</Text>
+                    <Text style={styles.compareItem}>SOS imediato</Text>
+                    <Text style={styles.compareItem}>Leituras em texto</Text>
+                    <Text style={styles.compareItem}>1º dia de cada série</Text>
+                  </View>
+                  <View style={[styles.compareCol, styles.compareColAccent]}>
+                    <Text
+                      style={[styles.compareHead, styles.compareHeadAccent]}
+                    >
+                      Missão+
+                    </Text>
+                    <Text style={styles.compareItem}>Tudo do plano grátis</Text>
+                    <Text style={styles.compareItem}>Todos os áudios</Text>
+                    <Text style={styles.compareItem}>Séries e jornadas</Text>
+                  </View>
+                </View>
 
-            <View style={styles.priceCard}>
-              <View style={styles.priceInfo}>
-                <Text style={styles.priceLabel}>Assinatura mensal</Text>
-                <Text style={styles.price}>{SUBSCRIPTION_PRICE_LABEL}</Text>
-              </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Cancele quando quiser</Text>
-              </View>
-            </View>
+                <View style={styles.priceCard}>
+                  <View style={styles.priceInfo}>
+                    <Text style={styles.priceLabel}>Assinatura mensal</Text>
+                    <Text style={styles.price}>{SUBSCRIPTION_PRICE_LABEL}</Text>
+                  </View>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Cancele quando quiser</Text>
+                  </View>
+                </View>
 
-            <View style={styles.tabs}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: method === 'card' }}
-                onPress={() => setMethod('card')}
-                style={[styles.tab, method === 'card' && styles.tabActive]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    method === 'card' && styles.tabTextActive,
-                  ]}
-                >
-                  Cartão
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: method === 'pix' }}
-                onPress={() => setMethod('pix')}
-                style={[styles.tab, method === 'pix' && styles.tabActive]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    method === 'pix' && styles.tabTextActive,
-                  ]}
-                >
-                  Pix
-                </Text>
-              </Pressable>
-            </View>
+                <View style={styles.tabs}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: method === 'card' }}
+                    onPress={() => setMethod('card')}
+                    style={[styles.tab, method === 'card' && styles.tabActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        method === 'card' && styles.tabTextActive,
+                      ]}
+                    >
+                      Cartão
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: method === 'pix' }}
+                    onPress={() => setMethod('pix')}
+                    style={[styles.tab, method === 'pix' && styles.tabActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        method === 'pix' && styles.tabTextActive,
+                      ]}
+                    >
+                      Pix
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.body}>
+                Pague com Pix no app do banco. Em seguida toque em “Já paguei”
+                para liberar a Missão+.
+              </Text>
+            )}
 
             <Text style={styles.label}>CPF</Text>
             <TextInput
@@ -421,11 +444,12 @@ export function SubscriptionPaywall({
               placeholder="000.000.000-00"
               placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
+              editable={!pixReady}
               style={styles.input}
               accessibilityLabel="CPF"
             />
 
-            {method === 'card' ? (
+            {method === 'card' && !pixReady ? (
               <>
                 <Text style={styles.label}>Número do cartão</Text>
                 <CardBrandIcons active={cardBrand} />
@@ -519,9 +543,11 @@ export function SubscriptionPaywall({
                   )}
                 </Pressable>
               </>
-            ) : (
+            ) : null}
+
+            {method === 'pix' || pixReady ? (
               <>
-                {!pixCode ? (
+                {!pixReady ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Gerar Pix"
@@ -536,49 +562,102 @@ export function SubscriptionPaywall({
                     {loading ? (
                       <ActivityIndicator color={colors.background} />
                     ) : (
-                      <Text style={styles.ctaText}>Gerar Pix</Text>
+                      <Text style={styles.ctaText}>
+                        Gerar Pix · {SUBSCRIPTION_PRICE_LABEL}
+                      </Text>
                     )}
                   </Pressable>
                 ) : (
                   <View style={styles.pixBox}>
+                    <View style={styles.stepsBox}>
+                      <Text style={styles.stepTitle}>Como pagar (Pix)</Text>
+                      <Text style={styles.stepLine}>
+                        1. Abra o app do seu banco
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        2. Escolha Pix → Pix Copia e Cola (ou QR Code)
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        3. Cole o código ou escaneie o QR abaixo
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        4. Confirme o valor de {SUBSCRIPTION_PRICE_LABEL} e pague
+                      </Text>
+                      <Text style={styles.stepLine}>
+                        5. Volte aqui e toque em “Já paguei”
+                      </Text>
+                    </View>
+
                     {qrUri ? (
-                      <Image
-                        source={{ uri: qrUri }}
-                        style={styles.qr}
-                        accessibilityLabel="QR Code Pix"
-                      />
+                      <View style={styles.qrWrap}>
+                        <Image
+                          source={{ uri: qrUri }}
+                          style={styles.qr}
+                          accessibilityLabel="QR Code Pix"
+                        />
+                      </View>
                     ) : null}
-                    <Text style={styles.pixHint}>
-                      Escaneie o QR ou copie o código abaixo
-                    </Text>
-                    <Text selectable style={styles.pixCode}>
-                      {pixCode}
-                    </Text>
+
+                    <Text style={styles.copyHint}>Pix Copia e Cola</Text>
+                    <View style={styles.pixCodeBox}>
+                      <Text selectable style={styles.pixCode}>
+                        {pixCode}
+                      </Text>
+                    </View>
+
                     <Pressable
                       accessibilityRole="button"
+                      accessibilityLabel="Copiar código Pix"
                       onPress={() => void copyPix()}
-                      style={styles.secondaryCta}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        pressed && styles.pressed,
+                      ]}
                     >
-                      <Text style={styles.secondaryCtaText}>
-                        Copiar código Pix
+                      <Text style={styles.ctaText}>
+                        {copied ? 'Código copiado ✓' : 'Copiar código Pix'}
                       </Text>
+                    </Pressable>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Já paguei, verificar acesso"
+                      disabled={loading}
+                      onPress={() => void handleAlreadyPaid()}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        styles.ctaSecondaryFill,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color={colors.accent} />
+                      ) : (
+                        <Text
+                          style={[styles.ctaText, styles.ctaSecondaryFillText]}
+                        >
+                          Já paguei — verificar agora
+                        </Text>
+                      )}
                     </Pressable>
                   </View>
                 )}
               </>
-            )}
+            ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {message ? <Text style={styles.message}>{message}</Text> : null}
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void handleAlreadyPaid()}
-              disabled={loading}
-              style={styles.linkBtn}
-            >
-              <Text style={styles.linkText}>Já paguei — verificar acesso</Text>
-            </Pressable>
+            {!pixReady ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void handleAlreadyPaid()}
+                disabled={loading}
+                style={styles.linkBtn}
+              >
+                <Text style={styles.linkText}>Já paguei — verificar acesso</Text>
+              </Pressable>
+            ) : null}
 
             {onDonate ? (
               <Pressable
@@ -599,7 +678,11 @@ export function SubscriptionPaywall({
               style={styles.linkBtn}
             >
               <Text style={styles.linkText}>
-                {blocking ? 'Voltar ao início' : 'Agora não'}
+                {pixReady
+                  ? 'Fechar e continuar depois'
+                  : blocking
+                    ? 'Voltar ao início'
+                    : 'Agora não'}
               </Text>
             </Pressable>
 
@@ -829,50 +912,90 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.lg,
+    alignSelf: 'stretch',
   },
   ctaText: {
     ...typography.button,
     color: colors.background,
   },
-  secondaryCta: {
-    borderWidth: 1,
-    borderColor: colors.accentMuted,
-    borderRadius: radius.md,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+  ctaSecondaryFill: {
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
     marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
   },
-  secondaryCtaText: {
-    ...typography.bodyMedium,
+  ctaSecondaryFillText: {
     color: colors.accent,
   },
-  pixBox: {
-    marginTop: spacing.md,
-    alignItems: 'center',
+  stepsBox: {
+    marginTop: spacing.sm,
     backgroundColor: colors.backgroundSoft,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.sm,
+    alignSelf: 'stretch',
+  },
+  stepTitle: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontFamily: 'DMSans_700Bold',
+    marginBottom: 4,
+  },
+  stepLine: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: Math.round(typography.body.fontSize * 1.4),
+  },
+  pixBox: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+    gap: spacing.md,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  qrWrap: {
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
   },
   qr: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: colors.white,
+    width: 220,
+    height: 220,
   },
-  pixHint: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  copyHint: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
     textAlign: 'center',
+    fontFamily: 'DMSans_700Bold',
+  },
+  pixCodeBox: {
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+    backgroundColor: colors.backgroundSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    overflow: 'hidden',
   },
   pixCode: {
     ...typography.caption,
-    color: colors.textPrimary,
-    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textSecondary,
+    textAlign: 'left',
+    width: '100%',
+    flexShrink: 1,
+    ...(Platform.OS === 'web'
+      ? ({
+          wordBreak: 'break-all',
+          overflowWrap: 'anywhere',
+          whiteSpace: 'pre-wrap',
+        } as object)
+      : {}),
   },
   error: {
     ...typography.caption,

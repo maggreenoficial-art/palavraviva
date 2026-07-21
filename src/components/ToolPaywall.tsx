@@ -484,11 +484,14 @@ export function ToolPaywall({
         },
         pixCodeBox: {
           width: '100%',
+          maxWidth: '100%',
+          alignSelf: 'stretch',
           backgroundColor: colors.backgroundSoft,
           borderRadius: radius.md,
           borderWidth: 1,
           borderColor: colors.border,
           padding: spacing.md,
+          overflow: 'hidden',
         },
         pixCode: {
           ...type.caption,
@@ -496,6 +499,15 @@ export function ToolPaywall({
           lineHeight: 18,
           color: colors.textSecondary,
           textAlign: 'left',
+          width: '100%',
+          flexShrink: 1,
+          ...(Platform.OS === 'web'
+            ? ({
+                wordBreak: 'break-all',
+                overflowWrap: 'anywhere',
+                whiteSpace: 'pre-wrap',
+              } as object)
+            : {}),
         },
         waitingRow: {
           flexDirection: 'row',
