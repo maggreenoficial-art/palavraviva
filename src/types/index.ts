@@ -29,6 +29,11 @@ export interface Session {
   durationSeconds: number;
   audioSource: AudioSource;
   ambientSource?: AudioSource;
+  /**
+   * Id do arquivo de ambiente em assets/audio/ambient/{id}.mp3
+   * Quando omisso, usa o próprio session.id.
+   */
+  ambientMediaKey?: string;
   /** Volume padrão do ambiente (0–1). Padrão: 0.15 */
   ambientVolume?: number;
   /** ID principal de passagem no dataset */

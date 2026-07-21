@@ -330,6 +330,7 @@ export const ecosystemSessions: Session[] = ecosystemMeta.map((item) => ({
   durationSeconds: item.durationSeconds,
   audioSource: ecosystemAudioRequires[item.id],
   ambientSource: ecosystemAmbientRequires[item.ambientKey],
+  ambientMediaKey: item.ambientKey,
   ambientVolume: item.ambientVolume,
   biblicalPrayerId: item.biblicalPrayerIds[0],
   biblicalPrayerIds: [...item.biblicalPrayerIds],
@@ -445,6 +446,15 @@ const premiumAmbientBySeries: Record<string, number> = {
   preocupacao: require('../../assets/audio/ambient/ansiedade-01.mp3'),
 };
 
+const premiumAmbientKeyBySeries: Record<string, string> = {
+  paz: 'ansiedade-01',
+  resiliencia: 'medo-01',
+  proposito: 'manha-esperanca-01',
+  gratidao: 'amor-acalma-01',
+  descanso: 'noite-ansiedade-01',
+  preocupacao: 'ansiedade-01',
+};
+
 export const premiumSeriesSessions: Session[] = Object.entries(
   premiumSeriesMeta,
 ).map(([id, item]) => ({
@@ -456,6 +466,7 @@ export const premiumSeriesSessions: Session[] = Object.entries(
   durationSeconds: item.durationSeconds,
   audioSource: premiumAudioRequires[id],
   ambientSource: premiumAmbientBySeries[item.seriesId],
+  ambientMediaKey: premiumAmbientKeyBySeries[item.seriesId],
   ambientVolume: item.ambientVolume,
   biblicalPrayerId: item.biblicalPrayerIds[0],
   biblicalPrayerIds: [...item.biblicalPrayerIds],

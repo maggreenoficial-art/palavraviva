@@ -144,26 +144,32 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
       voiceSound = nextVoice;
 
       if (session.ambientSource != null) {
-        const ambientResolved = await resolveProtectedAudioSource({
-          mediaId: ambientMediaId(session.id),
-          localSource:
-            typeof session.ambientSource === 'number'
-              ? session.ambientSource
-              : null,
-        });
-        const ambientSource =
-          typeof ambientResolved === 'number'
-            ? resolvePlaybackSource(ambientResolved)
-            : ambientResolved;
-        const { sound: nextAmbient } = await Audio.Sound.createAsync(
-          ambientSource,
-          {
-            shouldPlay: false,
-            isLooping: true,
-            volume: ambientEnabled ? ambientVolume : 0,
-          },
-        );
-        ambientSound = nextAmbient;
+        try {
+          const ambientKey = session.ambientMediaKey || session.id;
+          const ambientResolved = await resolveProtectedAudioSource({
+            mediaId: ambientMediaId(ambientKey),
+            localSource:
+              typeof session.ambientSource === 'number'
+                ? session.ambientSource
+                : null,
+          });
+          const ambientSource =
+            typeof ambientResolved === 'number'
+              ? resolvePlaybackSource(ambientResolved)
+              : ambientResolved;
+          const { sound: nextAmbient } = await Audio.Sound.createAsync(
+            ambientSource,
+            {
+              shouldPlay: false,
+              isLooping: true,
+              volume: ambientEnabled ? ambientVolume : 0,
+            },
+          );
+          ambientSound = nextAmbient;
+        } catch {
+          // Ambiente é opcional — não bloqueia a voz (séries reutilizam ambient de outra sessão).
+          ambientSound = null;
+        }
       }
 
       if (!mounted) {

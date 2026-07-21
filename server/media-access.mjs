@@ -43,7 +43,14 @@ function allowedOrigins() {
     .split(',')
     .map((s) => s.trim().replace(/\/$/, ''))
     .filter(Boolean);
-  list.push('http://localhost:8081', 'http://localhost:8082', 'http://127.0.0.1:8081');
+  list.push(
+    'http://localhost:8081',
+    'http://localhost:8082',
+    'http://127.0.0.1:8081',
+    'https://oucapalavra.com.br',
+    'https://www.oucapalavra.com.br',
+    'https://palavraviva-omega.vercel.app',
+  );
   if (process.env.VERCEL_URL) {
     list.push(`https://${process.env.VERCEL_URL.replace(/\/$/, '')}`);
   }
@@ -197,12 +204,23 @@ export function canAccessMedia(mediaId, { userId, trialStartedAt, readSubscripti
     return { ok: true, reason: 'jornada_free' };
   }
 
-  // Séries eco / premium: teaser dia 1 livre
+  // Séries eco / premium: teaser dia 1 livre (+ ambient compartilhado das teasers)
   if (/^eco-/.test(sessionKey) && /-01$/.test(sessionKey)) {
     return { ok: true, reason: 'serie_teaser' };
   }
-  if (/^prem-/.test(sessionKey) && /01$/.test(sessionKey)) {
+  if (/^prem-/.test(sessionKey) && /-01$/.test(sessionKey)) {
     return { ok: true, reason: 'serie_teaser' };
+  }
+  // Ambients reutilizados pelas teasers (não têm arquivo ambient/{serie}-01.mp3)
+  const FREE_AMBIENT_KEYS = new Set([
+    'ansiedade-01',
+    'medo-01',
+    'manha-esperanca-01',
+    'amor-acalma-01',
+    'noite-ansiedade-01',
+  ]);
+  if (id.startsWith('ambient/') && FREE_AMBIENT_KEYS.has(sessionKey)) {
+    return { ok: true, reason: 'ambient_teaser' };
   }
 
   if (
