@@ -161,6 +161,8 @@ export function ToolPaywall({
     }
     trackMetaEvent('InitiateCheckout', {
       content_name: toolId,
+      content_ids: [toolId],
+      content_type: 'product',
       content_category: 'tool',
       currency: 'BRL',
       value: Number(tool?.price ?? 5),

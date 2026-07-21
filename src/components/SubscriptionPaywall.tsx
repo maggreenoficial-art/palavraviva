@@ -105,13 +105,19 @@ export function SubscriptionPaywall({
       return;
     }
     captureMetaTestEventCode();
-    trackMetaEvent('InitiateCheckout', {
-      content_name: 'missao_plus',
-      content_category: 'subscription',
-      currency: 'BRL',
-      value: 19.9,
-      num_items: 1,
-    });
+    // Pequeno atraso: garante fbq + test_event_code na sessão antes do track
+    const timer = setTimeout(() => {
+      trackMetaEvent('InitiateCheckout', {
+        content_name: 'missao_plus',
+        content_ids: ['missao_plus'],
+        content_type: 'product',
+        content_category: 'subscription',
+        currency: 'BRL',
+        value: 19.9,
+        num_items: 1,
+      });
+    }, 300);
+    return () => clearTimeout(timer);
   }, [visible, displayName]);
 
   // Polling automático após gerar Pix (backoff)
@@ -151,8 +157,12 @@ export function SubscriptionPaywall({
   async function handleSuccess() {
     trackMetaEvent('Subscribe', {
       content_name: 'missao_plus',
+      content_ids: ['missao_plus'],
+      content_type: 'product',
+      content_category: 'subscription',
       currency: 'BRL',
       value: 19.9,
+      num_items: 1,
     });
     setError(null);
     setMessage(null);
@@ -179,9 +189,13 @@ export function SubscriptionPaywall({
       });
       trackMetaEvent('AddPaymentInfo', {
         content_name: 'missao_plus',
+        content_ids: ['missao_plus'],
+        content_type: 'product',
+        content_category: 'subscription',
         currency: 'BRL',
         value: 19.9,
         payment_type: 'card',
+        num_items: 1,
       });
       const result = await payWithCard({
         userId,
@@ -250,9 +264,13 @@ export function SubscriptionPaywall({
       });
       trackMetaEvent('AddPaymentInfo', {
         content_name: 'missao_plus',
+        content_ids: ['missao_plus'],
+        content_type: 'product',
+        content_category: 'subscription',
         currency: 'BRL',
         value: 19.9,
         payment_type: 'pix',
+        num_items: 1,
       });
       const result = await payWithPix({
         userId,

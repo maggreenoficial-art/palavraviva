@@ -27,6 +27,7 @@ import {
   downloadFotoJesusImage,
   shareFotoJesusInvite,
 } from '../src/services/fotoJesusShare';
+import { compressImageForUpload } from '../src/utils/compressImage';
 import { useFotoJesusStore } from '../src/store/useFotoJesusStore';
 import { useUserStore } from '../src/store/useUserStore';
 import {
@@ -314,7 +315,7 @@ export default function FotoJesusScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.55,
+      quality: 0.45,
       base64: true,
       exif: false,
     });
@@ -325,11 +326,27 @@ export default function FotoJesusScreen() {
       setError('Não foi possível ler a foto. Tente outra imagem.');
       return;
     }
+
+    let nextBase64 = asset.base64;
+    let nextMime = asset.mimeType || 'image/jpeg';
+    try {
+      const compressed = await compressImageForUpload(nextBase64, nextMime);
+      nextBase64 = compressed.base64;
+      nextMime = compressed.mimeType;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível preparar a foto. Tente outra imagem.',
+      );
+      return;
+    }
+
     setLocalUri(asset.uri);
-    const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+    const dataUri = `data:${nextMime};base64,${nextBase64}`;
     setPreviewDataUri(dataUri);
-    setImageBase64(asset.base64);
-    setMimeType(asset.mimeType || 'image/jpeg');
+    setImageBase64(nextBase64);
+    setMimeType(nextMime);
     setGenerationId(null);
     setInputUrl(null);
     setGenerationToken(null);
@@ -355,13 +372,16 @@ export default function FotoJesusScreen() {
 
     setBusy(true);
     setError(null);
-    setStatusText('Enviando sua foto com segurança…');
+    setStatusText('Preparando e enviando sua foto…');
     try {
+      const compressed = await compressImageForUpload(imageBase64, mimeType);
       const prepared = await prepareFotoJesus({
         userId,
-        imageBase64,
-        mimeType,
+        imageBase64: compressed.base64,
+        mimeType: compressed.mimeType,
       });
+      setImageBase64(compressed.base64);
+      setMimeType(compressed.mimeType);
       setGenerationId(prepared.generationId);
       setInputUrl(prepared.inputUrl);
       setGenerationToken(prepared.token);

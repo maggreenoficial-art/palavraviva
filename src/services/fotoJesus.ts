@@ -67,6 +67,11 @@ export async function prepareFotoJesus(input: {
       error?: string;
     };
   } catch {
+    if (response.status === 413) {
+      throw new Error(
+        'Foto muito grande para o servidor. Escolha outra ou recorte mais perto e tente de novo.',
+      );
+    }
     throw new Error(
       response.status === 404
         ? 'Rota de geração indisponível no servidor. Aguarde o deploy e tente de novo.'
@@ -75,6 +80,11 @@ export async function prepareFotoJesus(input: {
   }
 
   if (!response.ok || !data.ok) {
+    if (response.status === 413) {
+      throw new Error(
+        'Foto muito grande para o servidor. Escolha outra ou recorte mais perto e tente de novo.',
+      );
+    }
     const raw = data.error || '';
     if (raw === 'not_found' || response.status === 404) {
       throw new Error(

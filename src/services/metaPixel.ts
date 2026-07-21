@@ -275,7 +275,7 @@ export function initMetaPixel() {
 async function sendCapi(
   eventName: string,
   eventId: string,
-  params?: Record<string, string | number | boolean>,
+  params?: Record<string, string | number | boolean | string[]>,
 ) {
   const base = paymentsBaseUrl();
   if (!base) return;
@@ -329,7 +329,7 @@ export function trackMetaPageView() {
 
 export function trackMetaEvent(
   event: string,
-  params?: Record<string, string | number | boolean>,
+  params?: Record<string, string | number | boolean | string[]>,
 ) {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
