@@ -481,9 +481,11 @@ async function fireMetaCapiSafe({
   userAgent,
   customData,
 }) {
-  if (!metaCapiConfigured()) return;
+  if (!metaCapiConfigured()) {
+    return { ok: false, skipped: true, error: 'meta_capi_nao_configurado' };
+  }
   try {
-    await sendMetaConversionEvent({
+    return await sendMetaConversionEvent({
       eventName,
       eventId:
         eventId ||
@@ -503,8 +505,8 @@ async function fireMetaCapiSafe({
       },
       customData: customData || {},
     });
-  } catch {
-    // nunca quebrar checkout por falha de analytics
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
   }
 }
 
@@ -1282,20 +1284,60 @@ const serverHandler = async (req, res) => {
         .randomBytes(4)
         .toString('hex')}`;
 
+      const metaUser = {
+        userId,
+        displayName,
+        whatsapp,
+        clientIp,
+        userAgent,
+        eventSourceUrl,
+      };
+      const metaCheckoutData = {
+        currency: 'BRL',
+        value: product.price,
+        content_name: product.productKey,
+        content_category:
+          product.kind === 'subscription' ? 'subscription' : 'tool',
+        num_items: 1,
+      };
+
+      // Dispara ANTES da Wiven — mesmo se cartão/Pix falhar, o Meta registra o funil
+      // await obrigatório no Vercel (sem await a lambda morre antes do envio)
+      await fireMetaCapiSafe({
+        eventName: 'InitiateCheckout',
+        ...metaUser,
+        customData: metaCheckoutData,
+      });
+
       if (method === 'card') {
-        const wiven = await createWivenCardCharge({
-          userId,
-          displayName,
-          whatsapp,
-          email,
-          document,
-          clientIp,
-          card: body.card || {},
-          product: product.productKey,
-          generationId: generationId || null,
-          inputUrl: generationInputUrl || null,
-          generationToken: generationToken || null,
+        await fireMetaCapiSafe({
+          eventName: 'AddPaymentInfo',
+          ...metaUser,
+          customData: {
+            ...metaCheckoutData,
+            payment_type: 'card',
+          },
         });
+
+        let wiven;
+        try {
+          wiven = await createWivenCardCharge({
+            userId,
+            displayName,
+            whatsapp,
+            email,
+            document,
+            clientIp,
+            card: body.card || {},
+            product: product.productKey,
+            generationId: generationId || null,
+            inputUrl: generationInputUrl || null,
+            generationToken: generationToken || null,
+          });
+        } catch (cardError) {
+          // Eventos já enviados; devolve o erro da Wiven ao app
+          throw cardError;
+        }
 
         let subscription = null;
         let unlockedTools = getUserTools(userId);
@@ -1322,14 +1364,9 @@ const serverHandler = async (req, res) => {
               displayName: displayName || null,
               whatsapp: whatsapp || null,
             });
-            void fireMetaCapiSafe({
+            await fireMetaCapiSafe({
               eventName: 'Subscribe',
-              userId,
-              displayName,
-              whatsapp,
-              clientIp,
-              userAgent,
-              eventSourceUrl,
+              ...metaUser,
               customData: {
                 currency: 'BRL',
                 value: product.price,
@@ -1339,22 +1376,6 @@ const serverHandler = async (req, res) => {
             });
           }
         }
-
-        void fireMetaCapiSafe({
-          eventName: 'AddPaymentInfo',
-          userId,
-          displayName,
-          whatsapp,
-          clientIp,
-          userAgent,
-          eventSourceUrl,
-          customData: {
-            currency: 'BRL',
-            value: product.price,
-            content_name: product.productKey,
-            payment_type: 'card',
-          },
-        });
 
         saveCheckoutRecord({
           id: checkoutId,
@@ -1393,6 +1414,15 @@ const serverHandler = async (req, res) => {
         return;
       }
 
+      void fireMetaCapiSafe({
+        eventName: 'AddPaymentInfo',
+        ...metaUser,
+        customData: {
+          ...metaCheckoutData,
+          payment_type: 'pix',
+        },
+      });
+
       const wiven = await createWivenPixCharge({
         userId,
         displayName,
@@ -1421,40 +1451,6 @@ const serverHandler = async (req, res) => {
         transactionId: wiven.transactionId,
         status: 'opened',
         createdAt: new Date().toISOString(),
-      });
-
-      // Servidor dispara na geração do Pix (Visão geral / CAPI) — não depende só do browser
-      void fireMetaCapiSafe({
-        eventName: 'InitiateCheckout',
-        userId,
-        displayName,
-        whatsapp,
-        clientIp,
-        userAgent,
-        eventSourceUrl,
-        customData: {
-          currency: 'BRL',
-          value: product.price,
-          content_name: product.productKey,
-          content_category:
-            product.kind === 'subscription' ? 'subscription' : 'tool',
-          num_items: 1,
-        },
-      });
-      void fireMetaCapiSafe({
-        eventName: 'AddPaymentInfo',
-        userId,
-        displayName,
-        whatsapp,
-        clientIp,
-        userAgent,
-        eventSourceUrl,
-        customData: {
-          currency: 'BRL',
-          value: product.price,
-          content_name: product.productKey,
-          payment_type: 'pix',
-        },
       });
 
       send(res, 201, {
