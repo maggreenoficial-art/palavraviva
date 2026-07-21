@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import {
   SUBSCRIPTION_PRICE_LABEL,
+  computeAccessKind,
   useUserStore,
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
@@ -55,10 +56,14 @@ export function SubscriptionPaywall({
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
   const whatsapp = useUserStore((s) => s.whatsapp);
+  const trialStartedAt = useUserStore((s) => s.trialStartedAt);
+  const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
   const firstName = (displayName ?? '').trim().split(/\s+/)[0] ?? '';
   const setSubscriptionExpiresAt = useUserStore(
     (s) => s.setSubscriptionExpiresAt,
   );
+  const alreadySubscribed =
+    computeAccessKind(trialStartedAt, subscriptionExpiresAt) === 'subscribed';
 
   const [method, setMethod] = useState<PayMethod>('card');
   const [loading, setLoading] = useState(false);
@@ -91,6 +96,14 @@ export function SubscriptionPaywall({
     setCopied(false);
     setSuccess(false);
     setCardOwner((prev) => prev || displayName || '');
+    if (
+      computeAccessKind(
+        useUserStore.getState().trialStartedAt,
+        useUserStore.getState().subscriptionExpiresAt,
+      ) === 'subscribed'
+    ) {
+      return;
+    }
     captureMetaTestEventCode();
     trackMetaEvent('InitiateCheckout', {
       content_name: 'missao_plus',
@@ -341,21 +354,32 @@ export function SubscriptionPaywall({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scroll}
           >
-            {success ? (
+            {success || alreadySubscribed ? (
               <View style={styles.successBox}>
-                <Text style={styles.successKicker}>Pagamento confirmado</Text>
+                <Text style={styles.successKicker}>
+                  {success ? 'Pagamento confirmado' : 'Assinatura ativa'}
+                </Text>
                 <Text style={styles.successTitle}>
                   {firstName
-                    ? `${firstName}, você agora é Missão+`
-                    : 'Você agora é Missão+'}
+                    ? `${firstName}, você ${success ? 'agora' : 'já'} é Missão+`
+                    : `Você ${success ? 'agora' : 'já'} é Missão+`}
                 </Text>
                 <Text style={styles.successBody}>
-                  Sua assinatura está ativa. Todos os áudios premium já estão
-                  liberados neste aparelho.
+                  {success
+                    ? 'Sua assinatura está ativa. Todos os áudios premium já estão liberados neste aparelho.'
+                    : subscriptionExpiresAt
+                      ? `Sua Missão+ está liberada até ${new Date(
+                          subscriptionExpiresAt,
+                        ).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })}. Não precisa assinar de novo agora.`
+                      : 'Sua assinatura Missão+ já está ativa neste aparelho. Não precisa assinar de novo.'}
                 </Text>
 
                 <View style={styles.successBenefits}>
-                  <Text style={styles.benefitsTitle}>O que você liberou</Text>
+                  <Text style={styles.benefitsTitle}>O que você tem</Text>
                   <Text style={styles.benefitItem}>
                     · Todos os áudios e séries premium
                   </Text>
@@ -372,14 +396,14 @@ export function SubscriptionPaywall({
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Começar a ouvir"
+                  accessibilityLabel="Continuar ouvindo"
                   onPress={onClose}
                   style={({ pressed }) => [
                     styles.cta,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={styles.ctaText}>Começar a ouvir</Text>
+                  <Text style={styles.ctaText}>Continuar ouvindo</Text>
                 </Pressable>
               </View>
             ) : (

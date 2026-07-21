@@ -100,6 +100,170 @@ function writeSubscriptions(data) {
   fs.writeFileSync(subscriptionsPath, JSON.stringify(data, null, 2), 'utf8');
 }
 
+function writeCheckouts(data) {
+  fs.writeFileSync(
+    checkoutsPath,
+    JSON.stringify(Array.isArray(data) ? data.slice(-5_000) : [], null, 2),
+    'utf8',
+  );
+}
+
+async function pullRemotePaymentsSnapshot() {
+  const remote = (
+    process.env.PAYMENTS_SNAPSHOT_URL ||
+    process.env.PAYMENTS_PUBLIC_URL ||
+    ''
+  )
+    .trim()
+    .replace(/\/$/, '');
+  if (!remote || /localhost|127\.0\.0\.1/i.test(remote)) return;
+  const password =
+    process.env.ADMIN_PASSWORD ||
+    process.env.ANALYTICS_SYNC_SECRET ||
+    'palavraviva';
+  try {
+    const res = await fetch(`${remote}/api/admin/snapshot`, {
+      headers: { 'x-admin-password': password },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data?.subscriptions && typeof data.subscriptions === 'object') {
+      for (const sub of Object.values(data.subscriptions)) {
+        upsertSubscriptionRecord(sub);
+      }
+    }
+    if (Array.isArray(data?.checkouts)) {
+      for (const checkout of data.checkouts) {
+        upsertCheckoutRecord(checkout);
+      }
+    }
+  } catch {
+    // snapshot remoto é opcional
+  }
+}
+
+function upsertSubscriptionRecord(sub) {
+  if (!sub?.userId || !sub.expiresAt) return null;
+  const id = String(sub.userId).trim();
+  const subs = readSubscriptions();
+  const current = subs[id] || {};
+  const nextExpires = Date.parse(sub.expiresAt);
+  const curExpires = current.expiresAt ? Date.parse(current.expiresAt) : 0;
+  const expiresAt =
+    Number.isFinite(nextExpires) && nextExpires >= curExpires
+      ? new Date(nextExpires).toISOString()
+      : current.expiresAt || sub.expiresAt;
+  subs[id] = {
+    ...current,
+    ...sub,
+    userId: id,
+    expiresAt,
+    updatedAt: sub.updatedAt || new Date().toISOString(),
+    cancelledAt: null,
+  };
+  writeSubscriptions(subs);
+  return subs[id];
+}
+
+function upsertCheckoutRecord(checkout) {
+  if (!checkout || typeof checkout !== 'object') return;
+  const all = readCheckouts();
+  const idx = all.findIndex(
+    (c) =>
+      (checkout.id && c.id === checkout.id) ||
+      (checkout.transactionId &&
+        c.transactionId === checkout.transactionId),
+  );
+  if (idx >= 0) {
+    all[idx] = { ...all[idx], ...checkout };
+  } else {
+    all.push({
+      ...checkout,
+      id: checkout.id || `ck_sync_${Date.now().toString(36)}`,
+      createdAt: checkout.createdAt || new Date().toISOString(),
+    });
+  }
+  writeCheckouts(all);
+}
+
+/** Evento do app → assinatura estimada (+30 dias) no painel. */
+function ingestSubscriptionFromEvent(event) {
+  const userId = event.userId;
+  if (!userId) return;
+  if (event.name === 'subscription_start') {
+    upsertCheckoutRecord({
+      id: `ck_start_${event.id || Date.now().toString(36)}`,
+      userId,
+      method: String(event.meta?.method || '—'),
+      product: 'subscription',
+      kind: 'subscription',
+      displayName: event.displayName || null,
+      whatsapp: event.whatsapp || null,
+      status: 'opened',
+      createdAt: event.occurredAt || new Date().toISOString(),
+    });
+    return;
+  }
+  const when = Date.parse(event.occurredAt || event.receivedAt || Date.now());
+  const base = Number.isFinite(when) ? when : Date.now();
+  const expiresAt = new Date(
+    base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  upsertSubscriptionRecord({
+    userId,
+    expiresAt,
+    updatedAt: new Date().toISOString(),
+    source: 'app_activated',
+    displayName: event.displayName || null,
+    whatsapp: event.whatsapp || null,
+    providerRef:
+      typeof event.meta?.transactionId === 'string'
+        ? event.meta.transactionId
+        : null,
+  });
+  upsertCheckoutRecord({
+    id: `ck_evt_${event.id || Date.now().toString(36)}`,
+    userId,
+    method: String(event.meta?.method || '—'),
+    product: 'subscription',
+    kind: 'subscription',
+    displayName: event.displayName || null,
+    whatsapp: event.whatsapp || null,
+    status: 'paid',
+    createdAt: event.occurredAt || new Date().toISOString(),
+    paidAt: event.occurredAt || new Date().toISOString(),
+    transactionId:
+      typeof event.meta?.transactionId === 'string'
+        ? event.meta.transactionId
+        : null,
+  });
+}
+
+function ingestCheckoutFromEvent(event) {
+  const userId = event.userId;
+  if (!userId) return;
+  const product =
+    event.meta?.toolId === 'diario' || event.meta?.product === 'tool-diario'
+      ? 'tool-diario'
+      : 'tool-foto-jesus';
+  upsertCheckoutRecord({
+    id: `ck_evt_${event.id || Date.now().toString(36)}`,
+    userId,
+    method: String(event.meta?.method || 'pix'),
+    product,
+    kind: product === 'tool-foto-jesus' ? 'generation' : 'tool',
+    displayName: event.displayName || null,
+    whatsapp: event.whatsapp || null,
+    status: 'paid',
+    createdAt: event.occurredAt || new Date().toISOString(),
+    paidAt: event.occurredAt || new Date().toISOString(),
+    generationId:
+      typeof event.meta?.generationId === 'string'
+        ? event.meta.generationId
+        : null,
+  });
+}
+
 function readGenerations() {
   try {
     const raw = JSON.parse(fs.readFileSync(generationsPath, 'utf8'));
@@ -713,6 +877,9 @@ function topCounts(items, keyFn, limit = 10) {
 }
 
 function buildStats(events) {
+  // fire-and-forget: puxa assinaturas/checkouts da produção se configurado
+  void pullRemotePaymentsSnapshot();
+
   const now = Date.now();
   const dayAgo = now - 24 * 60 * 60 * 1000;
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -1021,6 +1188,7 @@ const adminHtml = `<!doctype html>
 
           <div class="card" style="margin-top:14px">
             <h2>💎 Assinaturas Missão+ (gerenciar)</h2>
+            <p class="section-note">Atualiza sozinho a cada 12s. Inclui pagamentos locais e ativações vindas do app. Mantenha <code>npm run analytics:server</code> e <code>npm run payments:server</code> ligados juntos.</p>
             <p class="section-note">Liberar, estender (+30 dias) ou cancelar acesso. Alterações valem no app na próxima sincronização.</p>
             <div class="grant-row">
               <div>
@@ -1317,6 +1485,8 @@ const adminHtml = `<!doctype html>
         }
         const data = await res.json();
         renderDashboard(data, password);
+        if (window.__pvAdminTimer) clearInterval(window.__pvAdminTimer);
+        window.__pvAdminTimer = setInterval(() => load(password), 12000);
       } catch (e) {
         renderLogin('Não foi possível conectar ao servidor de analytics.');
       }
@@ -1374,7 +1544,46 @@ const server = http.createServer(async (req, res) => {
       if (saved.userId) {
         upsertUserProfile(saved);
       }
+      // Assinatura real do app → grava no painel mesmo sem arquivo do payments
+      if (
+        saved.userId &&
+        (saved.name === 'subscription_activated' ||
+          saved.name === 'subscription_start')
+      ) {
+        ingestSubscriptionFromEvent(saved);
+      }
+      if (
+        saved.userId &&
+        (saved.name === 'tool_purchase_activated' ||
+          saved.name === 'foto_jesus_success')
+      ) {
+        ingestCheckoutFromEvent(saved);
+      }
       send(res, 201, { ok: true });
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/internal/sync') {
+    if (!isAuthorized(req, url)) {
+      send(res, 401, { ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      const body = await readBody(req);
+      if (body.type === 'subscription' && body.subscription?.userId) {
+        upsertSubscriptionRecord(body.subscription);
+      }
+      if (body.type === 'checkout' && body.checkout) {
+        upsertCheckoutRecord(body.checkout);
+      }
+      send(res, 200, {
+        ok: true,
+        subscriptions: listManageableSubscriptions().length,
+        payments: listPayments().length,
+      });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error) });
     }

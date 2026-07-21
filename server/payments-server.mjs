@@ -233,9 +233,12 @@ function grantSubscription(userId, meta = {}) {
   const current = subs[userId];
   const currentExpires = current?.expiresAt ? Date.parse(current.expiresAt) : 0;
   const base = currentExpires > now ? currentExpires : now;
-  const expiresAt = new Date(
-    base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const overrideExpires = meta.expiresAt ? Date.parse(meta.expiresAt) : NaN;
+  const expiresAt = Number.isFinite(overrideExpires)
+    ? new Date(overrideExpires).toISOString()
+    : new Date(
+        base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString();
 
   const displayName =
     (typeof meta.displayName === 'string' && meta.displayName.trim()) ||
@@ -246,17 +249,52 @@ function grantSubscription(userId, meta = {}) {
     current?.whatsapp ||
     null;
 
+  const { expiresAt: _ignoredExpires, ...restMeta } = meta;
+
   subs[userId] = {
     userId,
     expiresAt,
     updatedAt: new Date().toISOString(),
     source: 'wiven',
-    ...meta,
+    ...restMeta,
     displayName,
     whatsapp: whatsapp || null,
   };
   writeSubscriptions(subs);
+  void notifyAnalyticsSync({
+    type: 'subscription',
+    subscription: subs[userId],
+  });
   return subs[userId];
+}
+
+async function notifyAnalyticsSync(payload) {
+  const base = (
+    process.env.ANALYTICS_SYNC_URL ||
+    process.env.EXPO_PUBLIC_ANALYTICS_URL ||
+    'http://127.0.0.1:8787'
+  )
+    .trim()
+    .replace(/\/$/, '');
+  if (!base || /vercel\.app$/i.test(base)) {
+    // Sem URL de analytics dedicada, ainda tenta localhost (dev)
+  }
+  try {
+    await fetch(`${base}/api/internal/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password':
+          process.env.ADMIN_PASSWORD || process.env.ANALYTICS_SYNC_SECRET || 'palavraviva',
+      },
+      body: JSON.stringify({
+        ...payload,
+        syncedAt: new Date().toISOString(),
+      }),
+    });
+  } catch {
+    // Sync nunca deve quebrar o checkout
+  }
 }
 
 function extractUserId(payload) {
@@ -919,6 +957,10 @@ function saveCheckoutRecord(record) {
   const checkouts = readCheckouts();
   checkouts.push(record);
   writeCheckouts(checkouts);
+  void notifyAnalyticsSync({
+    type: 'checkout',
+    checkout: record,
+  });
 }
 
 function checkoutHtml() {
@@ -2169,6 +2211,95 @@ const serverHandler = async (req, res) => {
         meta: result.body || null,
         debug: result.debug || null,
       });
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/admin/snapshot') {
+    const password =
+      process.env.ADMIN_PASSWORD ||
+      process.env.ANALYTICS_SYNC_SECRET ||
+      'palavraviva';
+    const header = req.headers['x-admin-password'];
+    if (header !== password) {
+      send(res, 401, { ok: false, error: 'unauthorized' });
+      return;
+    }
+    send(res, 200, {
+      ok: true,
+      subscriptions: readSubscriptions(),
+      checkouts: readCheckouts().slice(-300),
+      generatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (
+    req.method === 'POST' &&
+    (url.pathname === '/api/analytics/events' ||
+      url.pathname === '/api/events')
+  ) {
+    try {
+      const { json: body } = await readBody(req);
+      // Encaminha para o painel local (8787) e também materializa assinatura se vier no evento
+      void notifyAnalyticsSync({
+        type: 'analytics_event',
+        event: body,
+      });
+      if (
+        body?.userId &&
+        (body.name === 'subscription_activated' ||
+          body.name === 'subscription_start')
+      ) {
+        const when = Date.parse(body.occurredAt || Date.now());
+        const base = Number.isFinite(when) ? when : Date.now();
+        if (body.name === 'subscription_activated') {
+          grantSubscription(body.userId, {
+            source: 'app_activated',
+            displayName: body.displayName || null,
+            whatsapp: body.whatsapp || null,
+            expiresAt: new Date(
+              base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+          });
+        }
+        saveCheckoutRecord({
+          id: `ck_app_${Date.now().toString(36)}`,
+          userId: body.userId,
+          method: body.meta?.method || '—',
+          product: 'subscription',
+          kind: 'subscription',
+          displayName: body.displayName || null,
+          whatsapp: body.whatsapp || null,
+          status:
+            body.name === 'subscription_activated' ? 'paid' : 'opened',
+          createdAt: body.occurredAt || new Date().toISOString(),
+          paidAt:
+            body.name === 'subscription_activated'
+              ? body.occurredAt || new Date().toISOString()
+              : null,
+        });
+      }
+      // Sempre tenta espelhar no analytics server
+      const analyticsBase = (
+        process.env.ANALYTICS_SYNC_URL ||
+        process.env.EXPO_PUBLIC_ANALYTICS_URL ||
+        'http://127.0.0.1:8787'
+      )
+        .trim()
+        .replace(/\/$/, '');
+      try {
+        await fetch(`${analyticsBase}/api/events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch {
+        // ok
+      }
+      send(res, 201, { ok: true });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
     }

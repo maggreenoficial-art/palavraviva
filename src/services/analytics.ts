@@ -62,11 +62,23 @@ function analyticsBaseUrl() {
   const fromExtra = (
     Constants.expoConfig?.extra as { analyticsUrl?: string } | undefined
   )?.analyticsUrl;
-  return (
-    process.env.EXPO_PUBLIC_ANALYTICS_URL ||
-    fromExtra ||
-    'http://localhost:8787'
-  ).replace(/\/$/, '');
+  const fromEnv = (process.env.EXPO_PUBLIC_ANALYTICS_URL || fromExtra || '')
+    .trim()
+    .replace(/\/$/, '');
+
+  // Em produção web, não use localhost — manda pro mesmo domínio (/api/analytics)
+  if (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    window.location?.origin &&
+    !/localhost|127\.0\.0\.1/i.test(window.location.origin)
+  ) {
+    if (!fromEnv || /localhost|127\.0\.0\.1/i.test(fromEnv)) {
+      return window.location.origin;
+    }
+  }
+
+  return fromEnv || 'http://localhost:8787';
 }
 
 function createSessionId() {
@@ -253,19 +265,31 @@ export async function trackAnalytics(payload: TrackPayload) {
     ]);
     const profile = currentUserProfile();
 
-    await fetch(`${base}/api/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...payload,
-        ...profile,
-        sessionId,
-        platform: Platform.OS,
-        attribution,
-        clientGeo,
-        occurredAt: new Date().toISOString(),
-      }),
-    });
+    const payloadBody = {
+      ...payload,
+      ...profile,
+      sessionId,
+      platform: Platform.OS,
+      attribution,
+      clientGeo,
+      occurredAt: new Date().toISOString(),
+    };
+    const endpoints = Array.from(
+      new Set([`${base}/api/events`, `${base}/api/analytics/events`]),
+    );
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadBody),
+          keepalive: true,
+        });
+        if (res.ok) break;
+      } catch {
+        // tenta o próximo endpoint
+      }
+    }
   } catch {
     // Analytics nunca deve quebrar o app
   }
