@@ -517,6 +517,8 @@ async function fireMetaCapiSafe({
   whatsapp,
   clientIp,
   userAgent,
+  fbp,
+  fbc,
   customData,
   testEventCode,
 }) {
@@ -541,6 +543,8 @@ async function fireMetaCapiSafe({
         country: 'br',
         clientIp,
         userAgent,
+        fbp,
+        fbc,
       },
       customData: customData || {},
       testEventCode,
@@ -1289,6 +1293,14 @@ const serverHandler = async (req, res) => {
           : typeof body.test_event_code === 'string'
             ? body.test_event_code.trim()
             : '';
+      const fbp =
+        typeof body.fbp === 'string' && body.fbp.trim()
+          ? body.fbp.trim()
+          : undefined;
+      const fbc =
+        typeof body.fbc === 'string' && body.fbc.trim()
+          ? body.fbc.trim()
+          : undefined;
 
       const productKey =
         typeof body.product === 'string' ? body.product.trim() : '';
@@ -1342,6 +1354,8 @@ const serverHandler = async (req, res) => {
         userAgent,
         eventSourceUrl,
         testEventCode: testEventCode || undefined,
+        fbp,
+        fbc,
       };
       const metaCheckoutData = {
         currency: 'BRL',

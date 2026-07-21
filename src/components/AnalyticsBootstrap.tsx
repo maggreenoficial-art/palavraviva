@@ -6,6 +6,7 @@ import {
 } from '../services/analytics';
 import {
   captureMetaTestEventCode,
+  ensureMetaClickIds,
   initMetaPixel,
   trackMetaPageView,
   trackMetaTestCheckoutProbe,
@@ -26,6 +27,7 @@ export function AnalyticsBootstrap() {
 
   useEffect(() => {
     captureMetaTestEventCode();
+    void ensureMetaClickIds();
     useUserStore.getState().ensureGuestAccess();
     initMetaPixel();
     void bootstrapAnalytics();

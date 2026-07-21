@@ -5,6 +5,15 @@ declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
     _fbq?: unknown;
+    clientParamBuilder?: {
+      processAndCollectAllParams?: (
+        url?: string,
+        getIpFn?: () => Promise<string>,
+      ) => Promise<Record<string, string>>;
+      getFbc?: () => string | null;
+      getFbp?: () => string | null;
+      getClientIpAddress?: () => string | null;
+    };
   }
 }
 
@@ -12,6 +21,7 @@ const PIXEL_ID =
   (process.env.EXPO_PUBLIC_META_PIXEL_ID || '4474411989514975').trim();
 
 let bootstrapped = false;
+let clickIdsReady: Promise<void> | null = null;
 
 function canUsePixel() {
   return Platform.OS === 'web' && typeof window !== 'undefined' && Boolean(PIXEL_ID);
@@ -25,6 +35,132 @@ function readCookie(name: string) {
   if (typeof document === 'undefined') return '';
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : '';
+}
+
+function cookieDomainSuffix() {
+  if (typeof window === 'undefined') return '';
+  const host = window.location.hostname || '';
+  if (!host || host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return '';
+  }
+  const parts = host.split('.');
+  if (parts.length >= 2) return `;domain=.${parts.slice(-2).join('.')}`;
+  return '';
+}
+
+function writeCookie(name: string, value: string, days = 90) {
+  if (typeof document === 'undefined' || !value) return;
+  const maxAge = Math.floor(days * 24 * 60 * 60);
+  document.cookie = `${name}=${encodeURIComponent(value)};path=/${cookieDomainSuffix()};max-age=${maxAge};SameSite=Lax`;
+}
+
+function subdomainIndex() {
+  if (typeof window === 'undefined') return 1;
+  const host = window.location.hostname || '';
+  if (!host || host === 'localhost') return 1;
+  return host.split('.').length >= 3 ? 2 : 1;
+}
+
+/** Garante _fbp (browser id) o mais cedo possível. */
+function ensureFbpCookie() {
+  const fromBuilder = window.clientParamBuilder?.getFbp?.();
+  if (fromBuilder && fromBuilder.startsWith('fb.')) {
+    writeCookie('_fbp', fromBuilder);
+    return fromBuilder;
+  }
+  const existing = readCookie('_fbp');
+  if (existing.startsWith('fb.')) return existing;
+  const value = `fb.${subdomainIndex()}.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
+  writeCookie('_fbp', value);
+  return value;
+}
+
+/**
+ * Captura fbclid da URL e grava _fbc no formato Meta.
+ * Case-sensitive — não alterar o fbclid.
+ * @see https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters/fbp-and-fbc
+ */
+function ensureFbcCookie() {
+  const fromBuilder = window.clientParamBuilder?.getFbc?.();
+  if (fromBuilder && fromBuilder.startsWith('fb.')) {
+    writeCookie('_fbc', fromBuilder);
+    try {
+      window.sessionStorage.setItem('meta_fbc', fromBuilder);
+    } catch {
+      // ignore
+    }
+    return fromBuilder;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fbclid = params.get('fbclid');
+    if (fbclid) {
+      const existing = readCookie('_fbc');
+      const existingClick = existing ? existing.split('.').slice(3).join('.') : '';
+      if (!(existing && existingClick === fbclid)) {
+        const value = `fb.${subdomainIndex()}.${Date.now()}.${fbclid}`;
+        writeCookie('_fbc', value);
+        window.sessionStorage.setItem('meta_fbc', value);
+        window.sessionStorage.setItem('meta_fbclid', fbclid);
+        return value;
+      }
+      return existing;
+    }
+  } catch {
+    // ignore
+  }
+
+  const cookie = readCookie('_fbc');
+  if (cookie.startsWith('fb.')) return cookie;
+  try {
+    return (window.sessionStorage.getItem('meta_fbc') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+/** Lê fbp/fbc para CAPI (cookie → param builder → sessionStorage). */
+export function getMetaClickIds() {
+  if (typeof window === 'undefined') return { fbp: '', fbc: '' };
+  ensureFbpCookie();
+  ensureFbcCookie();
+  let fbp = readCookie('_fbp');
+  let fbc = readCookie('_fbc');
+  try {
+    if (!fbc) fbc = (window.sessionStorage.getItem('meta_fbc') || '').trim();
+  } catch {
+    // ignore
+  }
+  const builderFbp = window.clientParamBuilder?.getFbp?.();
+  const builderFbc = window.clientParamBuilder?.getFbc?.();
+  if (builderFbp) fbp = builderFbp;
+  if (builderFbc) fbc = builderFbc;
+  return { fbp: fbp || '', fbc: fbc || '' };
+}
+
+/**
+ * Processa fbclid/fbp com o Parameter Builder da Meta (quando carregado)
+ * e fallback manual. Chamar no boot da landing.
+ */
+export function ensureMetaClickIds() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return Promise.resolve();
+  }
+  if (clickIdsReady) return clickIdsReady;
+  clickIdsReady = (async () => {
+    try {
+      const builder = window.clientParamBuilder;
+      if (builder?.processAndCollectAllParams) {
+        await builder.processAndCollectAllParams(window.location.href);
+      }
+    } catch {
+      // fallback manual abaixo
+    }
+    ensureFbpCookie();
+    ensureFbcCookie();
+  })();
+  return clickIdsReady;
 }
 
 /** Código da aba Eventos de teste (?test_event_code=TEST94275). */
@@ -87,11 +223,11 @@ function callFbq(...args: unknown[]) {
 /**
  * Injeta o Meta Pixel uma vez (web).
  * NÃO dispara PageView aqui — evita triplicar com index.html + trackMetaPageView.
- * Browser + CAPI usam o mesmo event_id em trackMetaPageView / trackMetaEvent.
  */
 export function initMetaPixel() {
   if (!canUsePixel() || bootstrapped) return;
   bootstrapped = true;
+  void ensureMetaClickIds();
 
   const advanced = advancedMatching();
 
@@ -144,6 +280,8 @@ async function sendCapi(
   const base = paymentsBaseUrl();
   if (!base) return;
 
+  await ensureMetaClickIds();
+  const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
   try {
     await fetch(`${base}/api/meta/capi`, {
@@ -162,8 +300,8 @@ async function sendCapi(
         displayName,
         whatsapp,
         country: 'br',
-        fbp: readCookie('_fbp'),
-        fbc: readCookie('_fbc'),
+        fbp: fbp || undefined,
+        fbc: fbc || undefined,
         userAgent:
           typeof navigator !== 'undefined'
             ? navigator.userAgent
@@ -181,11 +319,11 @@ async function sendCapi(
 export function trackMetaPageView() {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
+  void ensureMetaClickIds();
   const eventId = createEventId('PageView');
   void sendCapi('PageView', eventId);
   if (!canUsePixel()) return;
   initMetaPixel();
-  // eventID compartilhado com CAPI = deduplicação no Events Manager
   callFbq('track', 'PageView', {}, { eventID: eventId });
 }
 
@@ -195,8 +333,8 @@ export function trackMetaEvent(
 ) {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
+  void ensureMetaClickIds();
   const eventId = createEventId(event);
-  // CAPI primeiro (adblock não bloqueia nosso /api) — essencial na aba de teste
   void sendCapi(event, eventId, params);
   if (!canUsePixel()) return;
   initMetaPixel();
@@ -208,9 +346,7 @@ export function trackMetaEvent(
 }
 
 /**
- * Com ?test_event_code= na URL, dispara conversões pelo Pixel do navegador
- * (mesmo caminho do PageView que já aparece na aba Eventos de teste).
- * Assim dá para validar o Pixel sem depender do token CAPI.
+ * Com ?test_event_code= na URL, dispara conversões pelo Pixel do navegador.
  */
 export function trackMetaTestCheckoutProbe() {
   if (Platform.OS !== 'web') return;
@@ -229,7 +365,6 @@ export function trackMetaTestCheckoutProbe() {
     value: 19.9,
     num_items: 1,
   };
-  // Espaça os envios — a aba de teste às vezes só mostra o 1º de um burst
   trackMetaEvent('ViewContent', params);
   setTimeout(() => trackMetaEvent('InitiateCheckout', params), 800);
   setTimeout(

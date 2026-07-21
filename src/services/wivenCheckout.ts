@@ -138,6 +138,31 @@ function summarizeCheckoutDetails(details: unknown): string {
   return [...new Set(messages)].slice(0, 2).join(' · ');
 }
 
+function readMetaClickIds() {
+  if (typeof window === 'undefined') return { fbp: '', fbc: '' };
+  try {
+    const read = (name: string) => {
+      const match = document.cookie.match(
+        new RegExp(`(?:^|; )${name}=([^;]*)`),
+      );
+      return match ? decodeURIComponent(match[1]) : '';
+    };
+    let fbp = read('_fbp');
+    let fbc = read('_fbc');
+    if (!fbc) fbc = (window.sessionStorage.getItem('meta_fbc') || '').trim();
+    const builder = (
+      window as Window & {
+        clientParamBuilder?: { getFbc?: () => string | null; getFbp?: () => string | null };
+      }
+    ).clientParamBuilder;
+    if (builder?.getFbp?.()) fbp = builder.getFbp() || fbp;
+    if (builder?.getFbc?.()) fbc = builder.getFbc() || fbc;
+    return { fbp, fbc };
+  } catch {
+    return { fbp: '', fbc: '' };
+  }
+}
+
 function readMetaTestEventCode() {
   if (typeof window === 'undefined') return '';
   try {
@@ -158,6 +183,7 @@ function readMetaTestEventCode() {
 export async function payWithCard(
   input: CardCheckoutInput,
 ): Promise<CardCheckoutResult> {
+  const clickIds = readMetaClickIds();
   return postCheckout<CardCheckoutResult>('/api/checkout/card', {
     method: 'card',
     userId: input.userId,
@@ -174,12 +200,15 @@ export async function payWithCard(
     eventSourceUrl:
       typeof window !== 'undefined' ? window.location.href : undefined,
     testEventCode: readMetaTestEventCode() || undefined,
+    fbp: clickIds.fbp || undefined,
+    fbc: clickIds.fbc || undefined,
   });
 }
 
 export async function payWithPix(
   input: PixCheckoutInput,
 ): Promise<PixCheckoutResult> {
+  const clickIds = readMetaClickIds();
   return postCheckout<PixCheckoutResult>('/api/checkout/pix', {
     method: 'pix',
     userId: input.userId,
@@ -194,6 +223,8 @@ export async function payWithPix(
     eventSourceUrl:
       typeof window !== 'undefined' ? window.location.href : undefined,
     testEventCode: readMetaTestEventCode() || undefined,
+    fbp: clickIds.fbp || undefined,
+    fbc: clickIds.fbc || undefined,
   });
 }
 

@@ -63,6 +63,81 @@
         });
       }
     </script>
+    <!-- Meta Parameter Builder (fbc/fbp) — captura fbclid cedo para CAPI -->
+    <script src="https://unpkg.com/meta-capi-param-builder-clientjs@1.3.1/dist/clientParamBuilder.bundle.js"></script>
+    <script>
+      (function () {
+        function cookieDomain() {
+          var host = location.hostname || '';
+          if (host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return '';
+          var parts = host.split('.');
+          if (parts.length >= 2) return ';domain=.' + parts.slice(-2).join('.');
+          return '';
+        }
+        function readCookie(name) {
+          var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+          return m ? decodeURIComponent(m[1]) : '';
+        }
+        function writeCookie(name, value, days) {
+          if (!value) return;
+          var maxAge = Math.floor((days || 90) * 24 * 60 * 60);
+          document.cookie =
+            name +
+            '=' +
+            encodeURIComponent(value) +
+            ';path=/' +
+            cookieDomain() +
+            ';max-age=' +
+            maxAge +
+            ';SameSite=Lax';
+        }
+        function subdomainIndex() {
+          var host = location.hostname || '';
+          if (!host || host === 'localhost') return 1;
+          return host.split('.').length >= 3 ? 2 : 1;
+        }
+        function ensureFbp() {
+          var existing = readCookie('_fbp');
+          if (existing && existing.indexOf('fb.') === 0) return existing;
+          var value =
+            'fb.' + subdomainIndex() + '.' + Date.now() + '.' + Math.floor(Math.random() * 1e10);
+          writeCookie('_fbp', value, 90);
+          return value;
+        }
+        function ensureFbcFromFbclid() {
+          try {
+            var params = new URLSearchParams(location.search);
+            var fbclid = params.get('fbclid');
+            if (!fbclid) return readCookie('_fbc') || '';
+            var existing = readCookie('_fbc');
+            var existingClick = existing ? existing.split('.').slice(3).join('.') : '';
+            if (existing && existingClick === fbclid) return existing;
+            var value = 'fb.' + subdomainIndex() + '.' + Date.now() + '.' + fbclid;
+            writeCookie('_fbc', value, 90);
+            try {
+              sessionStorage.setItem('meta_fbc', value);
+              sessionStorage.setItem('meta_fbclid', fbclid);
+            } catch (e) {}
+            return value;
+          } catch (e) {
+            return readCookie('_fbc') || '';
+          }
+        }
+        ensureFbp();
+        ensureFbcFromFbclid();
+        try {
+          if (window.clientParamBuilder && window.clientParamBuilder.processAndCollectAllParams) {
+            window.clientParamBuilder
+              .processAndCollectAllParams(location.href)
+              .then(function () {
+                ensureFbp();
+                ensureFbcFromFbclid();
+              })
+              .catch(function () {});
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- Meta Pixel Code — só init; PageView/eventos vêm do app com event_id (dedup CAPI) -->
     <script>
       !(function (f, b, e, v, n, t, s) {
