@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { trackAnalytics } from '../src/services/analytics';
-import { trackMetaEvent } from '../src/services/metaPixel';
+import {
+  captureMetaTestEventCode,
+  trackMetaEvent,
+} from '../src/services/metaPixel';
 import { useUserStore } from '../src/store/useUserStore';
 
 /**
  * Entrada direta no app — sem telas de nome/WhatsApp/humor.
  * Garante userId local e dispara Lead na primeira visita.
+ * Preserva query (ex.: ?test_event_code=) no redirect para /home.
  */
 export default function Index() {
   const [hydrated, setHydrated] = useState(() =>
@@ -15,6 +19,11 @@ export default function Index() {
   const ensureGuestAccess = useUserStore((s) => s.ensureGuestAccess);
   const hasTrackedFirstOpen = useUserStore((s) => s.hasTrackedFirstOpen);
   const markFirstOpenTracked = useUserStore((s) => s.markFirstOpenTracked);
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+
+  useEffect(() => {
+    captureMetaTestEventCode();
+  }, []);
 
   useEffect(() => {
     const unsub = useUserStore.persist.onFinishHydration(() => {
@@ -46,5 +55,19 @@ export default function Index() {
 
   if (!hydrated) return null;
 
-  return <Redirect href="/(tabs)/home" />;
+  // Expo Router: params que não são da rota viram query string no destino
+  const queryParams: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null) continue;
+    queryParams[key] = Array.isArray(value) ? String(value[0]) : String(value);
+  }
+
+  return (
+    <Redirect
+      href={{
+        pathname: '/(tabs)/home',
+        params: queryParams,
+      }}
+    />
+  );
 }
