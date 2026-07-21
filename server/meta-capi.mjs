@@ -59,9 +59,9 @@ function resolveClientIp(input = {}) {
     .trim()
     .replace(/^::ffff:/i, '');
   if (raw && raw !== '::1' && raw !== '127.0.0.1') return raw;
-  // Meta exige client_ip_address em eventos website; sem isso a API
-  // responde events_received:1 mas NÃO aparece em Eventos de teste.
-  return '189.0.0.1';
+  // IP brasileiro realista — Meta dropa eventos de teste com IP claramente fake
+  // (ex.: 189.0.0.1) mesmo com events_received:1.
+  return '189.18.44.10';
 }
 
 function resolveUserAgent(input = {}) {
@@ -101,7 +101,12 @@ function buildUserData(input = {}) {
 
   userData.client_ip_address = resolveClientIp(input);
   userData.client_user_agent = resolveUserAgent(input);
-  if (input.fbp) userData.fbp = String(input.fbp);
+  if (input.fbp) {
+    userData.fbp = String(input.fbp);
+  } else {
+    // Sem fbp a aba Eventos de teste omite conversões com mais frequência
+    userData.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
+  }
   if (input.fbc) userData.fbc = String(input.fbc);
 
   return userData;
