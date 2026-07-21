@@ -39,7 +39,7 @@ interface UserState {
   fontScale: FontScale;
   /** Ferramentas compradas (ex.: diario) */
   unlockedTools: string[];
-  /** ISO — início do trial de 72h */
+  /** Legado — trial de 72h desativado; mantido só por compatibilidade de persistência */
   trialStartedAt: string | null;
   /** ISO — fim da assinatura mensal ativa */
   subscriptionExpiresAt: string | null;
@@ -60,7 +60,7 @@ interface UserState {
 }
 
 export function computeAccessKind(
-  trialStartedAt: string | null,
+  _trialStartedAt: string | null,
   subscriptionExpiresAt: string | null,
   now = Date.now(),
 ): AccessKind {
@@ -68,10 +68,7 @@ export function computeAccessKind(
     const expires = Date.parse(subscriptionExpiresAt);
     if (Number.isFinite(expires) && expires > now) return 'subscribed';
   }
-  if (trialStartedAt) {
-    const start = Date.parse(trialStartedAt);
-    if (Number.isFinite(start) && now < start + TRIAL_MS) return 'trial';
-  }
+  // Sem trial de Missão+: gratuito = freemium; premium = assinatura ativa.
   return 'locked';
 }
 
@@ -107,7 +104,6 @@ export const useUserStore = create<UserState>()(
           displayName: cleanedName,
           whatsapp: digits.length >= 10 ? digits : null,
           userId: existingId ?? createUserId(),
-          trialStartedAt: get().trialStartedAt ?? new Date().toISOString(),
         });
       },
 
@@ -215,9 +211,7 @@ export const useUserStore = create<UserState>()(
         const trialStartedAt =
           typeof state.trialStartedAt === 'string'
             ? state.trialStartedAt
-            : state.hasOnboarded
-              ? new Date().toISOString()
-              : null;
+            : null;
         const unlockedTools = Array.isArray(state.unlockedTools)
           ? state.unlockedTools.filter(
               (id): id is string => typeof id === 'string' && Boolean(id.trim()),

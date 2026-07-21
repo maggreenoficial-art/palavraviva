@@ -43,7 +43,6 @@ import { useContinueStore } from '../../src/store/useContinueStore';
 import { useJourneyProgressStore } from '../../src/store/useJourneyProgressStore';
 import {
   computeAccessKind,
-  computeTrialRemainingMs,
   useUserStore,
 } from '../../src/store/useUserStore';
 import {
@@ -95,7 +94,6 @@ export default function HomeScreen() {
   const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
   const fullAudio = hasFullAudioAccess(accessKind);
   const maxUnlockedDay = useJourneyProgressStore((s) => s.maxUnlockedDay);
-  const trialRemainingMs = computeTrialRemainingMs(trialStartedAt);
   const continueId = useContinueStore((s) => s.sessionId);
   const positionMs = useContinueStore((s) => s.positionMs);
   const durationMs = useContinueStore((s) => s.durationMs);
@@ -381,8 +379,6 @@ export default function HomeScreen() {
     setPaywallVisible(true);
   }
 
-  const trialHoursLeft = Math.ceil(trialRemainingMs / (60 * 60 * 1000));
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -412,11 +408,6 @@ export default function HomeScreen() {
           <Text style={styles.tagline}>
             Um momento de paz na presença de Deus.
           </Text>
-          {accessKind === 'trial' && trialHoursLeft <= 24 ? (
-            <Text style={styles.trialHint}>
-              Restam cerca de {trialHoursLeft}h do seu acesso gratuito.
-            </Text>
-          ) : null}
           {!fullAudio ? (
             <Pressable
               accessibilityRole="button"
@@ -427,7 +418,7 @@ export default function HomeScreen() {
               ]}
             >
               <Text style={styles.trialLockedText}>
-                Missão+ · R$ 19,90/mês · Liberar todos os áudios
+                Missão+ · R$ 19,90/mês · Liberar áudios premium
               </Text>
             </Pressable>
           ) : null}

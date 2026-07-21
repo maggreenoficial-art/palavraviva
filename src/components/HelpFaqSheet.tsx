@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {
   SUBSCRIPTION_PRICE_LABEL,
-  TRIAL_HOURS,
 } from '../store/useUserStore';
 import { MIN_TAP, colors, radius, spacing, useTypography } from '../theme';
 
@@ -21,7 +20,7 @@ interface HelpFaqSheetProps {
 const FAQ_ITEMS = [
   {
     q: 'O que é o Palavra Viva?',
-    a: 'Um espaço de paz com áudios de oração, meditações e leituras bíblicas. Oferece apoio espiritual e não substitui terapia ou acompanhamento médico.',
+    a: 'Um espaço de paz com áudios de oração, meditações e leituras bíblicas. Oferece apoio espiritual e não substitui terapia ou acompanhamento médico. O app é gratuito para começar.',
   },
   {
     q: 'O que é o SOS?',
@@ -29,19 +28,15 @@ const FAQ_ITEMS = [
   },
   {
     q: 'O que posso usar de graça?',
-    a: 'SOS (alívio rápido + sequência Paz na Ansiedade), leituras bíblicas em texto, a jornada dia a dia (conforme o dia liberado) e o primeiro dia de cada série como amostra.',
+    a: 'SOS (alívio rápido + sequência Paz na Ansiedade), leituras bíblicas em texto, a jornada dia a dia (conforme o dia liberado), o primeiro dia de cada série como amostra e as primeiras orações do Velho Testamento.',
   },
   {
     q: 'O que é a Missão+?',
-    a: `Assinatura mensal (${SUBSCRIPTION_PRICE_LABEL}) que libera todos os áudios, séries premium e a jornada completa.`,
+    a: `Assinatura mensal opcional (${SUBSCRIPTION_PRICE_LABEL}) que libera todos os áudios e séries premium. Sem Missão+, o conteúdo gratuito continua disponível. Não há período de teste da assinatura.`,
   },
   {
     q: 'O que são as Ferramentas?',
     a: 'Hoje a aba Ferramentas oferece a Foto com Jesus: você envia uma foto, paga R$ 5,00 e, após a confirmação do pagamento, recebe uma imagem artística gerada por IA.',
-  },
-  {
-    q: `O que é o período gratuito de ${TRIAL_HOURS} horas?`,
-    a: `Ao criar seu perfil, você tem cerca de ${TRIAL_HOURS} horas com acesso amplo aos áudios. Depois, o conteúdo premium pede a Missão+.`,
   },
   {
     q: 'E em uma emergência?',

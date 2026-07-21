@@ -30,6 +30,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
     "@types/react": "~19.2.2",
     "playwright": "^1.61.1",
     "sharp": "^0.35.3",
@@ -57,6 +58,8 @@
     "generate:sos-anxiety": "node scripts/generate-sos-anxiety-audios.mjs",
     "generate:ot-prayers": "node scripts/generate-ot-prayer-audios.mjs",
     "generate:biblia-samples": "node scripts/generate-biblia-sample-audios.mjs",
+    "media:sync": "node scripts/sync-private-media.mjs",
+    "media:upload": "node scripts/upload-private-media.mjs",
     "analytics:server": "node server/analytics-server.mjs",
     "payments:server": "node server/payments-server.mjs",
     "capture:creatives": "node scripts/capture-creatives.mjs",

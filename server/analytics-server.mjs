@@ -8,8 +8,15 @@ const root = path.resolve(__dirname, '..');
 const dataDir = path.join(__dirname, 'data');
 const eventsPath = path.join(dataDir, 'events.json');
 const usersPath = path.join(dataDir, 'users.json');
+const subscriptionsPath = path.join(dataDir, 'subscriptions.json');
+const checkoutsPath = path.join(dataDir, 'checkouts.json');
+const generationsPath = path.join(dataDir, 'foto-jesus-generations.json');
 const PORT = Number(process.env.ANALYTICS_PORT || 8787);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'palavraviva';
+const SUBSCRIPTION_DAYS = Number(process.env.SUBSCRIPTION_DAYS || 30);
+const PRICE_SUBSCRIPTION = Number(process.env.WIVEN_PRODUCT_PRICE || 19.9);
+const PRICE_FOTO_JESUS = Number(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE || 5);
+const PRICE_DIARIO = Number(process.env.WIVEN_TOOL_DIARIO_PRICE || 29.9);
 
 fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(eventsPath)) {
@@ -17,6 +24,15 @@ if (!fs.existsSync(eventsPath)) {
 }
 if (!fs.existsSync(usersPath)) {
   fs.writeFileSync(usersPath, '{}', 'utf8');
+}
+if (!fs.existsSync(subscriptionsPath)) {
+  fs.writeFileSync(subscriptionsPath, '{}', 'utf8');
+}
+if (!fs.existsSync(checkoutsPath)) {
+  fs.writeFileSync(checkoutsPath, '[]', 'utf8');
+}
+if (!fs.existsSync(generationsPath)) {
+  fs.writeFileSync(generationsPath, '{}', 'utf8');
 }
 
 function loadEnv() {
@@ -62,6 +78,461 @@ function writeUsers(users) {
   fs.writeFileSync(usersPath, JSON.stringify(users, null, 2), 'utf8');
 }
 
+function readSubscriptions() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(subscriptionsPath, 'utf8'));
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function readCheckouts() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(checkoutsPath, 'utf8'));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSubscriptions(data) {
+  fs.writeFileSync(subscriptionsPath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function readGenerations() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(generationsPath, 'utf8'));
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function productMeta(checkout) {
+  const product = checkout?.product || '';
+  const kind = checkout?.kind || '';
+  if (product === 'tool-foto-jesus' || kind === 'generation') {
+    return { key: 'foto-jesus', label: 'Foto com Jesus', price: PRICE_FOTO_JESUS };
+  }
+  if (product === 'tool-diario' || kind === 'tool') {
+    return { key: 'diario', label: 'Diário de Gratidão', price: PRICE_DIARIO };
+  }
+  return { key: 'subscription', label: 'Missão+', price: PRICE_SUBSCRIPTION };
+}
+
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
+function listPayments() {
+  const users = readUsers();
+  return readCheckouts()
+    .slice()
+    .sort(
+      (a, b) =>
+        Date.parse(b.paidAt || b.createdAt || 0) -
+        Date.parse(a.paidAt || a.createdAt || 0),
+    )
+    .slice(0, 150)
+    .map((checkout) => {
+      const meta = productMeta(checkout);
+      const profile = users[checkout.userId] || {};
+      const displayName =
+        checkout.displayName || profile.displayName || null;
+      const whatsapp = checkout.whatsapp || profile.whatsapp || null;
+      return {
+        id: checkout.id,
+        userId: checkout.userId || null,
+        displayName,
+        whatsapp,
+        whatsappLink: formatWhatsapp(whatsapp),
+        product: meta.key,
+        productLabel: meta.label,
+        price: meta.price,
+        priceLabel: formatMoney(meta.price),
+        method: checkout.method || '—',
+        status: checkout.status || '—',
+        transactionId: checkout.transactionId || null,
+        generationId: checkout.generationId || null,
+        createdAt: checkout.createdAt || null,
+        paidAt: checkout.paidAt || null,
+      };
+    });
+}
+
+function listFotoJesusOrders() {
+  const users = readUsers();
+  const generations = readGenerations();
+  const checkouts = readCheckouts().filter(
+    (c) => c.product === 'tool-foto-jesus' || c.kind === 'generation',
+  );
+  const byGeneration = new Map(
+    checkouts
+      .filter((c) => c.generationId)
+      .map((c) => [c.generationId, c]),
+  );
+
+  return Object.values(generations)
+    .slice()
+    .sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0))
+    .slice(0, 100)
+    .map((gen) => {
+      const checkout = byGeneration.get(gen.id) || {};
+      const profile = users[gen.userId] || {};
+      const displayName =
+        checkout.displayName || profile.displayName || null;
+      const whatsapp = checkout.whatsapp || profile.whatsapp || null;
+      const paid = checkout.status === 'paid' || Boolean(gen.paidAt);
+      return {
+        id: gen.id,
+        userId: gen.userId || null,
+        displayName,
+        whatsapp,
+        whatsappLink: formatWhatsapp(whatsapp),
+        status: gen.status || '—',
+        paymentStatus: paid ? 'paid' : checkout.status || '—',
+        priceLabel: formatMoney(PRICE_FOTO_JESUS),
+        transactionId: checkout.transactionId || null,
+        resultUrl: gen.resultUrl || null,
+        createdAt: gen.createdAt || null,
+        paidAt: gen.paidAt || checkout.paidAt || null,
+      };
+    });
+}
+
+function subscriptionCheckoutByUser() {
+  const map = new Map();
+  for (const checkout of readCheckouts()) {
+    if (!checkout?.userId) continue;
+    if (checkout.product && checkout.product !== 'subscription') continue;
+    if (checkout.kind && checkout.kind !== 'subscription') continue;
+    const prev = map.get(checkout.userId);
+    const prevAt = Date.parse(prev?.paidAt || prev?.createdAt || 0);
+    const nextAt = Date.parse(checkout.paidAt || checkout.createdAt || 0);
+    if (!prev || nextAt >= prevAt) map.set(checkout.userId, checkout);
+  }
+  return map;
+}
+
+function mapSubscriptionRow(sub, checkoutByUser, users, now = Date.now()) {
+  const profile = users[sub.userId] || {};
+  const checkout = checkoutByUser.get(sub.userId) || {};
+  const displayName =
+    sub.displayName || profile.displayName || checkout.displayName || null;
+  const whatsapp =
+    sub.whatsapp || profile.whatsapp || checkout.whatsapp || null;
+  const expiresMs = Date.parse(sub.expiresAt);
+  const active = Number.isFinite(expiresMs) && expiresMs > now;
+  return {
+    userId: sub.userId,
+    displayName,
+    whatsapp,
+    whatsappLink: formatWhatsapp(whatsapp),
+    expiresAt: sub.expiresAt,
+    updatedAt: sub.updatedAt || null,
+    cancelledAt: sub.cancelledAt || null,
+    source: sub.source || checkout.method || '—',
+    providerRef: sub.providerRef || checkout.transactionId || null,
+    active,
+    daysLeft: active
+      ? Math.max(0, Math.ceil((expiresMs - now) / (24 * 60 * 60 * 1000)))
+      : 0,
+  };
+}
+
+/** Assinaturas registradas (ativas e expiradas). */
+function listSubscriptions() {
+  const now = Date.now();
+  const users = readUsers();
+  const checkoutByUser = subscriptionCheckoutByUser();
+  return Object.values(readSubscriptions())
+    .filter(
+      (sub) =>
+        sub?.userId &&
+        typeof sub.expiresAt === 'string' &&
+        Number.isFinite(Date.parse(sub.expiresAt)),
+    )
+    .map((sub) => {
+      const row = mapSubscriptionRow(sub, checkoutByUser, users, now);
+      return { ...row, status: row.active ? 'active' : 'expired' };
+    })
+    .sort((a, b) => {
+      if (a.active !== b.active) return a.active ? -1 : 1;
+      return Date.parse(a.expiresAt) - Date.parse(b.expiresAt);
+    });
+}
+
+/**
+ * Lista para gerenciar no admin: assinaturas + contatos/checkouts
+ * que ainda não têm Missão+ (ex.: Humberto só com Foto com Jesus).
+ */
+function listManageableSubscriptions() {
+  const existing = listSubscriptions();
+  const seen = new Set(existing.map((s) => s.userId));
+  const extras = [];
+
+  const pushExtra = ({ userId, displayName, whatsapp, source, updatedAt, providerRef }) => {
+    if (!userId || seen.has(userId)) return;
+    if (!displayName && !whatsapp) return;
+    seen.add(userId);
+    extras.push({
+      userId,
+      displayName: displayName || null,
+      whatsapp: whatsapp || null,
+      whatsappLink: formatWhatsapp(whatsapp),
+      expiresAt: null,
+      updatedAt: updatedAt || null,
+      cancelledAt: null,
+      source: source || '—',
+      providerRef: providerRef || null,
+      active: false,
+      daysLeft: 0,
+      status: 'none',
+    });
+  };
+
+  for (const user of Object.values(readUsers())) {
+    pushExtra({
+      userId: user.userId,
+      displayName: user.displayName,
+      whatsapp: user.whatsapp,
+      source: user.source,
+      updatedAt: user.lastSeenAt,
+    });
+  }
+
+  for (const checkout of readCheckouts()) {
+    pushExtra({
+      userId: checkout.userId,
+      displayName: checkout.displayName,
+      whatsapp: checkout.whatsapp,
+      source: checkout.method,
+      updatedAt: checkout.paidAt || checkout.createdAt,
+      providerRef: checkout.transactionId,
+    });
+  }
+
+  const rank = { active: 0, expired: 1, none: 2 };
+  return [...existing, ...extras].sort((a, b) => {
+    if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
+    return String(a.displayName || a.userId || '').localeCompare(
+      String(b.displayName || b.userId || ''),
+      'pt-BR',
+    );
+  });
+}
+
+/** Assinaturas Missão+ ainda válidas (expiresAt no futuro). */
+function listActiveSubscriptions() {
+  return listSubscriptions().filter((s) => s.active);
+}
+
+function adminGrantSubscription(
+  userId,
+  { days = SUBSCRIPTION_DAYS, displayName, whatsapp, source = 'admin' } = {},
+) {
+  const id = String(userId || '').trim();
+  if (!id) return null;
+  const daysNum = Math.max(1, Math.min(3650, Number(days) || SUBSCRIPTION_DAYS));
+  const subs = readSubscriptions();
+  const now = Date.now();
+  const current = subs[id] || {};
+  const currentExpires = current.expiresAt ? Date.parse(current.expiresAt) : 0;
+  const base = currentExpires > now ? currentExpires : now;
+  const expiresAt = new Date(base + daysNum * 24 * 60 * 60 * 1000).toISOString();
+  const profile = readUsers()[id] || {};
+
+  subs[id] = {
+    ...current,
+    userId: id,
+    expiresAt,
+    updatedAt: new Date().toISOString(),
+    source,
+    displayName:
+      (typeof displayName === 'string' && displayName.trim()) ||
+      current.displayName ||
+      profile.displayName ||
+      null,
+    whatsapp:
+      (typeof whatsapp === 'string' && whatsapp.replace(/\D/g, '')) ||
+      current.whatsapp ||
+      profile.whatsapp ||
+      null,
+    cancelledAt: null,
+  };
+  writeSubscriptions(subs);
+  return subs[id];
+}
+
+function adminCancelSubscription(userId) {
+  const id = String(userId || '').trim();
+  const subs = readSubscriptions();
+  if (!id || !subs[id]) return null;
+  subs[id] = {
+    ...subs[id],
+    expiresAt: new Date(Date.now() - 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    cancelledAt: new Date().toISOString(),
+    source: subs[id].source || 'admin',
+  };
+  writeSubscriptions(subs);
+  return subs[id];
+}
+
+function adminSetExpires(userId, expiresAt) {
+  const id = String(userId || '').trim();
+  const parsed = Date.parse(expiresAt);
+  const subs = readSubscriptions();
+  if (!id || !Number.isFinite(parsed)) return null;
+  const current = subs[id] || { userId: id };
+  const profile = readUsers()[id] || {};
+  subs[id] = {
+    ...current,
+    userId: id,
+    expiresAt: new Date(parsed).toISOString(),
+    updatedAt: new Date().toISOString(),
+    source: current.source || 'admin',
+    displayName: current.displayName || profile.displayName || null,
+    whatsapp: current.whatsapp || profile.whatsapp || null,
+    cancelledAt: parsed > Date.now() ? null : new Date().toISOString(),
+  };
+  writeSubscriptions(subs);
+  return subs[id];
+}
+
+function isWeakCity(city) {
+  if (!city || typeof city !== 'string') return true;
+  const normalized = city.trim().toLowerCase();
+  return (
+    !normalized ||
+    normalized === 'local' ||
+    normalized === 'desconhecida' ||
+    normalized === 'unknown' ||
+    normalized === '—' ||
+    normalized === '-'
+  );
+}
+
+/** DDD → cidade principal (Brasil). */
+const DDD_CITY = {
+  11: ['São Paulo', 'SP'],
+  12: ['São José dos Campos', 'SP'],
+  13: ['Santos', 'SP'],
+  14: ['Bauru', 'SP'],
+  15: ['Sorocaba', 'SP'],
+  16: ['Ribeirão Preto', 'SP'],
+  17: ['São José do Rio Preto', 'SP'],
+  18: ['Presidente Prudente', 'SP'],
+  19: ['Campinas', 'SP'],
+  21: ['Rio de Janeiro', 'RJ'],
+  22: ['Campos dos Goytacazes', 'RJ'],
+  24: ['Volta Redonda', 'RJ'],
+  27: ['Vitória', 'ES'],
+  28: ['Cachoeiro de Itapemirim', 'ES'],
+  31: ['Belo Horizonte', 'MG'],
+  32: ['Juiz de Fora', 'MG'],
+  33: ['Governador Valadares', 'MG'],
+  34: ['Uberlândia', 'MG'],
+  35: ['Poços de Caldas', 'MG'],
+  37: ['Divinópolis', 'MG'],
+  38: ['Montes Claros', 'MG'],
+  41: ['Curitiba', 'PR'],
+  42: ['Ponta Grossa', 'PR'],
+  43: ['Londrina', 'PR'],
+  44: ['Maringá', 'PR'],
+  45: ['Cascavel', 'PR'],
+  46: ['Francisco Beltrão', 'PR'],
+  47: ['Joinville', 'SC'],
+  48: ['Florianópolis', 'SC'],
+  49: ['Chapecó', 'SC'],
+  51: ['Porto Alegre', 'RS'],
+  53: ['Pelotas', 'RS'],
+  54: ['Caxias do Sul', 'RS'],
+  55: ['Santa Maria', 'RS'],
+  61: ['Brasília', 'DF'],
+  62: ['Goiânia', 'GO'],
+  63: ['Palmas', 'TO'],
+  64: ['Rio Verde', 'GO'],
+  65: ['Cuiabá', 'MT'],
+  66: ['Rondonópolis', 'MT'],
+  67: ['Campo Grande', 'MS'],
+  68: ['Rio Branco', 'AC'],
+  69: ['Porto Velho', 'RO'],
+  71: ['Salvador', 'BA'],
+  73: ['Ilhéus', 'BA'],
+  74: ['Juazeiro', 'BA'],
+  75: ['Feira de Santana', 'BA'],
+  77: ['Barreiras', 'BA'],
+  79: ['Aracaju', 'SE'],
+  81: ['Recife', 'PE'],
+  82: ['Maceió', 'AL'],
+  83: ['João Pessoa', 'PB'],
+  84: ['Natal', 'RN'],
+  85: ['Fortaleza', 'CE'],
+  86: ['Teresina', 'PI'],
+  87: ['Petrolina', 'PE'],
+  88: ['Juazeiro do Norte', 'CE'],
+  89: ['Picos', 'PI'],
+  91: ['Belém', 'PA'],
+  92: ['Manaus', 'AM'],
+  93: ['Santarém', 'PA'],
+  94: ['Marabá', 'PA'],
+  95: ['Boa Vista', 'RR'],
+  96: ['Macapá', 'AP'],
+  97: ['Coari', 'AM'],
+  98: ['São Luís', 'MA'],
+  99: ['Imperatriz', 'MA'],
+};
+
+function geoFromWhatsapp(whatsapp) {
+  const digits = String(whatsapp || '').replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  const national = digits.startsWith('55') ? digits.slice(2) : digits;
+  if (national.length < 10) return null;
+  const ddd = Number(national.slice(0, 2));
+  const hit = DDD_CITY[ddd];
+  if (!hit) return null;
+  return {
+    city: hit[0],
+    region: hit[1],
+    country: 'BR',
+    lat: null,
+    lon: null,
+    source: 'ddd',
+  };
+}
+
+function normalizeClientGeo(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const city = typeof raw.city === 'string' ? raw.city.trim() : '';
+  if (isWeakCity(city)) return null;
+  return {
+    city,
+    region: typeof raw.region === 'string' ? raw.region.trim() : '',
+    country: typeof raw.country === 'string' ? raw.country.trim() : '',
+    lat: typeof raw.lat === 'number' ? raw.lat : null,
+    lon: typeof raw.lon === 'number' ? raw.lon : null,
+    source: 'client',
+  };
+}
+
+function pickBestGeo(...candidates) {
+  for (const geo of candidates) {
+    if (geo && !isWeakCity(geo.city)) return geo;
+  }
+  return candidates.find((g) => g && g.city) || {
+    city: 'Desconhecida',
+    region: '',
+    country: '',
+    lat: null,
+    lon: null,
+  };
+}
+
 function upsertUserProfile(event) {
   const key = event.userId || null;
   if (!key) return;
@@ -81,13 +552,21 @@ function upsertUserProfile(event) {
     events: 0,
   };
 
+  const nextWhatsapp = event.whatsapp || prev.whatsapp;
+  const fromEvent = event.geo && !isWeakCity(event.geo.city) ? event.geo : null;
+  const fromPrev = !isWeakCity(prev.city)
+    ? { city: prev.city, region: prev.region, country: prev.country }
+    : null;
+  const fromDdd = geoFromWhatsapp(nextWhatsapp);
+  const best = pickBestGeo(fromEvent, fromPrev, fromDdd, event.geo);
+
   users[key] = {
     ...prev,
     displayName: event.displayName || prev.displayName,
-    whatsapp: event.whatsapp || prev.whatsapp,
-    city: event.geo?.city || prev.city,
-    region: event.geo?.region || prev.region,
-    country: event.geo?.country || prev.country,
+    whatsapp: nextWhatsapp,
+    city: best.city || prev.city,
+    region: best.region || prev.region,
+    country: best.country || prev.country,
     source: event.attribution?.source || prev.source,
     platform: event.platform || prev.platform,
     firstSeenAt: prev.firstSeenAt || event.occurredAt,
@@ -137,26 +616,43 @@ function readBody(req) {
 }
 
 function clientIp(req) {
-  const xf = req.headers['x-forwarded-for'];
-  if (typeof xf === 'string' && xf.length) return xf.split(',')[0].trim();
+  const candidates = [
+    req.headers['cf-connecting-ip'],
+    req.headers['true-client-ip'],
+    req.headers['x-real-ip'],
+    req.headers['x-vercel-forwarded-for'],
+    req.headers['x-forwarded-for'],
+  ];
+  for (const value of candidates) {
+    if (typeof value !== 'string' || !value.trim()) continue;
+    const first = value.split(',')[0].trim();
+    if (first) return first;
+  }
   return req.socket.remoteAddress || '';
 }
 
-async function lookupGeo(ip) {
+function isPrivateIp(ip) {
   const clean = (ip || '').replace('::ffff:', '');
-  if (
+  return (
     !clean ||
     clean === '127.0.0.1' ||
     clean === '::1' ||
     clean.startsWith('192.168.') ||
-    clean.startsWith('10.')
-  ) {
+    clean.startsWith('10.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(clean)
+  );
+}
+
+async function lookupGeo(ip) {
+  const clean = (ip || '').replace('::ffff:', '');
+  if (isPrivateIp(clean)) {
     return {
       city: 'Local',
       region: '',
       country: 'BR',
-      lat: -14.235,
-      lon: -51.9253,
+      lat: null,
+      lon: null,
+      source: 'private_ip',
     };
   }
 
@@ -174,10 +670,27 @@ async function lookupGeo(ip) {
       country: data.country || '',
       lat: data.lat ?? null,
       lon: data.lon ?? null,
+      source: 'ip',
     };
   } catch {
     return { city: 'Desconhecida', region: '', country: '', lat: null, lon: null };
   }
+}
+
+async function resolveEventGeo(req, body) {
+  const ipGeo = await lookupGeo(clientIp(req));
+  const clientGeo = normalizeClientGeo(body?.clientGeo);
+  const dddGeo = geoFromWhatsapp(body?.whatsapp);
+  return pickBestGeo(clientGeo, ipGeo, dddGeo);
+}
+
+function enrichCityLabel(city, region, whatsapp) {
+  if (!isWeakCity(city)) {
+    return region ? `${city}/${region}` : city;
+  }
+  const ddd = geoFromWhatsapp(whatsapp);
+  if (ddd) return `${ddd.city}/${ddd.region}`;
+  return city || '—';
 }
 
 function isAuthorized(req, url) {
@@ -207,9 +720,32 @@ function buildStats(events) {
   const recent = events.filter((e) => Date.parse(e.occurredAt) >= weekAgo);
   const today = events.filter((e) => Date.parse(e.occurredAt) >= dayAgo);
 
-  const contacts = Object.values(readUsers())
+  // Enriquece cadastros antigos com cidade pelo DDD quando só havia "Local"
+  const usersMap = readUsers();
+  let usersDirty = false;
+  for (const user of Object.values(usersMap)) {
+    if (!user?.whatsapp || !isWeakCity(user.city)) continue;
+    const ddd = geoFromWhatsapp(user.whatsapp);
+    if (!ddd) continue;
+    user.city = ddd.city;
+    user.region = ddd.region;
+    user.country = ddd.country;
+    usersDirty = true;
+  }
+  if (usersDirty) writeUsers(usersMap);
+
+  const contacts = Object.values(usersMap)
     .filter((u) => u.displayName || u.whatsapp)
     .sort((a, b) => Date.parse(b.lastSeenAt || 0) - Date.parse(a.lastSeenAt || 0));
+
+  const subscriptions = listManageableSubscriptions();
+  const activeSubscriptions = subscriptions.filter((s) => s.active);
+  const payments = listPayments();
+  const fotoJesusOrders = listFotoJesusOrders();
+  const paidPayments = payments.filter((p) => p.status === 'paid');
+  const paidSubscriptions = paidPayments.filter((p) => p.product === 'subscription');
+  const paidFotoJesus = paidPayments.filter((p) => p.product === 'foto-jesus');
+  const revenuePaid = paidPayments.reduce((sum, p) => sum + (p.price || 0), 0);
 
   const onlineWindow = now - 2 * 60 * 1000;
   const onlineMap = new Map();
@@ -227,21 +763,24 @@ function buildStats(events) {
   const opens = recent.filter((e) => e.name === 'app_open');
   const screens = recent.filter((e) => e.name === 'screen_view');
 
-  const cities = topCounts(
-    recent.filter((e) => e.geo?.city),
-    (e) => `${e.geo.city}${e.geo.region ? `/${e.geo.region}` : ''}`,
-    15,
-  ).map((row) => {
-    const sample = recent.find(
-      (e) =>
-        e.geo?.city &&
-        `${e.geo.city}${e.geo.region ? `/${e.geo.region}` : ''}` === row.key,
-    );
+  const cityEvents = recent
+    .map((e) => {
+      const label = enrichCityLabel(e.geo?.city, e.geo?.region, e.whatsapp);
+      if (isWeakCity(label.split('/')[0])) return null;
+      return { event: e, label };
+    })
+    .filter(Boolean);
+
+  const cities = topCounts(cityEvents, (row) => row.label, 15).map((row) => {
+    const sample = cityEvents.find((c) => c.label === row.key)?.event;
+    const ddd = isWeakCity(sample?.geo?.city)
+      ? geoFromWhatsapp(sample?.whatsapp)
+      : null;
     return {
       ...row,
-      lat: sample?.geo?.lat ?? null,
-      lon: sample?.geo?.lon ?? null,
-      country: sample?.geo?.country ?? '',
+      lat: sample?.geo?.lat ?? ddd?.lat ?? null,
+      lon: sample?.geo?.lon ?? ddd?.lon ?? null,
+      country: sample?.geo?.country || ddd?.country || '',
     };
   });
 
@@ -256,23 +795,40 @@ function buildStats(events) {
       onlineNow: onlineMap.size,
       contacts: contacts.length,
       withWhatsapp: contacts.filter((u) => u.whatsapp).length,
+      activeSubscriptions: activeSubscriptions.length,
+      paidCheckouts: paidPayments.length,
+      paidSubscriptions: paidSubscriptions.length,
+      paidFotoJesus: paidFotoJesus.length,
+      revenuePaid,
+      revenuePaidLabel: formatMoney(revenuePaid),
     },
-    online: [...onlineMap.values()].map((e) => ({
-      userId: e.userId,
-      displayName: e.displayName || null,
-      whatsapp: e.whatsapp || null,
-      whatsappLink: formatWhatsapp(e.whatsapp),
-      sessionId: e.sessionId,
-      city: e.geo?.city || '—',
-      source: e.attribution?.source || '—',
-      at: e.occurredAt,
-    })),
+    activeSubscriptions,
+    subscriptions,
+    payments,
+    fotoJesusOrders,
+    online: [...onlineMap.values()].map((e) => {
+      const profile = e.userId ? usersMap[e.userId] : null;
+      return {
+        userId: e.userId,
+        displayName: e.displayName || profile?.displayName || null,
+        whatsapp: e.whatsapp || profile?.whatsapp || null,
+        whatsappLink: formatWhatsapp(e.whatsapp || profile?.whatsapp),
+        sessionId: e.sessionId,
+        city: enrichCityLabel(
+          e.geo?.city || profile?.city,
+          e.geo?.region || profile?.region,
+          e.whatsapp || profile?.whatsapp,
+        ),
+        source: e.attribution?.source || '—',
+        at: e.occurredAt,
+      };
+    }),
     contacts: contacts.map((u) => ({
       userId: u.userId,
       displayName: u.displayName || null,
       whatsapp: u.whatsapp || null,
       whatsappLink: formatWhatsapp(u.whatsapp),
-      city: u.city || '—',
+      city: enrichCityLabel(u.city, u.region, u.whatsapp),
       source: u.source || '—',
       platform: u.platform || '—',
       firstSeenAt: u.firstSeenAt,
@@ -306,7 +862,7 @@ function buildStats(events) {
         displayName: e.displayName || null,
         whatsapp: e.whatsapp || null,
         whatsappLink: formatWhatsapp(e.whatsapp),
-        city: e.geo?.city || '—',
+        city: enrichCityLabel(e.geo?.city, e.geo?.region, e.whatsapp),
         source: e.attribution?.source || '—',
         at: e.occurredAt,
       })),
@@ -361,7 +917,7 @@ const adminHtml = `<!doctype html>
       max-width: 420px; margin: 80px auto; background: var(--elev);
       border: 1px solid var(--border); border-radius: 16px; padding: 24px;
     }
-    input, button {
+    input, button, select {
       width: 100%; border-radius: 10px; border: 1px solid var(--border);
       background: var(--soft); color: var(--text); padding: 12px 14px; font-size: 1rem;
     }
@@ -393,6 +949,25 @@ const adminHtml = `<!doctype html>
     a.wa { color: var(--accent); text-decoration: none; font-weight: 600; }
     a.wa:hover { text-decoration: underline; }
     .section-note { color: var(--muted); font-size: .85rem; margin: -4px 0 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .btn-sm {
+      width: auto; margin: 0; padding: 6px 10px; font-size: .78rem; border-radius: 8px;
+      background: var(--soft); color: var(--text); border: 1px solid var(--border); font-weight: 600;
+    }
+    .btn-sm.ok { background: rgba(61,220,151,.18); color: var(--accent); border-color: transparent; }
+    .btn-sm.danger { background: rgba(240,113,103,.16); color: var(--sos); border-color: transparent; }
+    .grant-row {
+      display: grid; gap: 8px; grid-template-columns: 1.4fr 1fr 100px auto;
+      margin-bottom: 14px; align-items: end;
+    }
+    @media (max-width: 900px) { .grant-row { grid-template-columns: 1fr; } }
+    .grant-row label { display: block; color: var(--muted); font-size: .75rem; margin-bottom: 4px; }
+    .grant-row input, .grant-row select { margin: 0; }
+    .status-paid { color: var(--accent); font-weight: 600; }
+    .status-opened { color: #E8C547; font-weight: 600; }
+    .status-expired { color: var(--sos); }
+    .status-active { color: var(--accent); }
+    a.result { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -436,11 +1011,142 @@ const adminHtml = `<!doctype html>
         <div class="wrap">
           <div class="grid">
             <div class="card"><div class="label">Online agora</div><div class="value">\${data.totals.onlineNow}</div></div>
+            <div class="card"><div class="label">Assinaturas ativas</div><div class="value">\${data.totals.activeSubscriptions || 0}</div></div>
+            <div class="card"><div class="label">Pagamentos ok</div><div class="value">\${data.totals.paidCheckouts || 0}</div></div>
+            <div class="card"><div class="label">Receita paga</div><div class="value" style="font-size:1.35rem">\${data.totals.revenuePaidLabel || 'R$ 0,00'}</div></div>
+            <div class="card"><div class="label">Foto Jesus pagas</div><div class="value">\${data.totals.paidFotoJesus || 0}</div></div>
             <div class="card"><div class="label">Cadastros</div><div class="value">\${data.totals.contacts || 0}</div></div>
-            <div class="card"><div class="label">Com WhatsApp</div><div class="value">\${data.totals.withWhatsapp || 0}</div></div>
             <div class="card"><div class="label">Acessos 24h</div><div class="value">\${data.totals.opens24h}</div></div>
-            <div class="card"><div class="label">Áudios 7 dias</div><div class="value">\${data.totals.listens7d}</div></div>
-            <div class="card"><div class="label">Leituras 7 dias</div><div class="value">\${data.totals.reads7d}</div></div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h2>💎 Assinaturas Missão+ (gerenciar)</h2>
+            <p class="section-note">Liberar, estender (+30 dias) ou cancelar acesso. Alterações valem no app na próxima sincronização.</p>
+            <div class="grant-row">
+              <div>
+                <label>Usuário</label>
+                <select id="grant-user">
+                  <option value="">Selecione um usuário…</option>
+                  \${(data.subscriptions || []).map(u => \`<option value="\${u.userId}">\${u.displayName || u.userId}\${u.whatsapp ? ' · ' + u.whatsapp : ''}\${u.status === 'active' ? ' · ativa' : u.status === 'none' ? ' · sem assinatura' : ' · expirada'}</option>\`).join('')}
+                </select>
+              </div>
+              <div>
+                <label>Ou userId</label>
+                <input id="grant-user-id" placeholder="pv_..." />
+              </div>
+              <div>
+                <label>Dias</label>
+                <input id="grant-days" type="number" min="1" max="3650" value="30" />
+              </div>
+              <div>
+                <label>&nbsp;</label>
+                <button class="btn-sm ok" id="grant-sub" style="width:100%">Liberar</button>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>WhatsApp</th>
+                  <th>Status</th>
+                  <th>Vence em</th>
+                  <th>Dias</th>
+                  <th>Origem</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${(data.subscriptions || []).length ? data.subscriptions.map(s => \`
+                  <tr>
+                    <td><strong>\${s.displayName || s.userId || '—'}</strong><div class="muted" style="font-size:.75rem">\${s.userId || ''}</div></td>
+                    <td>\${s.whatsappLink
+                      ? \`<a class="wa" href="https://wa.me/\${s.whatsappLink}" target="_blank" rel="noopener">\${s.whatsapp}</a>\`
+                      : (s.whatsapp || '—')}</td>
+                    <td class="\${s.status === 'active' ? 'status-active' : s.status === 'none' ? 'muted' : 'status-expired'}">\${
+                      s.status === 'active' ? 'Ativa' : s.status === 'none' ? 'Sem assinatura' : 'Expirada'
+                    }</td>
+                    <td>\${s.expiresAt ? new Date(s.expiresAt).toLocaleString('pt-BR') : '—'}</td>
+                    <td>\${s.active ? \`<span class="pill">\${s.daysLeft}d</span>\` : '—'}</td>
+                    <td>\${s.source || '—'}</td>
+                    <td>
+                      <div class="actions">
+                        \${s.status === 'none'
+                          ? \`<button class="btn-sm ok" data-sub-action="grant" data-user-id="\${s.userId}" data-days="30">Liberar 30 dias</button>\`
+                          : \`<button class="btn-sm ok" data-sub-action="extend" data-user-id="\${s.userId}" data-days="30">+30 dias</button>\${
+                              s.active
+                                ? \`<button class="btn-sm danger" data-sub-action="cancel" data-user-id="\${s.userId}">Cancelar</button>\`
+                                : \`<button class="btn-sm ok" data-sub-action="extend" data-user-id="\${s.userId}" data-days="30">Reativar</button>\`
+                            }\`}
+                      </div>
+                    </td>
+                  </tr>\`).join('') : '<tr><td colspan="7" class="muted">Nenhum usuário para gerenciar ainda.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h2>💳 Pagamentos (Missão+ e Foto com Jesus)</h2>
+            <p class="section-note">Checkouts Pix/cartão — pagos e pendentes. Valores estimados pelas tarifas atuais do produto.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>Nome</th>
+                  <th>Produto</th>
+                  <th>Valor</th>
+                  <th>Método</th>
+                  <th>Status</th>
+                  <th>Transação</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${(data.payments || []).length ? data.payments.map(p => \`
+                  <tr>
+                    <td>\${new Date(p.paidAt || p.createdAt).toLocaleString('pt-BR')}</td>
+                    <td>
+                      <strong>\${p.displayName || p.userId || '—'}</strong>
+                      <div class="muted" style="font-size:.75rem">\${p.whatsappLink
+                        ? \`<a class="wa" href="https://wa.me/\${p.whatsappLink}" target="_blank" rel="noopener">\${p.whatsapp}</a>\`
+                        : (p.whatsapp || '')}</div>
+                    </td>
+                    <td>\${p.productLabel}</td>
+                    <td>\${p.priceLabel}</td>
+                    <td>\${p.method}</td>
+                    <td class="\${p.status === 'paid' ? 'status-paid' : 'status-opened'}">\${p.status}</td>
+                    <td class="muted" style="font-size:.75rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">\${p.transactionId || '—'}</td>
+                  </tr>\`).join('') : '<tr><td colspan="7" class="muted">Nenhum checkout registrado ainda.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h2>🖼️ Foto com Jesus</h2>
+            <p class="section-note">Gerações e status de pagamento/entrega da imagem.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>Nome</th>
+                  <th>Pagamento</th>
+                  <th>Geração</th>
+                  <th>Valor</th>
+                  <th>Resultado</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${(data.fotoJesusOrders || []).length ? data.fotoJesusOrders.map(f => \`
+                  <tr>
+                    <td>\${new Date(f.paidAt || f.createdAt).toLocaleString('pt-BR')}</td>
+                    <td><strong>\${f.displayName || f.userId || '—'}</strong></td>
+                    <td class="\${f.paymentStatus === 'paid' ? 'status-paid' : 'status-opened'}">\${f.paymentStatus}</td>
+                    <td>\${f.status}</td>
+                    <td>\${f.priceLabel}</td>
+                    <td>\${f.resultUrl
+                      ? \`<a class="result" href="\${f.resultUrl}" target="_blank" rel="noopener">Ver imagem</a>\`
+                      : '—'}</td>
+                  </tr>\`).join('') : '<tr><td colspan="6" class="muted">Nenhuma Foto com Jesus ainda.</td></tr>'}
+              </tbody>
+            </table>
           </div>
 
           <div class="card" style="margin-top:14px">
@@ -541,6 +1247,45 @@ const adminHtml = `<!doctype html>
 
       document.getElementById('refresh').onclick = () => load(password);
 
+      async function manageSubscription(body) {
+        const res = await fetch('/api/admin/subscriptions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': password,
+          },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) {
+          alert(json.error || 'Não foi possível atualizar a assinatura.');
+          return;
+        }
+        load(password);
+      }
+
+      document.getElementById('grant-sub').onclick = () => {
+        const selected = document.getElementById('grant-user').value.trim();
+        const typed = document.getElementById('grant-user-id').value.trim();
+        const userId = typed || selected;
+        const days = Number(document.getElementById('grant-days').value || 30);
+        if (!userId) {
+          alert('Informe o usuário (contato ou userId).');
+          return;
+        }
+        manageSubscription({ action: 'grant', userId, days });
+      };
+
+      document.querySelectorAll('[data-sub-action]').forEach((btn) => {
+        btn.onclick = () => {
+          const action = btn.getAttribute('data-sub-action');
+          const userId = btn.getAttribute('data-user-id');
+          const days = Number(btn.getAttribute('data-days') || 30);
+          if (action === 'cancel' && !confirm('Cancelar a Missão+ deste usuário agora?')) return;
+          manageSubscription({ action, userId, days });
+        };
+      });
+
       const map = L.map('map').setView([-14.235, -51.9253], 3);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
@@ -599,7 +1344,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/events') {
     try {
       const body = await readBody(req);
-      const geo = await lookupGeo(clientIp(req));
+      const geo = await resolveEventGeo(req, body);
       const events = readEvents();
       events.push({
         id: `e_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
@@ -642,6 +1387,55 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     send(res, 200, buildStats(readEvents()));
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/admin/subscriptions') {
+    if (!isAuthorized(req, url)) {
+      send(res, 401, { ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      const body = await readBody(req);
+      const action = String(body.action || '').trim();
+      const userId = String(body.userId || '').trim();
+      if (!userId) {
+        send(res, 400, { ok: false, error: 'userId_obrigatorio' });
+        return;
+      }
+
+      let subscription = null;
+      if (action === 'grant' || action === 'extend') {
+        subscription = adminGrantSubscription(userId, {
+          days: body.days,
+          displayName: body.displayName,
+          whatsapp: body.whatsapp,
+          source: action === 'extend' ? 'admin_extend' : 'admin_grant',
+        });
+      } else if (action === 'cancel') {
+        subscription = adminCancelSubscription(userId);
+      } else if (action === 'set_expires') {
+        subscription = adminSetExpires(userId, body.expiresAt);
+      } else {
+        send(res, 400, { ok: false, error: 'acao_invalida' });
+        return;
+      }
+
+      if (!subscription) {
+        send(res, 404, { ok: false, error: 'assinatura_nao_encontrada' });
+        return;
+      }
+
+      send(res, 200, {
+        ok: true,
+        action,
+        subscription,
+        subscriptions: listManageableSubscriptions(),
+        activeSubscriptions: listActiveSubscriptions(),
+      });
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
     return;
   }
 

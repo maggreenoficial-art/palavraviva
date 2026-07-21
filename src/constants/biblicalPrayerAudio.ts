@@ -32,7 +32,7 @@ const audioRequires: Record<string, number> = {
   'salmo-27': require('../../assets/audio/biblia-samples/salmo-27.mp3'),
 };
 
-const audioOrderIndex = new Map(
+const audioOrderIndex = new Map<string, number>(
   BIBLICAL_PRAYER_AUDIO_ORDER.map((id, index) => [id, index]),
 );
 
@@ -59,7 +59,7 @@ export function getBiblicalPrayerAudioSource(
 }
 
 export function hasBiblicalPrayerAudio(passageId: string) {
-  return Boolean(audioRequires[passageId]);
+  return audioOrderIndex.has(passageId);
 }
 
 export function listBiblicalPrayerAudioIds() {

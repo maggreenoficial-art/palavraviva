@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { BrandMark } from '../src/components/BrandMark';
 import { FeelingButton } from '../src/components/FeelingButton';
 import { trackAnalytics } from '../src/services/analytics';
+import { trackMetaEvent } from '../src/services/metaPixel';
 import { useUserStore } from '../src/store/useUserStore';
 import { colors, radius, spacing, typography } from '../src/theme';
 import type { Feeling } from '../src/types';
@@ -65,6 +66,7 @@ export default function OnboardingScreen() {
     setError(null);
     completeProfile({ name: cleaned, whatsapp: digits });
     void trackAnalytics({ name: 'signup', path: '/onboarding' });
+    trackMetaEvent('Lead', { content_name: 'onboarding' });
     setStep('feeling');
   }
 
@@ -95,8 +97,9 @@ export default function OnboardingScreen() {
               <Text style={styles.question}>Como podemos te chamar?</Text>
               <Text style={styles.support}>
                 Seu nome aparece na saudação. O WhatsApp nos ajuda a acompanhar
-                a jornada e apoiar a missão. Você ganha 3 dias (72h) de acesso
-                completo.
+                a jornada e apoiar a missão. O app é gratuito: SOS, Bíblia e
+                conteúdos livres ficam liberados. A Missão+ é opcional, se
+                quiser todos os áudios premium.
               </Text>
 
               <Text style={styles.label}>Nome *</Text>

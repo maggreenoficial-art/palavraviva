@@ -15,10 +15,10 @@ import {
 } from 'react-native';
 import {
   SUBSCRIPTION_PRICE_LABEL,
-  TRIAL_HOURS,
   useUserStore,
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
+import { trackMetaEvent } from '../services/metaPixel';
 import {
   formatCardNumber,
   formatCpf,
@@ -93,10 +93,7 @@ export function SubscriptionPaywall({
           name: 'subscription_activated',
           meta: { method: 'pix' },
         });
-        setMessage('Pagamento confirmado. Assinatura ativa!');
-        setTimeout(() => {
-          if (!signal.cancelled) onClose();
-        }, 900);
+        await handleSuccess();
       }
     })();
     return () => {
@@ -116,6 +113,11 @@ export function SubscriptionPaywall({
   }
 
   async function handleSuccess() {
+    trackMetaEvent('Subscribe', {
+      content_name: 'missao_plus',
+      currency: 'BRL',
+      value: 19.9,
+    });
     setMessage('Pagamento confirmado. Assinatura ativa!');
     setTimeout(() => {
       setMessage(null);
@@ -289,9 +291,8 @@ export function SubscriptionPaywall({
                 : 'Continue com a assinatura'}
             </Text>
             <Text style={styles.body}>
-              Leituras bíblicas continuam grátis. A Missão+ libera todos os
-              áudios com calma e sem pressa. Seus {TRIAL_HOURS}h de teste
-              terminaram.
+              O app é gratuito: SOS, Bíblia e vários áudios livres continuam
+              liberados. A Missão+ é opcional e libera todos os áudios premium.
             </Text>
 
             <View style={styles.benefits}>

@@ -46,6 +46,17 @@ type TrackPayload = {
 
 const SESSION_KEY = 'pv_analytics_session';
 const ATTR_KEY = 'pv_analytics_attribution';
+const GEO_KEY = 'pv_analytics_client_geo';
+
+type ClientGeo = {
+  city: string;
+  region: string;
+  country: string;
+  lat: number | null;
+  lon: number | null;
+};
+
+let memoryClientGeo: ClientGeo | null | undefined;
 
 function analyticsBaseUrl() {
   const fromExtra = (
@@ -177,14 +188,68 @@ function currentUserProfile() {
   };
 }
 
+/** Geo pelo IP público do aparelho (não pelo servidor localhost). */
+async function getClientGeo(): Promise<ClientGeo | null> {
+  if (memoryClientGeo !== undefined) return memoryClientGeo;
+
+  try {
+    const cached = await AsyncStorage.getItem(GEO_KEY);
+    if (cached) {
+      memoryClientGeo = JSON.parse(cached) as ClientGeo;
+      return memoryClientGeo;
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const response = await fetch('https://ipwho.is/', {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    const data = (await response.json()) as {
+      success?: boolean;
+      city?: string;
+      region?: string;
+      country_code?: string;
+      latitude?: number;
+      longitude?: number;
+    };
+    if (!data?.success || !data.city) {
+      memoryClientGeo = null;
+      return null;
+    }
+    const geo: ClientGeo = {
+      city: data.city,
+      region: data.region || '',
+      country: data.country_code || '',
+      lat: typeof data.latitude === 'number' ? data.latitude : null,
+      lon: typeof data.longitude === 'number' ? data.longitude : null,
+    };
+    memoryClientGeo = geo;
+    try {
+      await AsyncStorage.setItem(GEO_KEY, JSON.stringify(geo));
+    } catch {
+      // ignore
+    }
+    return geo;
+  } catch {
+    memoryClientGeo = null;
+    return null;
+  }
+}
+
 export async function trackAnalytics(payload: TrackPayload) {
   const base = analyticsBaseUrl();
   if (!base) return;
 
   try {
-    const [sessionId, attribution] = await Promise.all([
+    const [sessionId, attribution, clientGeo] = await Promise.all([
       getSessionId(),
       getAttribution(),
+      getClientGeo(),
     ]);
     const profile = currentUserProfile();
 
@@ -197,6 +262,7 @@ export async function trackAnalytics(payload: TrackPayload) {
         sessionId,
         platform: Platform.OS,
         attribution,
+        clientGeo,
         occurredAt: new Date().toISOString(),
       }),
     });
@@ -211,7 +277,7 @@ export async function bootstrapAnalytics() {
     return;
   }
   bootstrapped = true;
-  await getAttribution();
+  await Promise.all([getAttribution(), getClientGeo()]);
   const path =
     Platform.OS === 'web' && typeof window !== 'undefined'
       ? window.location?.pathname

@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { BiblicalPassage } from '../../src/components/BiblicalPassage';
 import { SyncedScriptureReader } from '../../src/components/SyncedScriptureReader';
 import { getBiblicalPrayerAudioSource } from '../../src/constants/biblicalPrayerAudio';
+import { bibliaMediaId } from '../../src/services/mediaAccess';
 import { trackAnalytics } from '../../src/services/analytics';
 import {
   getBiblicalTextById,
@@ -106,6 +107,8 @@ export default function OracaoDetailScreen() {
           <SyncedScriptureReader
             passage={passage}
             audioSource={audioSource}
+            mediaKind="biblia"
+            mediaId={bibliaMediaId(passage.id)}
             subtitle="Acompanhe o texto enquanto a narração avança"
             analyticsId={passage.id}
             analyticsTitle={passage.title}

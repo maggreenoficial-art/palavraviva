@@ -40,6 +40,11 @@ secrets/
 # analytics local data
 server/data/
 
+# áudio privado espelhado (usar npm run media:sync)
+server/private-media/*
+!server/private-media/.gitkeep
+!server/private-media/README.md
+
 # typescript
 *.tsbuildinfo
 

@@ -21,10 +21,28 @@ const onboardedState = {
     displayName: 'Ana Clara',
     whatsapp: '11987654321',
     feeling: 'ansioso',
+    fontScale: 'grande',
+    unlockedTools: [],
     trialStartedAt: new Date().toISOString(),
     subscriptionExpiresAt: null,
   },
-  version: 2,
+  version: 4,
+};
+
+/** Onboarding limpo, mas com tipografia grande para o criativo. */
+const freshState = {
+  state: {
+    hasOnboarded: false,
+    userId: null,
+    displayName: null,
+    whatsapp: null,
+    feeling: null,
+    fontScale: 'grande',
+    unlockedTools: [],
+    trialStartedAt: null,
+    subscriptionExpiresAt: null,
+  },
+  version: 4,
 };
 
 const screens = [
@@ -43,18 +61,21 @@ const screens = [
 
 async function seedUser(page, fresh) {
   await page.addInitScript(
-    ({ state, fresh }) => {
+    ({ onboarded, freshState, fresh }) => {
       try {
-        if (fresh) {
-          localStorage.removeItem('palavra-viva-user');
-        } else {
-          localStorage.setItem('palavra-viva-user', JSON.stringify(state));
-        }
+        localStorage.setItem(
+          'palavra-viva-user',
+          JSON.stringify(fresh ? freshState : onboarded),
+        );
       } catch {
         // ignore
       }
     },
-    { state: onboardedState, fresh: Boolean(fresh) },
+    {
+      onboarded: onboardedState,
+      freshState,
+      fresh: Boolean(fresh),
+    },
   );
 }
 
@@ -63,6 +84,34 @@ async function waitForApp(page) {
   // Espera o root do Expo/RN Web
   await page.waitForSelector('#root, [data-testid], body', { timeout: 30_000 });
   await page.waitForTimeout(1800);
+}
+
+/** Amplia tipografia nos criativos (RN Web usa classes atômicas). */
+async function enlargeTypography(page, factor = 1.32) {
+  await page.evaluate((factor) => {
+    const scalePx = (value) => {
+      if (!value || typeof value !== 'string' || !value.endsWith('px')) return null;
+      const n = parseFloat(value);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      return `${Math.round(n * factor)}px`;
+    };
+
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue;
+      }
+      for (const rule of rules) {
+        if (!rule.style) continue;
+        const nextFont = scalePx(rule.style.fontSize);
+        if (nextFont) rule.style.fontSize = nextFont;
+        const nextLine = scalePx(rule.style.lineHeight);
+        if (nextLine) rule.style.lineHeight = nextLine;
+      }
+    }
+  }, factor);
 }
 
 async function main() {
@@ -75,11 +124,14 @@ async function main() {
     isMobile: true,
     hasTouch: true,
     locale: 'pt-BR',
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
   });
 
   console.log(`Base: ${BASE}`);
   console.log(`Saída: ${outDir}`);
-  console.log(`Viewport: ${WIDTH}×${HEIGHT} (9:16)\n`);
+  console.log(`Viewport: ${WIDTH}×${HEIGHT} (9:16)`);
+  console.log(`Tipografia: ampliada 1.32× (criativos)\n`);
 
   for (const screen of screens) {
     const page = await context.newPage();
@@ -89,6 +141,8 @@ async function main() {
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
       await waitForApp(page);
+      await enlargeTypography(page, 1.32);
+      await page.waitForTimeout(300);
       const filePath = path.join(outDir, `${screen.file}.png`);
       await page.screenshot({
         path: filePath,

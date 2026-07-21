@@ -14,6 +14,12 @@ import {
   uploadImageBase64ToKie,
 } from './foto-jesus.mjs';
 import { dataDir } from './payments-shared.mjs';
+import {
+  createMediaTokenResponse,
+  isOriginAllowed,
+  loadMediaBuffer,
+  verifyMediaToken,
+} from './media-access.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -217,12 +223,23 @@ function grantSubscription(userId, meta = {}) {
     base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
 
+  const displayName =
+    (typeof meta.displayName === 'string' && meta.displayName.trim()) ||
+    current?.displayName ||
+    null;
+  const whatsapp =
+    (typeof meta.whatsapp === 'string' && onlyDigits(meta.whatsapp)) ||
+    current?.whatsapp ||
+    null;
+
   subs[userId] = {
     userId,
     expiresAt,
     updatedAt: new Date().toISOString(),
     source: 'wiven',
     ...meta,
+    displayName,
+    whatsapp: whatsapp || null,
   };
   writeSubscriptions(subs);
   return subs[userId];
@@ -1028,10 +1045,10 @@ const serverHandler = async (req, res) => {
 </head>
 <body>
   <h1>API de pagamentos</h1>
-  <p>Esta porta (<code>${PORT}</code>) é o backend de Pix/cartão e Foto com Jesus — <strong>não é o app</strong>.</p>
+  <p>Esta porta (<code>${PORT}</code>) é o backend de Pix/cartão, Foto com Jesus e streaming de áudio — <strong>não é o app</strong>.</p>
   <p>O app gratuito roda com <code>npm start</code> (Expo), em geral em
     <a href="http://localhost:8081">http://localhost:8081</a>.</p>
-  <p class="muted">Missão+ (checkout): <a href="/checkout">/checkout</a> · Saúde: <a href="/api/health">/api/health</a></p>
+  <p class="muted">Missão+: <a href="/checkout">/checkout</a> · Saúde: <a href="/api/health">/api/health</a> · Áudio: <code>POST /api/media/token</code></p>
 </body>
 </html>`,
       'text/html',
@@ -1168,6 +1185,8 @@ const serverHandler = async (req, res) => {
             subscription = grantSubscription(userId, {
               source: 'wiven_card',
               providerRef: wiven.transactionId,
+              displayName: displayName || null,
+              whatsapp: whatsapp || null,
             });
           }
         }
@@ -1429,6 +1448,8 @@ const serverHandler = async (req, res) => {
           sub = grantSubscription(userId, {
             source: 'wiven_poll',
             providerRef: checkout.transactionId,
+            displayName: checkout.displayName || null,
+            whatsapp: checkout.whatsapp || null,
           });
           expiresAt = sub.expiresAt;
           active = true;
@@ -1760,6 +1781,108 @@ const serverHandler = async (req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/media/token') {
+    try {
+      const { json: body } = await readBody(req);
+      const userId = String(body.userId || '').trim();
+      const mediaId = String(body.mediaId || body.id || '').trim();
+      const trialStartedAt =
+        typeof body.trialStartedAt === 'string' ? body.trialStartedAt : null;
+      if (!userId || !mediaId) {
+        send(res, 400, {
+          ok: false,
+          error: 'userId_e_mediaId_obrigatorios',
+        });
+        return;
+      }
+      const host = String(
+        req.headers['x-forwarded-host'] || req.headers.host || '',
+      ).split(',')[0].trim();
+      const proto = String(
+        req.headers['x-forwarded-proto'] ||
+          (host.includes('localhost') ? 'http' : 'https'),
+      ).split(',')[0].trim();
+      const requestBase =
+        PUBLIC_BASE_URL &&
+        /^https:\/\//i.test(PUBLIC_BASE_URL) &&
+        !/localhost|127\.0\.0\.1/i.test(PUBLIC_BASE_URL)
+          ? PUBLIC_BASE_URL
+          : host
+            ? `${proto}://${host}`
+            : PUBLIC_BASE_URL;
+      const result = createMediaTokenResponse({
+        mediaId,
+        userId,
+        trialStartedAt,
+        publicBaseUrl: requestBase || PUBLIC_BASE_URL,
+        readSubscriptions,
+      });
+      send(res, result.status, result.body);
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/media/stream') {
+    try {
+      if (!isOriginAllowed(req)) {
+        send(res, 403, { ok: false, error: 'origem_nao_permitida' });
+        return;
+      }
+      const token = String(url.searchParams.get('token') || '');
+      const verified = verifyMediaToken(token);
+      if (!verified.ok) {
+        send(res, 401, { ok: false, error: verified.error || 'token_invalido' });
+        return;
+      }
+      const buffer = await loadMediaBuffer(verified.mediaId);
+      if (!buffer) {
+        send(res, 404, { ok: false, error: 'media_nao_encontrada' });
+        return;
+      }
+      const range = req.headers.range;
+      const total = buffer.length;
+      const setMediaHeaders = (status, extra = {}) => {
+        const headers = {
+          'Content-Type': 'audio/mpeg',
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Access-Control-Allow-Origin': '*',
+          ...extra,
+        };
+        if (typeof res.setHeader === 'function') {
+          for (const [key, value] of Object.entries(headers)) {
+            res.setHeader(key, value);
+          }
+          res.statusCode = status;
+          return;
+        }
+        res.writeHead(status, headers);
+      };
+      if (range && typeof range === 'string') {
+        const match = /bytes=(\d+)-(\d*)/.exec(range);
+        if (match) {
+          const start = Number(match[1]);
+          const end = match[2] ? Number(match[2]) : total - 1;
+          const chunk = buffer.subarray(start, end + 1);
+          setMediaHeaders(206, {
+            'Content-Length': String(chunk.length),
+            'Content-Range': `bytes ${start}-${end}/${total}`,
+          });
+          res.end(chunk);
+          return;
+        }
+      }
+      setMediaHeaders(200, { 'Content-Length': String(total) });
+      res.end(buffer);
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
+    return;
+  }
+
   send(res, 404, { error: 'not_found' });
 };
 
@@ -1783,6 +1906,8 @@ if (shouldListen || process.env.PAYMENTS_FORCE_LISTEN === '1') {
     console.log(`  GET  /api/access?userId=...`);
     console.log(`  POST /api/foto-jesus/prepare`);
     console.log(`  GET  /api/foto-jesus/status`);
+    console.log(`  POST /api/media/token`);
+    console.log(`  GET  /api/media/stream`);
     console.log(`  Produto: ${PRODUCT_NAME} · R$ ${PRODUCT_PRICE.toFixed(2)}`);
     console.log(
       `  Foto Jesus: R$ ${Number(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE || 5).toFixed(2)} · Kie: ${process.env.KIE_API_KEY ? 'ok' : 'AUSENTE'}`,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +19,11 @@ import { colors, radius, spacing, typography } from '../theme';
 import { trackAnalytics, type ContentKind } from '../services/analytics';
 import { formatTime } from '../utils/formatTime';
 import { isRemoteAudio, resolvePlaybackSource } from '../utils/audioSource';
+import {
+  ambientMediaId,
+  resolveProtectedAudioSource,
+  sessionMediaId,
+} from '../services/mediaAccess';
 
 function contentKindFromSession(category: Session['category']): ContentKind {
   if (category === 'jornada') return 'jornada';
@@ -67,8 +73,11 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
     usePlayerStore();
   const saveProgress = useContinueStore((s) => s.saveProgress);
   const isDownloaded = useDownloadStore((s) => s.isDownloaded(session.id));
-  const bundledOffline = !isRemoteAudio(session.audioSource);
-  const offlineReady = bundledOffline || isDownloaded;
+  const bundledOffline =
+    Platform.OS !== 'web' && !isRemoteAudio(session.audioSource);
+  const offlineReady =
+    Platform.OS !== 'web' && (bundledOffline || isDownloaded);
+  const offlineAllowed = Platform.OS !== 'web';
 
   const biblicalIds =
     session.biblicalPrayerIds ??
@@ -100,7 +109,15 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
         staysActiveInBackground: true,
       });
 
-      const voiceSource = resolvePlaybackSource(session.audioSource);
+      const voiceResolved = await resolveProtectedAudioSource({
+        mediaId: sessionMediaId(session.id),
+        localSource:
+          typeof session.audioSource === 'number' ? session.audioSource : null,
+      });
+      const voiceSource =
+        typeof voiceResolved === 'number'
+          ? resolvePlaybackSource(voiceResolved)
+          : voiceResolved;
       const { sound: nextVoice } = await Audio.Sound.createAsync(
         voiceSource,
         { shouldPlay: false, volume: voiceVolume },
@@ -127,7 +144,17 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
       voiceSound = nextVoice;
 
       if (session.ambientSource != null) {
-        const ambientSource = resolvePlaybackSource(session.ambientSource);
+        const ambientResolved = await resolveProtectedAudioSource({
+          mediaId: ambientMediaId(session.id),
+          localSource:
+            typeof session.ambientSource === 'number'
+              ? session.ambientSource
+              : null,
+        });
+        const ambientSource =
+          typeof ambientResolved === 'number'
+            ? resolvePlaybackSource(ambientResolved)
+            : ambientResolved;
         const { sound: nextAmbient } = await Audio.Sound.createAsync(
           ambientSource,
           {
@@ -270,11 +297,17 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
           </Text>
         ) : null}
 
-        <Text style={styles.offline}>
-          {offlineReady
-            ? '✓ Disponível offline'
-            : 'Baixe esta sessão para ouvir offline.'}
-        </Text>
+        {offlineAllowed ? (
+          <Text style={styles.offline}>
+            {offlineReady
+              ? '✓ Disponível offline'
+              : 'Offline disponível apenas no app instalado.'}
+          </Text>
+        ) : (
+          <Text style={styles.offline}>
+            Áudio protegido · streaming seguro (sem download no site)
+          </Text>
+        )}
 
         <Pressable
           accessibilityRole="button"

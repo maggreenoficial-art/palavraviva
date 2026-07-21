@@ -4,11 +4,15 @@ import {
   startPresenceHeartbeat,
   trackAnalytics,
 } from '../services/analytics';
+import {
+  initMetaPixel,
+  trackMetaPageView,
+} from '../services/metaPixel';
 import { syncSubscriptionAccess } from '../services/wivenCheckout';
 import { useUserStore } from '../store/useUserStore';
 import { usePathname } from 'expo-router';
 
-/** Inicializa analytics, presença online, pageviews e sync de assinatura. */
+/** Inicializa analytics, Pixel Meta, presença online, pageviews e sync de assinatura. */
 export function AnalyticsBootstrap() {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
@@ -19,6 +23,7 @@ export function AnalyticsBootstrap() {
   const pathname = usePathname();
 
   useEffect(() => {
+    initMetaPixel();
     void bootstrapAnalytics();
     return startPresenceHeartbeat();
   }, [userId, displayName, whatsapp]);
@@ -30,6 +35,7 @@ export function AnalyticsBootstrap() {
 
   useEffect(() => {
     if (!pathname) return;
+    trackMetaPageView();
     void trackAnalytics({
       name: 'screen_view',
       path: pathname,

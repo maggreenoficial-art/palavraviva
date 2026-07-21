@@ -6,6 +6,7 @@ import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
 import { SyncedScriptureReader } from '../../src/components/SyncedScriptureReader';
 import { getOldTestamentPrayerById } from '../../src/constants/oldTestamentPrayers';
 import { getOtPrayerAudioSource } from '../../src/constants/otPrayerAudio';
+import { otMediaId } from '../../src/services/mediaAccess';
 import { getBiblicalTextById } from '../../src/services/biblicalContent';
 import { trackAnalytics } from '../../src/services/analytics';
 import { canAccessOtPrayer } from '../../src/services/contentAccess';
@@ -94,6 +95,8 @@ export default function LeituraGuiadaScreen() {
       <SyncedScriptureReader
         passage={passage}
         audioSource={audioSource}
+        mediaKind="ot"
+        mediaId={otMediaId(otPrayer.id)}
         subtitle="Acompanhe o texto enquanto a narração avança"
         analyticsId={otPrayer.id}
         analyticsTitle={otPrayer.title}

@@ -4,9 +4,10 @@ import type { Session } from '../types';
 
 /**
  * Regras freemium (fonte da verdade):
- * - trial (72h) / subscribed → todos os áudios
- * - locked → SOS livre; jornada dia a dia; série só dia 1; OT order≤3;
+ * - subscribed (Missão+) → todos os áudios
+ * - locked (gratuito) → SOS livre; jornada dia a dia; série só dia 1; OT order≤3;
  *   meditações/manhã/noite = Missão+; leituras bíblicas (texto) sempre livres
+ * - Não há trial/tempo grátis da Missão+
  *
  * NÃO usar IDs inventados (jornada-1, serie-1). Usar session.category + journeyDay
  * e prayer.order do catálogo real.
@@ -23,11 +24,11 @@ export type ContentGateReason =
   | 'ot_locked';
 
 /**
- * Assinantes e trial têm acesso total a áudios.
+ * Só Missão+ ativa tem acesso total a áudios.
  * Fora disso, regras freemium por tipo de conteúdo.
  */
 export function hasFullAudioAccess(accessKind: AccessKind) {
-  return accessKind === 'trial' || accessKind === 'subscribed';
+  return accessKind === 'subscribed';
 }
 
 /** Texto bíblico (aba Bíblia) é sempre gratuito. */

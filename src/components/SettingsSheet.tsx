@@ -4,7 +4,6 @@ import { clearSensitiveLocalData } from '../store/usePrivacyActions';
 import {
   SUBSCRIPTION_PRICE_LABEL,
   computeAccessKind,
-  computeTrialRemainingMs,
   useUserStore,
   type FontScale,
 } from '../store/useUserStore';
@@ -39,7 +38,6 @@ export function SettingsSheet({
   const trialStartedAt = useUserStore((s) => s.trialStartedAt);
   const subscriptionExpiresAt = useUserStore((s) => s.subscriptionExpiresAt);
   const accessKind = computeAccessKind(trialStartedAt, subscriptionExpiresAt);
-  const trialRemainingMs = computeTrialRemainingMs(trialStartedAt);
   const [localScale, setLocalScale] = useState<FontScale>(fontScale);
 
   useEffect(() => {
@@ -53,9 +51,7 @@ export function SettingsSheet({
             ? ` · até ${new Date(subscriptionExpiresAt).toLocaleDateString('pt-BR')}`
             : ''
         }`
-      : accessKind === 'trial'
-        ? `Acesso gratuito · ~${Math.ceil(trialRemainingMs / (60 * 60 * 1000))}h restantes`
-        : 'Acesso gratuito encerrado';
+      : 'App gratuito · Missão+ opcional';
 
   const styles = useMemo(
     () =>

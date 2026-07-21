@@ -16,11 +16,19 @@ import { trackAnalytics } from '../services/analytics';
 import { formatTime } from '../utils/formatTime';
 import { getActiveVerseIndex } from '../utils/verseSync';
 import { resolvePlaybackSource } from '../utils/audioSource';
+import {
+  bibliaMediaId,
+  otMediaId,
+  resolveProtectedAudioSource,
+} from '../services/mediaAccess';
 import type { AudioSource } from '../types';
 
 interface SyncedScriptureReaderProps {
   passage: BiblicalText;
   audioSource: AudioSource;
+  /** Preferir streaming: biblia | ot + id */
+  mediaKind?: 'biblia' | 'ot';
+  mediaId?: string;
   subtitle?: string;
   analyticsId?: string;
   analyticsTitle?: string;
@@ -29,6 +37,8 @@ interface SyncedScriptureReaderProps {
 export function SyncedScriptureReader({
   passage,
   audioSource,
+  mediaKind = 'biblia',
+  mediaId,
   subtitle,
   analyticsId,
   analyticsTitle,
@@ -76,9 +86,21 @@ export function SyncedScriptureReader({
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
         });
-        const source = resolvePlaybackSource(audioSource);
+        const resolvedId =
+          mediaId ||
+          (mediaKind === 'ot'
+            ? otMediaId(analyticsId || passage.id)
+            : bibliaMediaId(passage.id));
+        const source = await resolveProtectedAudioSource({
+          mediaId: resolvedId,
+          localSource: typeof audioSource === 'number' ? audioSource : null,
+        });
+        const playbackSource =
+          typeof source === 'number'
+            ? resolvePlaybackSource(source)
+            : source;
         const { sound } = await Audio.Sound.createAsync(
-          source,
+          playbackSource,
           { shouldPlay: false, progressUpdateIntervalMillis: 100 },
           (status) => {
             if (!mounted || !status.isLoaded) return;
@@ -112,7 +134,7 @@ export function SyncedScriptureReader({
       void soundRef.current?.unloadAsync();
       soundRef.current = null;
     };
-  }, [audioSource]);
+  }, [audioSource, mediaId, mediaKind, analyticsId, passage.id]);
 
   useEffect(() => {
     if (!followReading || userScrolling.current) return;
