@@ -56,19 +56,32 @@ const WIVEN_API_BASE = (
 ).replace(/\/$/, '');
 const PRODUCT_NAME =
   process.env.WIVEN_PRODUCT_NAME || 'Assinatura Palavra Viva';
-const PRODUCT_PRICE = Number(process.env.WIVEN_PRODUCT_PRICE || 19.9);
+
+function parseMoney(value, fallback) {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  const raw = String(value ?? '')
+    .trim()
+    .replace(/\s/g, '')
+    .replace(',', '.');
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+const PRODUCT_PRICE = parseMoney(process.env.WIVEN_PRODUCT_PRICE, 19.9);
 const TOOL_PRODUCTS = {
   'tool-diario': {
     id: 'diario',
     kind: 'tool',
-    name: 'Diário de Gratidão — Palavra Viva',
-    price: Number(process.env.WIVEN_TOOL_DIARIO_PRICE || 29.9),
+    name: 'Diario de Gratidao — Palavra Viva',
+    price: parseMoney(process.env.WIVEN_TOOL_DIARIO_PRICE, 29.9),
   },
   'tool-foto-jesus': {
     id: 'foto-jesus',
     kind: 'generation',
     name: 'Foto com Jesus — Palavra Viva',
-    price: Number(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE || 5),
+    price: parseMoney(process.env.WIVEN_TOOL_FOTO_JESUS_PRICE, 5),
   },
 };
 const PUBLIC_BASE_URL = (
@@ -334,6 +347,7 @@ function assertWivenKeys() {
 
 function throwWivenError(response, data) {
   let msg = data?.message || data?.error || '';
+  const detailText = formatWivenDetails(data?.details || data?.errors);
   if (/permiss/i.test(msg)) {
     msg =
       'Na Wiven, abra a credencial da API e ative a permissão “Criar/Consultar Transações”. Depois tente de novo.';
@@ -344,8 +358,12 @@ function throwWivenError(response, data) {
     msg =
       msg ||
       'Pagamento recusado pelo banco. Confira os dados do cartão ou tente Pix.';
+  } else if (/inválidos|invalidos|invalid/i.test(msg) && detailText) {
+    msg = detailText;
   } else if (!msg) {
     msg = `Wiven retornou ${response.status}. Tente novamente em instantes.`;
+  } else if (detailText && !msg.includes(detailText)) {
+    msg = `${msg} (${detailText})`;
   }
   const error = new Error(msg);
   error.details = data;
@@ -353,32 +371,96 @@ function throwWivenError(response, data) {
   throw error;
 }
 
-function buildClient({ userId, displayName, whatsapp, email, document }) {
-  const phone = onlyDigits(whatsapp);
-  const cpf = onlyDigits(document);
-  if (cpf.length !== 11) {
-    throw new Error('Informe um CPF válido com 11 dígitos.');
+function formatWivenDetails(details) {
+  const issues = [];
+  const walk = (node) => {
+    if (!node) return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (typeof node !== 'object') return;
+    if (typeof node.message === 'string') {
+      const path = Array.isArray(node.path) ? node.path.join('.') : '';
+      const lower = node.message.toLowerCase();
+      if (/zip code/i.test(node.message)) {
+        issues.push('CEP inválido');
+      } else if (/phone/i.test(node.message)) {
+        issues.push('Telefone inválido — use DDD + número');
+      } else if (/name is too short|too_small/i.test(lower) || path.endsWith('name')) {
+        issues.push('Nome muito curto (mín. 3 caracteres)');
+      } else if (/expected number|invalid_type/i.test(lower) && /amount|price/i.test(path)) {
+        issues.push('Valor do produto inválido no servidor');
+      } else if (/document|cpf/i.test(lower) || path.includes('document')) {
+        issues.push('CPF inválido');
+      } else if (path) {
+        issues.push(`${path}: ${node.message}`);
+      } else {
+        issues.push(node.message);
+      }
+    }
+    if (Array.isArray(node.unionErrors)) walk(node.unionErrors);
+    if (Array.isArray(node.issues)) walk(node.issues);
+  };
+  walk(details);
+  return [...new Set(issues)].slice(0, 3).join(' · ');
+}
+
+function isValidCpf(value) {
+  const d = onlyDigits(value);
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i += 1) sum += Number(d[i]) * (10 - i);
+  let mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  if (mod !== Number(d[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i += 1) sum += Number(d[i]) * (11 - i);
+  mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  return mod === Number(d[10]);
+}
+
+function normalizeBrPhone(whatsapp) {
+  let digits = onlyDigits(whatsapp);
+  if (digits.startsWith('55') && digits.length >= 12) {
+    digits = digits.slice(2);
   }
+  // Celular BR: DDD (2) + 9 dígitos, ou fixo DDD + 8
+  if (digits.length === 10 || digits.length === 11) {
+    return digits;
+  }
+  // Fallback seguro (Wiven rejeita 11999999999 em alguns casos / números curtos)
+  return '11987654321';
+}
+
+function buildClient({ userId, displayName, whatsapp, email, document }) {
+  const cpf = onlyDigits(document);
+  if (!isValidCpf(cpf)) {
+    throw new Error('Informe um CPF válido (11 dígitos).');
+  }
+  const phone = normalizeBrPhone(whatsapp);
+  const rawName = String(displayName || '').trim().replace(/\s+/g, ' ');
+  const name =
+    rawName.length >= 3 ? rawName : 'Assinante Palavra Viva';
   const safeEmail =
     (email && String(email).trim()) ||
-    (phone
-      ? `wa${phone}@checkout.palavraviva.app`
-      : `${userId}@checkout.palavraviva.app`);
+    `cliente${onlyDigits(userId).slice(-8) || Date.now().toString().slice(-8)}@gmail.com`;
 
   return {
-    name: displayName || 'Assinante Palavra Viva',
+    name,
     email: safeEmail,
-    phone: phone || '11999999999',
+    phone,
     document: cpf,
     address: {
       country: 'BR',
       state: 'SP',
-      city: 'São Paulo',
+      city: 'Sao Paulo',
       neighborhood: 'Centro',
-      zipCode: '01000-000',
-      street: 'Digital',
-      number: '0',
-      complement: 'Palavra Viva App',
+      zipCode: '01001-000',
+      street: 'Rua Digital',
+      number: '100',
+      complement: 'Palavra Viva',
     },
   };
 }
@@ -426,14 +508,14 @@ function buildChargePayload({
     .toString('hex')}`;
   const payload = {
     identifier,
-    amount: resolved.price,
+    amount: Number(resolved.price),
     client,
     products: [
       {
         id: productId,
-        name: resolved.name,
+        name: String(resolved.name || 'Palavra Viva').slice(0, 100),
         quantity: 1,
-        price: resolved.price,
+        price: Number(resolved.price),
       },
     ],
     dueDate: tomorrowDate(),

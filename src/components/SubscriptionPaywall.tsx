@@ -22,6 +22,7 @@ import { trackMetaEvent } from '../services/metaPixel';
 import {
   formatCpf,
   formatExpiry,
+  isValidCpf,
   payWithCard,
   payWithPix,
   pollSubscriptionAccess,
@@ -138,6 +139,10 @@ export function SubscriptionPaywall({
       setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
+    if (!isValidCpf(document)) {
+      setError('Informe um CPF válido antes de pagar.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -199,6 +204,10 @@ export function SubscriptionPaywall({
       setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
+    if (!isValidCpf(document)) {
+      setError('Informe um CPF válido antes de gerar o Pix.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -209,7 +218,7 @@ export function SubscriptionPaywall({
       });
       const result = await payWithPix({
         userId,
-        displayName,
+        displayName: displayName || 'Assinante Palavra Viva',
         whatsapp,
         document,
       });

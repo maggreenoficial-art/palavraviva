@@ -93,6 +93,7 @@ async function postCheckout<T>(
 
   if (!response.ok || !data.ok) {
     const raw = (data as { error?: string }).error || '';
+    const details = (data as { details?: unknown }).details;
     if (raw === 'not_found' || response.status === 404) {
       throw new Error(
         'API de pagamentos indisponível neste ambiente. Confira o deploy das rotas /api no Vercel.',
@@ -103,9 +104,38 @@ async function postCheckout<T>(
         'Cartão temporariamente bloqueado após várias tentativas. Aguarde 15–30 min ou pague com Pix agora.',
       );
     }
+    if (details && /inválidos|invalidos/i.test(raw)) {
+      const hint = summarizeCheckoutDetails(details);
+      throw new Error(hint || raw);
+    }
     throw new Error(raw || 'Não foi possível processar o pagamento.');
   }
   return data;
+}
+
+function summarizeCheckoutDetails(details: unknown): string {
+  const messages: string[] = [];
+  const walk = (node: unknown) => {
+    if (!node) return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (typeof node !== 'object') return;
+    const item = node as { message?: string; path?: string[] };
+    if (typeof item.message === 'string') {
+      if (/phone/i.test(item.message)) messages.push('Telefone inválido');
+      else if (/zip/i.test(item.message)) messages.push('CEP inválido');
+      else if (/name/i.test(item.message)) messages.push('Nome inválido');
+      else if (/number|amount|price/i.test(item.message))
+        messages.push('Valor inválido');
+      else messages.push(item.message);
+    }
+    walk((node as { issues?: unknown }).issues);
+    walk((node as { unionErrors?: unknown }).unionErrors);
+  };
+  walk(details);
+  return [...new Set(messages)].slice(0, 2).join(' · ');
 }
 
 export async function payWithCard(
@@ -269,4 +299,19 @@ export function formatCpf(value: string) {
     .replace(/(\d{3})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+}
+
+export function isValidCpf(value: string) {
+  const d = value.replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i += 1) sum += Number(d[i]) * (10 - i);
+  let mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  if (mod !== Number(d[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i += 1) sum += Number(d[i]) * (11 - i);
+  mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  return mod === Number(d[10]);
 }

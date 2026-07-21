@@ -24,6 +24,7 @@ import { checkFotoJesusPayment } from '../services/fotoJesus';
 import {
   formatCpf,
   formatExpiry,
+  isValidCpf,
   payWithCard,
   payWithPix,
 } from '../services/wivenCheckout';
@@ -546,6 +547,10 @@ export function ToolPaywall({
       setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
+    if (!isValidCpf(document)) {
+      setError('Informe um CPF válido antes de pagar.');
+      return;
+    }
     if (isConsumable && !generationId) {
       setError('Envie a foto antes de pagar.');
       return;
@@ -618,6 +623,10 @@ export function ToolPaywall({
       setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
+    if (!isValidCpf(document)) {
+      setError('Informe um CPF válido antes de gerar o Pix.');
+      return;
+    }
     if (isConsumable && !generationId) {
       setError('Envie a foto antes de pagar.');
       return;
@@ -633,7 +642,7 @@ export function ToolPaywall({
       });
       const result = await payWithPix({
         userId,
-        displayName,
+        displayName: displayName || 'Assinante Palavra Viva',
         whatsapp,
         document,
         product: productKey,
