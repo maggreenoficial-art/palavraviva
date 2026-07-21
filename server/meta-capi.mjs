@@ -89,6 +89,7 @@ export async function sendMetaConversionEvent({
   user = {},
   customData = {},
   eventTime,
+  testEventCode,
 } = {}) {
   if (!ACCESS_TOKEN || !PIXEL_ID) {
     return { ok: false, skipped: true, error: 'meta_capi_nao_configurado' };
@@ -111,6 +112,15 @@ export async function sendMetaConversionEvent({
       },
     ],
   };
+
+  const testCode = (
+    testEventCode ||
+    process.env.META_CAPI_TEST_EVENT_CODE ||
+    ''
+  ).trim();
+  if (testCode) {
+    payload.test_event_code = testCode;
+  }
 
   // Remove undefined nested fields
   payload.data[0] = Object.fromEntries(

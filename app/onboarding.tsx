@@ -17,6 +17,7 @@ import { trackMetaEvent } from '../src/services/metaPixel';
 import { useUserStore } from '../src/store/useUserStore';
 import { colors, radius, spacing, typography } from '../src/theme';
 import type { Feeling } from '../src/types';
+import { formatWhatsapp, whatsappDigits } from '../src/utils/inputMasks';
 
 const feelings: Array<{
   id: Feeling;
@@ -54,13 +55,13 @@ export default function OnboardingScreen() {
 
   function handleContinueProfile() {
     const cleaned = name.trim();
-    const digits = whatsapp.replace(/\D/g, '');
+    const digits = whatsappDigits(whatsapp);
     if (cleaned.length < 2) {
       setError('Informe seu nome (mínimo 2 letras).');
       return;
     }
-    if (digits.length < 10 || digits.length > 13) {
-      setError('Informe um WhatsApp válido com DDD (ex: 11999999999).');
+    if (digits.length < 10 || digits.length > 11) {
+      setError('Informe um WhatsApp válido com DDD (ex: 11 99999-9999).');
       return;
     }
     setError(null);
@@ -117,10 +118,12 @@ export default function OnboardingScreen() {
               <Text style={styles.label}>WhatsApp *</Text>
               <TextInput
                 value={whatsapp}
-                onChangeText={setWhatsapp}
-                placeholder="DDD + número"
+                onChangeText={(v) => setWhatsapp(formatWhatsapp(v))}
+                placeholder="(11) 99999-9999"
                 placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
+                keyboardType="number-pad"
+                inputMode="numeric"
+                maxLength={15}
                 style={styles.input}
                 accessibilityLabel="WhatsApp"
               />

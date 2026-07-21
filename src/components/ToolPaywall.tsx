@@ -22,14 +22,18 @@ import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
 import { checkFotoJesusPayment } from '../services/fotoJesus';
 import {
-  formatCardNumber,
   formatCpf,
   formatExpiry,
   payWithCard,
   payWithPix,
 } from '../services/wivenCheckout';
+import { CardBrandIcons } from './CardBrandIcons';
 import { useUserStore } from '../store/useUserStore';
 import { MIN_TAP, colors, radius, spacing, useTypography } from '../theme';
+import {
+  detectCardBrand,
+  formatCardNumberByBrand,
+} from '../utils/inputMasks';
 
 interface ToolPaywallProps {
   visible: boolean;
@@ -114,6 +118,10 @@ export function ToolPaywall({
   const [copied, setCopied] = useState(false);
   const unlockingRef = useRef(false);
   const { isDesktop, shellMaxWidth } = useResponsive();
+  const cardBrand = useMemo(
+    () => detectCardBrand(cardNumber),
+    [cardNumber],
+  );
 
   function mergeTxIds(current: string[], next: string | null | undefined) {
     const list = [...current];
@@ -368,6 +376,13 @@ export function ToolPaywall({
           color: colors.textSecondary,
           marginTop: spacing.sm,
           marginBottom: 6,
+        },
+        brandHint: {
+          marginTop: 4,
+          marginBottom: spacing.xs,
+          color: colors.accent,
+          fontFamily: 'DMSans_500Medium',
+          fontSize: 12,
         },
         input: {
           minHeight: 54,
@@ -841,14 +856,34 @@ export function ToolPaywall({
             {method === 'card' && !pixReady ? (
               <>
                 <Text style={styles.label}>Número do cartão</Text>
+                <CardBrandIcons active={cardBrand} />
                 <TextInput
                   value={cardNumber}
-                  onChangeText={(v) => setCardNumber(formatCardNumber(v))}
-                  placeholder="ACCT-000003"
+                  onChangeText={(v) =>
+                    setCardNumber(
+                      formatCardNumberByBrand(v, detectCardBrand(v)),
+                    )
+                  }
+                  placeholder="0000 0000 0000 0000"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
+                  inputMode="numeric"
+                  maxLength={19}
                   style={styles.input}
                 />
+                {cardBrand ? (
+                  <Text style={styles.brandHint}>
+                    Bandeira detectada:{' '}
+                    {cardBrand === 'mastercard'
+                      ? 'Mastercard'
+                      : cardBrand === 'amex'
+                        ? 'American Express'
+                        : cardBrand === 'hipercard'
+                          ? 'Hipercard'
+                          : cardBrand.charAt(0).toUpperCase() +
+                            cardBrand.slice(1)}
+                  </Text>
+                ) : null}
                 <Text style={styles.label}>Nome no cartão</Text>
                 <TextInput
                   value={cardOwner}
