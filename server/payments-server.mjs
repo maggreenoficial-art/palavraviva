@@ -1419,14 +1419,15 @@ const serverHandler = async (req, res) => {
 
       // Dispara ANTES da Wiven — mesmo se cartão/Pix falhar, o Meta registra o funil
       // await obrigatório no Vercel (sem await a lambda morre antes do envio)
-      await fireMetaCapiSafe({
+      const metaInitiate = await fireMetaCapiSafe({
         eventName: 'InitiateCheckout',
         ...metaUser,
         customData: metaCheckoutData,
       });
 
+      let metaAddPayment = null;
       if (method === 'card') {
-        await fireMetaCapiSafe({
+        metaAddPayment = await fireMetaCapiSafe({
           eventName: 'AddPaymentInfo',
           ...metaUser,
           customData: {
@@ -1545,11 +1546,24 @@ const serverHandler = async (req, res) => {
           resultUrl: generation?.resultUrl || null,
           unlockedTools,
           subscriptionExpiresAt: subscription?.expiresAt || null,
+          meta: {
+            testEventCode: testEventCode || null,
+            initiateCheckout: {
+              ok: Boolean(metaInitiate?.ok),
+              skipped: Boolean(metaInitiate?.skipped),
+              error: metaInitiate?.error || null,
+            },
+            addPaymentInfo: {
+              ok: Boolean(metaAddPayment?.ok),
+              skipped: Boolean(metaAddPayment?.skipped),
+              error: metaAddPayment?.error || null,
+            },
+          },
         });
         return;
       }
 
-      await fireMetaCapiSafe({
+      metaAddPayment = await fireMetaCapiSafe({
         eventName: 'AddPaymentInfo',
         ...metaUser,
         customData: {
@@ -1599,6 +1613,19 @@ const serverHandler = async (req, res) => {
         generationId: generationId || null,
         pixCode: wiven.pixCode,
         pixImage: wiven.pixImage,
+        meta: {
+          testEventCode: testEventCode || null,
+          initiateCheckout: {
+            ok: Boolean(metaInitiate?.ok),
+            skipped: Boolean(metaInitiate?.skipped),
+            error: metaInitiate?.error || null,
+          },
+          addPaymentInfo: {
+            ok: Boolean(metaAddPayment?.ok),
+            skipped: Boolean(metaAddPayment?.skipped),
+            error: metaAddPayment?.error || null,
+          },
+        },
       });
     } catch (error) {
       send(res, error.status && error.status < 500 ? error.status : 400, {

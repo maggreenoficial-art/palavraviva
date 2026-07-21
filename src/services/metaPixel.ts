@@ -173,11 +173,38 @@ export function captureMetaTestEventCode() {
     if (fromQuery?.trim()) {
       const code = fromQuery.trim();
       window.sessionStorage.setItem('meta_test_event_code', code);
+      try {
+        window.localStorage.setItem('meta_test_event_code', code);
+      } catch {
+        // ignore
+      }
+      applyPixelTestEventCode(code);
       return code;
     }
-    return (window.sessionStorage.getItem('meta_test_event_code') || '').trim();
+    const fromSession = (
+      window.sessionStorage.getItem('meta_test_event_code') || ''
+    ).trim();
+    const fromLocal = (
+      window.localStorage.getItem('meta_test_event_code') || ''
+    ).trim();
+    const code = fromSession || fromLocal;
+    if (code) {
+      window.sessionStorage.setItem('meta_test_event_code', code);
+      applyPixelTestEventCode(code);
+    }
+    return code;
   } catch {
     return '';
+  }
+}
+
+/** Faz o Pixel do navegador marcar eventos na aba Eventos de teste. */
+function applyPixelTestEventCode(code: string) {
+  if (!code || typeof window === 'undefined') return;
+  try {
+    callFbq('set', 'test_event_code', code);
+  } catch {
+    // fbq pode ainda não existir — initMetaPixel reaplica
   }
 }
 
@@ -233,6 +260,8 @@ export function initMetaPixel() {
 
   if (typeof window.fbq === 'function') {
     callFbq('init', PIXEL_ID, advanced);
+    const testCode = captureMetaTestEventCode();
+    if (testCode) callFbq('set', 'test_event_code', testCode);
     return;
   }
 
@@ -270,6 +299,8 @@ export function initMetaPixel() {
   s?.parentNode?.insertBefore(t, s);
 
   callFbq('init', PIXEL_ID, advanced);
+  const testCode = captureMetaTestEventCode();
+  if (testCode) callFbq('set', 'test_event_code', testCode);
 }
 
 async function sendCapi(

@@ -172,9 +172,18 @@ function readMetaTestEventCode() {
     if (fromQuery?.trim()) {
       const code = fromQuery.trim();
       window.sessionStorage.setItem('meta_test_event_code', code);
+      try {
+        window.localStorage.setItem('meta_test_event_code', code);
+      } catch {
+        // ignore
+      }
       return code;
     }
-    return (window.sessionStorage.getItem('meta_test_event_code') || '').trim();
+    const fromSession = (
+      window.sessionStorage.getItem('meta_test_event_code') || ''
+    ).trim();
+    if (fromSession) return fromSession;
+    return (window.localStorage.getItem('meta_test_event_code') || '').trim();
   } catch {
     return '';
   }
