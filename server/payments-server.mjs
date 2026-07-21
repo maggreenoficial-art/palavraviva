@@ -20,6 +20,7 @@ import {
   loadMediaBuffer,
   verifyMediaToken,
 } from './media-access.mjs';
+import { sendMetaConversionEvent, metaCapiConfigured } from './meta-capi.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -1880,6 +1881,77 @@ const serverHandler = async (req, res) => {
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
     }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/meta/capi') {
+    try {
+      const { json: body } = await readBody(req);
+      const eventName = String(body.eventName || body.event_name || '').trim();
+      const eventId = String(body.eventId || body.event_id || '').trim();
+      const eventSourceUrl = String(
+        body.eventSourceUrl || body.event_source_url || '',
+      ).trim();
+      const clientIp =
+        (typeof body.clientIp === 'string' && body.clientIp.trim()) ||
+        String(req.headers['x-forwarded-for'] || '')
+          .split(',')[0]
+          .trim() ||
+        req.socket?.remoteAddress ||
+        '';
+      const userAgent =
+        (typeof body.userAgent === 'string' && body.userAgent.trim()) ||
+        String(req.headers['user-agent'] || '');
+
+      const result = await sendMetaConversionEvent({
+        eventName,
+        eventId: eventId || undefined,
+        eventSourceUrl: eventSourceUrl || undefined,
+        user: {
+          userId: body.userId || body.externalId,
+          displayName: body.displayName || body.name,
+          whatsapp: body.whatsapp || body.phone,
+          email: body.email,
+          country: body.country || 'br',
+          city: body.city,
+          state: body.state,
+          clientIp,
+          userAgent,
+          fbp: body.fbp,
+          fbc: body.fbc,
+        },
+        customData: body.customData || body.custom_data || {},
+      });
+
+      if (result.skipped) {
+        send(res, 200, { ok: true, skipped: true, reason: result.error });
+        return;
+      }
+      if (!result.ok) {
+        send(res, 400, {
+          ok: false,
+          error: result.error || 'capi_falhou',
+          details: result.body || null,
+        });
+        return;
+      }
+      send(res, 200, { ok: true, meta: result.body || null });
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/meta/capi') {
+    send(res, 200, {
+      ok: true,
+      configured: metaCapiConfigured(),
+      pixelId: (
+        process.env.META_PIXEL_ID ||
+        process.env.EXPO_PUBLIC_META_PIXEL_ID ||
+        ''
+      ).trim(),
+    });
     return;
   }
 

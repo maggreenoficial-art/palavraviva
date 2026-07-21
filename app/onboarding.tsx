@@ -66,7 +66,7 @@ export default function OnboardingScreen() {
     setError(null);
     completeProfile({ name: cleaned, whatsapp: digits });
     void trackAnalytics({ name: 'signup', path: '/onboarding' });
-    trackMetaEvent('Lead', { content_name: 'onboarding' });
+    trackMetaEvent('CompleteRegistration', { content_name: 'onboarding' });
     setStep('feeling');
   }
 
