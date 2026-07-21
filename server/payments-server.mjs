@@ -2173,6 +2173,75 @@ const serverHandler = async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/meta/capi') {
+    let tokenInfo = null;
+    const token = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
+    if (token) {
+      try {
+        const debugRes = await fetch(
+          `https://graph.facebook.com/v21.0/debug_token?input_token=${encodeURIComponent(
+            token,
+          )}&access_token=${encodeURIComponent(token)}`,
+        );
+        const debugBody = await debugRes.json().catch(() => ({}));
+        const data = debugBody?.data || {};
+        tokenInfo = {
+          isValid: Boolean(data.is_valid),
+          application: data.application || null,
+          scopes: Array.isArray(data.scopes) ? data.scopes : [],
+          /** Token só com read_ads_dataset_quality NÃO grava eventos de verdade */
+          canSendConversions: Array.isArray(data.scopes)
+            ? data.scopes.some(
+                (s) =>
+                  s === 'ads_management' ||
+                  s === 'business_management' ||
+                  s.includes('ads'),
+              ) && !data.scopes.every((s) => s === 'read_ads_dataset_quality')
+            : false,
+          warning:
+            Array.isArray(data.scopes) &&
+            data.scopes.length === 1 &&
+            data.scopes[0] === 'read_ads_dataset_quality'
+              ? 'TOKEN_INVALIDO_PARA_CAPI: gere um novo em Eventos → Configurações → API de Conversões → Gerar token de acesso'
+              : null,
+        };
+        // Heurística: se só tem read_ads_dataset_quality, marcar claramente
+        if (
+          Array.isArray(data.scopes) &&
+          data.scopes.length === 1 &&
+          data.scopes[0] === 'read_ads_dataset_quality'
+        ) {
+          tokenInfo.canSendConversions = false;
+        } else if (data.is_valid && Array.isArray(data.scopes)) {
+          // Tokens gerados no Events Manager para CAPI costumam listar só quality,
+          // mas ainda assim enviam — o problema é quando NÃO aparecem no dataset.
+          tokenInfo.canSendConversions = true;
+        }
+      } catch {
+        tokenInfo = { error: 'debug_token_falhou' };
+      }
+    }
+
+    let datasetEvents = null;
+    if (token) {
+      try {
+        const qRes = await fetch(
+          `https://graph.facebook.com/v21.0/dataset_quality?dataset_id=${encodeURIComponent(
+            (
+              process.env.META_PIXEL_ID ||
+              process.env.EXPO_PUBLIC_META_PIXEL_ID ||
+              ''
+            ).trim(),
+          )}&fields=web&access_token=${encodeURIComponent(token)}`,
+        );
+        const qBody = await qRes.json().catch(() => ({}));
+        datasetEvents = Array.isArray(qBody?.web)
+          ? qBody.web.map((e) => e.event_name).filter(Boolean)
+          : qBody;
+      } catch {
+        datasetEvents = null;
+      }
+    }
+
     send(res, 200, {
       ok: true,
       configured: metaCapiConfigured(),
@@ -2181,6 +2250,10 @@ const serverHandler = async (req, res) => {
         process.env.EXPO_PUBLIC_META_PIXEL_ID ||
         ''
       ).trim(),
+      tokenInfo,
+      datasetEvents,
+      hint:
+        'Se datasetEvents só tem PageView/AddPaymentInfo e a aba Eventos de teste não mostra Servidor, regenere o token CAPI no Events Manager.',
     });
     return;
   }

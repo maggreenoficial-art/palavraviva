@@ -207,6 +207,36 @@ export function trackMetaEvent(
   }
 }
 
+/**
+ * Com ?test_event_code= na URL, dispara conversões pelo Pixel do navegador
+ * (mesmo caminho do PageView que já aparece na aba Eventos de teste).
+ * Assim dá para validar o Pixel sem depender do token CAPI.
+ */
+export function trackMetaTestCheckoutProbe() {
+  if (Platform.OS !== 'web') return;
+  const code = captureMetaTestEventCode();
+  if (!code) return;
+  try {
+    if (window.sessionStorage.getItem('meta_test_probe_done') === '1') return;
+    window.sessionStorage.setItem('meta_test_probe_done', '1');
+  } catch {
+    // segue mesmo se sessionStorage falhar
+  }
+  const params = {
+    content_name: 'missao_plus',
+    content_category: 'subscription',
+    currency: 'BRL',
+    value: 19.9,
+    num_items: 1,
+  };
+  trackMetaEvent('ViewContent', params);
+  trackMetaEvent('InitiateCheckout', params);
+  trackMetaEvent('AddPaymentInfo', {
+    ...params,
+    payment_type: 'pix',
+  });
+}
+
 export function getMetaPixelId() {
   return PIXEL_ID;
 }
