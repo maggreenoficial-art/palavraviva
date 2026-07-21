@@ -20,6 +20,7 @@ import {
 } from '../constants/toolsCatalog';
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
+import { trackMetaEvent } from '../services/metaPixel';
 import { checkFotoJesusPayment } from '../services/fotoJesus';
 import {
   formatCpf,
@@ -158,6 +159,13 @@ export function ToolPaywall({
         'Pix pronto. Pague no banco e toque em “Já paguei” para continuar.',
       );
     }
+    trackMetaEvent('InitiateCheckout', {
+      content_name: toolId,
+      content_category: 'tool',
+      currency: 'BRL',
+      value: Number(tool?.price ?? 5),
+      num_items: 1,
+    });
   }, [
     visible,
     displayName,
@@ -168,6 +176,8 @@ export function ToolPaywall({
     initialTransactionId,
     initialTransactionIds,
     initialClientIdentifier,
+    toolId,
+    tool?.price,
   ]);
 
   // Poll automático enquanto o Pix está na tela (Vercel precisa do transactionId)

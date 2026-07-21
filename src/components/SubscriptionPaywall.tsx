@@ -85,6 +85,13 @@ export function SubscriptionPaywall({
     setPixCode(null);
     setPixImage(null);
     setCardOwner((prev) => prev || displayName || '');
+    trackMetaEvent('InitiateCheckout', {
+      content_name: 'missao_plus',
+      content_category: 'subscription',
+      currency: 'BRL',
+      value: 19.9,
+      num_items: 1,
+    });
   }, [visible, displayName]);
 
   // Polling automático após gerar Pix (backoff)
@@ -147,6 +154,16 @@ export function SubscriptionPaywall({
     setError(null);
     setMessage(null);
     try {
+      void trackAnalytics({
+        name: 'subscription_start',
+        meta: { method: 'card' },
+      });
+      trackMetaEvent('AddPaymentInfo', {
+        content_name: 'missao_plus',
+        currency: 'BRL',
+        value: 19.9,
+        payment_type: 'card',
+      });
       const result = await payWithCard({
         userId,
         displayName,
@@ -158,10 +175,6 @@ export function SubscriptionPaywall({
           expiresAt: expiry,
           cvv,
         },
-      });
-      void trackAnalytics({
-        name: 'subscription_start',
-        meta: { method: 'card' },
       });
       if (result.approved && result.subscriptionExpiresAt) {
         setSubscriptionExpiresAt(result.subscriptionExpiresAt);
@@ -215,6 +228,12 @@ export function SubscriptionPaywall({
       void trackAnalytics({
         name: 'subscription_start',
         meta: { method: 'pix' },
+      });
+      trackMetaEvent('AddPaymentInfo', {
+        content_name: 'missao_plus',
+        currency: 'BRL',
+        value: 19.9,
+        payment_type: 'pix',
       });
       const result = await payWithPix({
         userId,
