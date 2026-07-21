@@ -63,7 +63,7 @@
         });
       }
     </script>
-    <!-- Meta Pixel Code -->
+    <!-- Meta Pixel Code — só init; PageView/eventos vêm do app com event_id (dedup CAPI) -->
     <script>
       !(function (f, b, e, v, n, t, s) {
         if (f.fbq) return;
@@ -89,7 +89,6 @@
         'https://connect.facebook.net/en_US/fbevents.js',
       );
       fbq('init', '4474411989514975');
-      fbq('track', 'PageView');
     </script>
     <noscript
       ><img

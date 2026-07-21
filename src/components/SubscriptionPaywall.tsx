@@ -135,7 +135,7 @@ export function SubscriptionPaywall({
 
   async function handlePayCard() {
     if (!userId) {
-      setError('Faça o onboarding novamente para gerar seu ID.');
+      setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
     setLoading(true);
@@ -196,7 +196,7 @@ export function SubscriptionPaywall({
 
   async function handlePayPix() {
     if (!userId) {
-      setError('Faça o onboarding novamente para gerar seu ID.');
+      setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
     setLoading(true);

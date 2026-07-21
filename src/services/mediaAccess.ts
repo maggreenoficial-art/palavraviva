@@ -49,7 +49,7 @@ export async function fetchSignedStreamUrl(mediaId: string): Promise<string> {
   const trialStartedAt = useUserStore.getState().trialStartedAt;
   const subscriptionExpiresAt = useUserStore.getState().subscriptionExpiresAt;
   if (!userId) {
-    throw new Error('Faça o onboarding para ouvir o áudio.');
+    throw new Error('Abra o app novamente para gerar seu ID de acesso.');
   }
 
   const base = paymentsBaseUrl();

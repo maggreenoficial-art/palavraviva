@@ -543,7 +543,7 @@ export function ToolPaywall({
 
   async function handlePayCard() {
     if (!userId) {
-      setError('Faça o onboarding novamente para gerar seu ID.');
+      setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
     if (isConsumable && !generationId) {
@@ -615,7 +615,7 @@ export function ToolPaywall({
       return;
     }
     if (!userId) {
-      setError('Faça o onboarding novamente para gerar seu ID.');
+      setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
     if (isConsumable && !generationId) {
@@ -672,7 +672,7 @@ export function ToolPaywall({
 
   async function handleAlreadyPaid() {
     if (!userId) {
-      setError('Faça o onboarding novamente para gerar seu ID.');
+      setError('Abra o app novamente para gerar seu ID de acesso.');
       return;
     }
 

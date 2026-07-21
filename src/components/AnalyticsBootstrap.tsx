@@ -23,6 +23,7 @@ export function AnalyticsBootstrap() {
   const pathname = usePathname();
 
   useEffect(() => {
+    useUserStore.getState().ensureGuestAccess();
     initMetaPixel();
     void bootstrapAnalytics();
     return startPresenceHeartbeat();

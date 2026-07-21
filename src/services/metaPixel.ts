@@ -43,11 +43,7 @@ function splitName(fullName: string) {
   return { fn: parts[0], ln: parts.slice(1).join(' ') };
 }
 
-/** Injeta o Meta Pixel uma vez (web). */
-export function initMetaPixel() {
-  if (!canUsePixel() || bootstrapped) return;
-  bootstrapped = true;
-
+function advancedMatching() {
   const { userId, displayName, whatsapp } = useUserStore.getState();
   const { fn, ln } = splitName(displayName || '');
   const advanced: Record<string, string> = { country: 'br' };
@@ -58,10 +54,27 @@ export function initMetaPixel() {
     const digits = whatsapp.replace(/\D/g, '');
     advanced.ph = digits.startsWith('55') ? digits : `55${digits}`;
   }
+  return advanced;
+}
+
+function callFbq(...args: unknown[]) {
+  const fbq = window.fbq as ((...a: unknown[]) => void) | undefined;
+  if (typeof fbq === 'function') fbq(...args);
+}
+
+/**
+ * Injeta o Meta Pixel uma vez (web).
+ * NÃO dispara PageView aqui — evita triplicar com index.html + trackMetaPageView.
+ * Browser + CAPI usam o mesmo event_id em trackMetaPageView / trackMetaEvent.
+ */
+export function initMetaPixel() {
+  if (!canUsePixel() || bootstrapped) return;
+  bootstrapped = true;
+
+  const advanced = advancedMatching();
 
   if (typeof window.fbq === 'function') {
-    window.fbq('init', PIXEL_ID, advanced);
-    window.fbq('track', 'PageView');
+    callFbq('init', PIXEL_ID, advanced);
     return;
   }
 
@@ -70,19 +83,21 @@ export function initMetaPixel() {
   const e = 'script';
   const v = 'https://connect.facebook.net/en_US/fbevents.js';
 
-  const n: ((...args: unknown[]) => void) & {
+  type FbqFn = ((...args: unknown[]) => void) & {
     callMethod?: (...args: unknown[]) => void;
     queue: unknown[];
-    push: unknown;
+    push: (...args: unknown[]) => void;
     loaded: boolean;
     version: string;
-  } = function (...args: unknown[]) {
+  };
+
+  const n = function (...args: unknown[]) {
     if (n.callMethod) {
       n.callMethod(...args);
     } else {
       n.queue.push(args);
     }
-  } as typeof n;
+  } as FbqFn;
   if (!f._fbq) f._fbq = n;
   f.fbq = n;
   n.push = n;
@@ -96,8 +111,7 @@ export function initMetaPixel() {
   const s = b.getElementsByTagName(e)[0];
   s?.parentNode?.insertBefore(t, s);
 
-  window.fbq?.('init', PIXEL_ID, advanced);
-  window.fbq?.('track', 'PageView');
+  callFbq('init', PIXEL_ID, advanced);
 }
 
 async function sendCapi(
@@ -121,8 +135,11 @@ async function sendCapi(
         userId,
         displayName,
         whatsapp,
+        country: 'br',
         fbp: readCookie('_fbp'),
         fbc: readCookie('_fbc'),
+        userAgent:
+          typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
         customData: params || {},
       }),
       keepalive: true,
@@ -136,7 +153,8 @@ export function trackMetaPageView() {
   if (!canUsePixel()) return;
   initMetaPixel();
   const eventId = createEventId('PageView');
-  window.fbq?.('track', 'PageView', {}, { eventID: eventId });
+  // eventID compartilhado com CAPI = deduplicação no Events Manager
+  callFbq('track', 'PageView', {}, { eventID: eventId });
   void sendCapi('PageView', eventId);
 }
 
@@ -148,9 +166,9 @@ export function trackMetaEvent(
   initMetaPixel();
   const eventId = createEventId(event);
   if (params) {
-    window.fbq?.('track', event, params, { eventID: eventId });
+    callFbq('track', event, params, { eventID: eventId });
   } else {
-    window.fbq?.('track', event, {}, { eventID: eventId });
+    callFbq('track', event, {}, { eventID: eventId });
   }
   void sendCapi(event, eventId, params);
 }

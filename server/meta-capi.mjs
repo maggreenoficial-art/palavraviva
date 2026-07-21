@@ -77,6 +77,19 @@ function buildUserData(input = {}) {
   return userData;
 }
 
+/** Normaliza custom_data para o formato padrão da Meta (value/currency etc.). */
+function normalizeCustomData(input = {}) {
+  const out = { ...input };
+  if (out.value != null && typeof out.value !== 'number') {
+    const n = Number(out.value);
+    if (Number.isFinite(n)) out.value = n;
+  }
+  if (out.currency && typeof out.currency === 'string') {
+    out.currency = out.currency.toUpperCase();
+  }
+  return out;
+}
+
 /**
  * Envia um evento à Conversions API.
  * @returns {{ ok: boolean, skipped?: boolean, status?: number, body?: unknown, error?: string }}
@@ -104,11 +117,20 @@ export async function sendMetaConversionEvent({
         event_name: eventName,
         event_time: eventTime || Math.floor(Date.now() / 1000),
         event_id: eventId || undefined,
-        event_source_url: eventSourceUrl || undefined,
+        event_source_url:
+          eventSourceUrl || 'https://oucapalavra.com.br/',
         action_source: actionSource,
-        user_data: buildUserData(user),
+        user_data: buildUserData({
+          ...user,
+          // client_user_agent é obrigatório em eventos web (CAPI)
+          userAgent:
+            user.userAgent ||
+            'Mozilla/5.0 (compatible; PalavraVivaCAPI/1.0)',
+        }),
         custom_data:
-          customData && Object.keys(customData).length ? customData : undefined,
+          customData && Object.keys(customData).length
+            ? normalizeCustomData(customData)
+            : undefined,
       },
     ],
   };

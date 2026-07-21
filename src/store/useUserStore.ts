@@ -31,6 +31,8 @@ function normalizeFontScale(value: unknown): FontScale {
 
 interface UserState {
   hasOnboarded: boolean;
+  /** Já disparamos Lead/signup desta instalação */
+  hasTrackedFirstOpen: boolean;
   userId: string | null;
   displayName: string | null;
   whatsapp: string | null;
@@ -43,6 +45,9 @@ interface UserState {
   trialStartedAt: string | null;
   /** ISO — fim da assinatura mensal ativa */
   subscriptionExpiresAt: string | null;
+  /** Cria userId e libera acesso sem onboarding. */
+  ensureGuestAccess: () => { userId: string; isNew: boolean };
+  markFirstOpenTracked: () => void;
   completeProfile: (input: { name: string; whatsapp?: string }) => void;
   setFeeling: (feeling: Feeling) => void;
   clearFeeling: () => void;
@@ -86,6 +91,7 @@ export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
       hasOnboarded: false,
+      hasTrackedFirstOpen: false,
       userId: null,
       displayName: null,
       whatsapp: null,
@@ -94,6 +100,24 @@ export const useUserStore = create<UserState>()(
       unlockedTools: [],
       trialStartedAt: null,
       subscriptionExpiresAt: null,
+
+      ensureGuestAccess: () => {
+        const existing = get().userId;
+        if (existing) {
+          if (!get().hasOnboarded) {
+            set({ hasOnboarded: true });
+          }
+          return { userId: existing, isNew: false };
+        }
+        const userId = createUserId();
+        set({
+          userId,
+          hasOnboarded: true,
+        });
+        return { userId, isNew: true };
+      },
+
+      markFirstOpenTracked: () => set({ hasTrackedFirstOpen: true }),
 
       completeProfile: ({ name, whatsapp }) => {
         const cleanedName = name.trim().replace(/\s+/g, ' ');
@@ -104,13 +128,14 @@ export const useUserStore = create<UserState>()(
           displayName: cleanedName,
           whatsapp: digits.length >= 10 ? digits : null,
           userId: existingId ?? createUserId(),
+          hasOnboarded: true,
         });
       },
 
       setFeeling: (feeling) =>
         set({
           feeling,
-          hasOnboarded: Boolean(get().displayName && get().userId),
+          hasOnboarded: Boolean(get().userId),
         }),
 
       clearFeeling: () => set({ feeling: null }),
@@ -167,6 +192,7 @@ export const useUserStore = create<UserState>()(
         set({
           feeling: null,
           hasOnboarded: false,
+          hasTrackedFirstOpen: false,
           userId: null,
           displayName: null,
           whatsapp: null,
@@ -189,9 +215,10 @@ export const useUserStore = create<UserState>()(
     {
       name: 'palavra-viva-user',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         hasOnboarded: state.hasOnboarded,
+        hasTrackedFirstOpen: state.hasTrackedFirstOpen,
         userId: state.userId,
         displayName: state.displayName,
         whatsapp: state.whatsapp,
@@ -219,7 +246,9 @@ export const useUserStore = create<UserState>()(
           : [];
 
         return {
-          hasOnboarded: Boolean(state.hasOnboarded && displayName && userId),
+          // Acesso direto: basta ter userId (ou cria no ensureGuestAccess)
+          hasOnboarded: Boolean(state.hasOnboarded || userId),
+          hasTrackedFirstOpen: Boolean(state.hasTrackedFirstOpen),
           userId,
           displayName,
           whatsapp:
