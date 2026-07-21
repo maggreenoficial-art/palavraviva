@@ -172,10 +172,14 @@
           if (code && code.trim()) {
             code = code.trim();
             sessionStorage.setItem('meta_test_event_code', code);
-            localStorage.setItem('meta_test_event_code', code);
+            try {
+              localStorage.setItem('meta_test_event_code', code);
+            } catch (e) {}
             fbq('set', 'test_event_code', code);
           }
         } catch (e) {}
+        // PageView imediato (antes do React) — essencial em aba anônima / SW cache
+        fbq('track', 'PageView');
       })();
     </script>
     <noscript

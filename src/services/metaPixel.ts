@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { useUserStore } from '../store/useUserStore';
+import { paymentsBaseUrl } from './paymentsUrl';
 
 declare global {
   interface Window {
@@ -152,7 +153,10 @@ export function ensureMetaClickIds() {
     try {
       const builder = window.clientParamBuilder;
       if (builder?.processAndCollectAllParams) {
-        await builder.processAndCollectAllParams(window.location.href);
+        await Promise.race([
+          builder.processAndCollectAllParams(window.location.href),
+          new Promise((resolve) => setTimeout(resolve, 1500)),
+        ]);
       }
     } catch {
       // fallback manual abaixo
@@ -212,15 +216,6 @@ function applyPixelTestEventCode(code?: string) {
 
 function readMetaTestEventCode() {
   return captureMetaTestEventCode();
-}
-
-function paymentsBaseUrl() {
-  const fromEnv = (process.env.EXPO_PUBLIC_PAYMENTS_URL || '').replace(/\/$/, '');
-  if (fromEnv) return fromEnv;
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
-  return '';
 }
 
 function splitName(fullName: string) {
