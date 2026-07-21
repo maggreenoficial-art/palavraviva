@@ -229,6 +229,10 @@ export function persistMetaTestEventCodeInUrl() {
   }
 }
 
+function readMetaTestEventCode() {
+  return captureMetaTestEventCode();
+}
+
 function splitName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return { fn: '', ln: '' };
@@ -318,11 +322,17 @@ async function sendCapi(
   const base = paymentsBaseUrl();
   if (!base) return;
 
-  await ensureMetaClickIds();
+  try {
+    await ensureMetaClickIds();
+  } catch {
+    // segue sem Parameter Builder
+  }
+
   const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
+  const testEventCode = readMetaTestEventCode() || undefined;
   try {
-    await fetch(`${base}/api/meta/capi`, {
+    const res = await fetch(`${base}/api/meta/capi`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -344,23 +354,30 @@ async function sendCapi(
           typeof navigator !== 'undefined'
             ? navigator.userAgent
             : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        testEventCode: readMetaTestEventCode() || undefined,
+        testEventCode,
         customData: params || {},
       }),
-      keepalive: true,
     });
-  } catch {
-    // CAPI nunca deve quebrar o app
+    if (testEventCode && typeof console !== 'undefined' && !res.ok) {
+      console.warn('[meta-capi]', eventName, res.status, await res.text());
+    }
+  } catch (err) {
+    if (testEventCode && typeof console !== 'undefined') {
+      console.warn('[meta-capi]', eventName, err);
+    }
   }
 }
 
 export function trackMetaPageView() {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
+  persistMetaTestEventCodeInUrl();
   void ensureMetaClickIds();
   const eventId = createEventId('PageView');
-  // Dual Pixel+CAPI com o mesmo event_id (dedup na Meta; Servidor na aba de teste)
-  void sendCapi('PageView', eventId);
+  const testCode = readMetaTestEventCode();
+  // Em teste: event_id diferente no CAPI para a aba mostrar Servidor (não só Desduplicado)
+  const capiId = testCode ? `${eventId}_srv` : eventId;
+  void sendCapi('PageView', capiId);
   if (!canUsePixel()) return;
   initMetaPixel();
   applyPixelTestEventCode();
@@ -376,19 +393,18 @@ export function trackMetaEvent(
   persistMetaTestEventCodeInUrl();
   void ensureMetaClickIds();
   const eventId = createEventId(event);
-  // Dual Pixel+CAPI com o mesmo event_id — origem Servidor vem do POST /api/meta/capi
-  void sendCapi(event, eventId, params);
+  const testCode = readMetaTestEventCode();
+  // Produção: mesmo event_id (dedup). Teste: sufixo _srv para aparecer como Servidor.
+  const capiId = testCode ? `${eventId}_srv` : eventId;
+  void sendCapi(event, capiId, params);
   if (!canUsePixel()) return;
   initMetaPixel();
   applyPixelTestEventCode();
-  // Pixel: content_ids como array nativo; demais campos primitivos
   const pixelParams: Record<string, unknown> = {};
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (key === 'content_ids' && Array.isArray(value)) {
         pixelParams[key] = value.map(String);
-      } else if (!Array.isArray(value)) {
-        pixelParams[key] = value;
       } else {
         pixelParams[key] = value;
       }
