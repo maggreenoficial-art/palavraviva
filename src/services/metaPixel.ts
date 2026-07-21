@@ -167,57 +167,58 @@ export function ensureMetaClickIds() {
   return clickIdsReady;
 }
 
-/** Código da aba Eventos de teste (?test_event_code=TEST94275). */
-export function captureMetaTestEventCode() {
+/** Código da aba Eventos de teste — prioriza window.location.search no instante do disparo. */
+export function getTestEventCodeNow(): string {
   if (typeof window === 'undefined') return '';
   try {
     const params = new URLSearchParams(window.location.search);
-    const fromQuery =
-      params.get('test_event_code') || params.get('testEventCode');
-    if (fromQuery?.trim()) {
-      const code = fromQuery.trim();
-      window.sessionStorage.setItem('meta_test_event_code', code);
+    const fromQuery = (
+      params.get('test_event_code') ||
+      params.get('testEventCode') ||
+      ''
+    ).trim();
+    if (fromQuery) {
       try {
-        window.localStorage.setItem('meta_test_event_code', code);
+        window.sessionStorage.setItem('meta_test_event_code', fromQuery);
+        window.localStorage.setItem('meta_test_event_code', fromQuery);
       } catch {
         // ignore
       }
-      applyPixelTestEventCode(code);
-      return code;
+      return fromQuery;
     }
     const fromSession = (
       window.sessionStorage.getItem('meta_test_event_code') || ''
     ).trim();
-    const fromLocal = (
-      window.localStorage.getItem('meta_test_event_code') || ''
-    ).trim();
-    const code = fromSession || fromLocal;
-    if (code) {
-      window.sessionStorage.setItem('meta_test_event_code', code);
-      applyPixelTestEventCode(code);
-    }
-    return code;
+    if (fromSession) return fromSession;
+    return (window.localStorage.getItem('meta_test_event_code') || '').trim();
   } catch {
     return '';
   }
 }
 
+/** @deprecated use getTestEventCodeNow — mantido para imports existentes */
+export function captureMetaTestEventCode() {
+  const code = getTestEventCodeNow();
+  if (code) applyPixelTestEventCode(code);
+  return code;
+}
+
 /** Faz o Pixel do navegador marcar eventos na aba Eventos de teste. */
 function applyPixelTestEventCode(code?: string) {
-  const resolved = (code || captureMetaTestEventCode()).trim();
+  const resolved = (code || getTestEventCodeNow()).trim();
   if (!resolved || typeof window === 'undefined') return '';
   try {
     callFbq('set', 'test_event_code', resolved);
   } catch {
-    // fbq pode ainda não existir — initMetaPixel reaplica
+    // fbq pode ainda não existir
   }
   return resolved;
 }
 
-/** Mantém ?test_event_code= na URL ao navegar (SPA), senão a aba de teste perde o vínculo. */
+/** Mantém ?test_event_code= na URL ao navegar (SPA). */
 export function persistMetaTestEventCodeInUrl() {
   if (typeof window === 'undefined') return;
-  const code = captureMetaTestEventCode();
+  const code = getTestEventCodeNow();
   if (!code) return;
   try {
     const url = new URL(window.location.href);
@@ -229,8 +230,11 @@ export function persistMetaTestEventCodeInUrl() {
   }
 }
 
-function readMetaTestEventCode() {
-  return captureMetaTestEventCode();
+function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
+  if (typeof console === 'undefined') return;
+  if (!getTestEventCodeNow()) return;
+  if (event !== 'InitiateCheckout' && event !== 'AddPaymentInfo') return;
+  console.info('[meta-checkout]', event, detail);
 }
 
 function splitName(fullName: string) {
@@ -320,7 +324,10 @@ async function sendCapi(
   params?: Record<string, string | number | boolean | string[]>,
 ) {
   const base = paymentsBaseUrl();
-  if (!base) return;
+  if (!base) {
+    debugMetaCheckout(eventName, { stage: 'capi_skip', reason: 'no_base_url' });
+    return;
+  }
 
   try {
     await ensureMetaClickIds();
@@ -330,63 +337,81 @@ async function sendCapi(
 
   const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
-  const testEventCode = readMetaTestEventCode() || undefined;
+  // Releia no instante do POST (URL pode ter mudado)
+  const testEventCode = getTestEventCodeNow() || undefined;
+  const body = {
+    eventName,
+    eventId,
+    eventSourceUrl:
+      typeof window !== 'undefined'
+        ? window.location.href.startsWith('http')
+          ? window.location.href
+          : 'https://www.oucapalavra.com.br/'
+        : 'https://www.oucapalavra.com.br/',
+    userId,
+    displayName,
+    whatsapp,
+    country: 'br',
+    fbp: fbp || undefined,
+    fbc: fbc || undefined,
+    userAgent:
+      typeof navigator !== 'undefined'
+        ? navigator.userAgent
+        : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    testEventCode,
+    customData: params || {},
+  };
+  debugMetaCheckout(eventName, {
+    stage: 'capi_post',
+    eventId,
+    testEventCode: testEventCode || null,
+    base,
+    url: `${base}/api/meta/capi`,
+  });
   try {
     const res = await fetch(`${base}/api/meta/capi`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        eventName,
-        eventId,
-        eventSourceUrl:
-          typeof window !== 'undefined'
-            ? window.location.href.startsWith('http')
-              ? window.location.href
-              : 'https://www.oucapalavra.com.br/'
-            : 'https://www.oucapalavra.com.br/',
-        userId,
-        displayName,
-        whatsapp,
-        country: 'br',
-        fbp: fbp || undefined,
-        fbc: fbc || undefined,
-        userAgent:
-          typeof navigator !== 'undefined'
-            ? navigator.userAgent
-            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        testEventCode,
-        customData: params || {},
-      }),
+      body: JSON.stringify(body),
     });
-    if (testEventCode && typeof console !== 'undefined' && !res.ok) {
-      console.warn('[meta-capi]', eventName, res.status, await res.text());
+    const text = await res.text();
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
     }
+    debugMetaCheckout(eventName, {
+      stage: 'capi_response',
+      status: res.status,
+      ok: res.ok,
+      body: parsed,
+    });
   } catch (err) {
-    if (testEventCode && typeof console !== 'undefined') {
-      console.warn('[meta-capi]', eventName, err);
-    }
+    debugMetaCheckout(eventName, {
+      stage: 'capi_error',
+      error: String(err),
+    });
   }
 }
 
 export function trackMetaPageView() {
   if (Platform.OS !== 'web') return;
-  captureMetaTestEventCode();
   persistMetaTestEventCodeInUrl();
+  const testCode = getTestEventCodeNow();
   const eventId = createEventId('PageView');
-  const testCode = readMetaTestEventCode();
   const capiId = testCode ? `${eventId}_srv` : eventId;
   if (!canUsePixel()) {
     void sendCapi('PageView', capiId);
     return;
   }
   initMetaPixel();
-  applyPixelTestEventCode();
-  // Pixel primeiro (síncrono) — CAPI em seguida
+  if (testCode) applyPixelTestEventCode(testCode);
   callFbq('track', 'PageView', {}, { eventID: eventId });
   void sendCapi('PageView', capiId);
 }
 
-/** Params seguros para o Pixel (sem arrays — alguns browsers engolem o evento). */
+/** Params seguros para o Pixel (sem arrays). */
 function toPixelParams(
   params?: Record<string, string | number | boolean | string[]>,
 ): Record<string, string | number | boolean> {
@@ -409,18 +434,37 @@ export function trackMetaEvent(
   params?: Record<string, string | number | boolean | string[]>,
 ) {
   if (Platform.OS !== 'web') return;
-  captureMetaTestEventCode();
   persistMetaTestEventCodeInUrl();
+  // Sempre relê da URL no instante do disparo
+  const testCode = getTestEventCodeNow();
   const eventId = createEventId(event);
-  const testCode = readMetaTestEventCode();
   const capiId = testCode ? `${eventId}_srv` : eventId;
   const pixelParams = toPixelParams(params);
 
+  debugMetaCheckout(event, {
+    stage: 'track_start',
+    eventId,
+    capiId,
+    testEventCode: testCode || null,
+    href:
+      typeof window !== 'undefined' ? window.location.href : null,
+    pixelParams,
+  });
+
   if (canUsePixel()) {
     initMetaPixel();
-    applyPixelTestEventCode();
-    // Dispara Pixel ANTES do CAPI — se CAPI falhar, o evento ainda aparece na aba
+    // Obrigatório: set test_event_code imediatamente antes do track
+    if (testCode) {
+      callFbq('set', 'test_event_code', testCode);
+    }
     callFbq('track', event, pixelParams, { eventID: eventId });
+    debugMetaCheckout(event, {
+      stage: 'pixel_tracked',
+      eventId,
+      testEventCode: testCode || null,
+    });
+  } else {
+    debugMetaCheckout(event, { stage: 'pixel_skip', reason: 'canUsePixel_false' });
   }
   void sendCapi(event, capiId, params);
 }

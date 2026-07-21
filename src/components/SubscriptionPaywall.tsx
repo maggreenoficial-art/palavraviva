@@ -20,7 +20,6 @@ import {
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
 import {
-  captureMetaTestEventCode,
   trackMetaEvent,
   trackMissaoAddPaymentInfo,
   trackMissaoInitiateCheckout,
@@ -93,10 +92,16 @@ export function SubscriptionPaywall({
     if (alreadySubscribed) return;
     if (checkoutTrackedRef.current) return;
     checkoutTrackedRef.current = true;
-    captureMetaTestEventCode();
-    trackMissaoInitiateCheckout();
+    // rAF: modal já no DOM; sem setTimeout cancelável
+    const run = () => trackMissaoInitiateCheckout();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(run));
+    } else {
+      run();
+    }
   }
 
+  // Reset do formulário — separado do tracking
   useEffect(() => {
     if (!visible) {
       checkoutTrackedRef.current = false;
@@ -111,9 +116,13 @@ export function SubscriptionPaywall({
     setCopied(false);
     setSuccess(false);
     setCardOwner((prev) => prev || displayName || '');
-    // Dispara no mesmo tick em que o modal abre (não depende só de onShow)
+  }, [visible, displayName]);
+
+  // Tracking: só quando visible muda para true
+  useEffect(() => {
+    if (!visible) return;
     fireInitiateCheckout();
-  }, [visible, displayName, alreadySubscribed]);
+  }, [visible, alreadySubscribed]);
 
   // Polling automático após gerar Pix (backoff)
   useEffect(() => {
