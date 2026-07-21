@@ -20,6 +20,7 @@ import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { InstallPwaBanner } from '../../src/components/InstallPwaBanner';
 import { SosButton } from '../../src/components/SosButton';
 import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
+import { trackMissaoInitiateCheckout } from '../../src/services/metaPixel';
 import { getOldTestamentPrayerById } from '../../src/constants/oldTestamentPrayers';
 import {
   ecosystemSessions,
@@ -334,6 +335,11 @@ export default function HomeScreen() {
     [type],
   );
 
+  function openMissaoPaywall() {
+    trackMissaoInitiateCheckout();
+    setPaywallVisible(true);
+  }
+
   function openSession(session: Session) {
     const gate = canAccessSession(session, accessKind, maxUnlockedDay);
     if (gate === 'ok') {
@@ -344,7 +350,7 @@ export default function HomeScreen() {
       Alert.alert('Dia ainda bloqueado', gateMessage(gate));
       return;
     }
-    setPaywallVisible(true);
+    openMissaoPaywall();
   }
 
   function openOtPrayer(id: string) {
@@ -355,7 +361,7 @@ export default function HomeScreen() {
       router.push(`/leitura/${id}`);
       return;
     }
-    setPaywallVisible(true);
+    openMissaoPaywall();
   }
 
   return (
@@ -390,7 +396,7 @@ export default function HomeScreen() {
           {!fullAudio ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => setPaywallVisible(true)}
+              onPress={openMissaoPaywall}
               style={({ pressed }) => [
                 styles.trialLocked,
                 pressed && styles.pressed,
@@ -629,7 +635,7 @@ export default function HomeScreen() {
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         onChangeFeeling={() => setFeelingVisible(true)}
-        onOpenSubscription={() => setPaywallVisible(true)}
+        onOpenSubscription={openMissaoPaywall}
         onOpenHelp={() => setHelpVisible(true)}
       />
       <HelpFaqSheet

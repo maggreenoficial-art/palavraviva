@@ -5,6 +5,7 @@ import { FeelingPickerModal } from '../../src/components/FeelingPickerModal';
 import { HelpFaqSheet } from '../../src/components/HelpFaqSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { SubscriptionPaywall } from '../../src/components/SubscriptionPaywall';
+import { trackMissaoInitiateCheckout } from '../../src/services/metaPixel';
 import {
   SUBSCRIPTION_PRICE_LABEL,
   computeAccessKind,
@@ -42,8 +43,13 @@ export default function PerfilScreen() {
 
   const [paywallVisible, setPaywallVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [feelingVisible, setFeelingVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [feelingVisible, setFeelingVisible] = useState(false);
+
+  function openMissaoPaywall() {
+    trackMissaoInitiateCheckout();
+    setPaywallVisible(true);
+  }
 
   const styles = useMemo(
     () =>
@@ -190,7 +196,7 @@ export default function PerfilScreen() {
                 ? 'Ver detalhes da Missão+'
                 : `Assinar Missão+ por ${SUBSCRIPTION_PRICE_LABEL}`
             }
-            onPress={() => setPaywallVisible(true)}
+            onPress={openMissaoPaywall}
             style={({ pressed }) => [
               styles.cta,
               isSubscribed && styles.ctaSecondary,
@@ -275,7 +281,7 @@ export default function PerfilScreen() {
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         onChangeFeeling={() => setFeelingVisible(true)}
-        onOpenSubscription={() => setPaywallVisible(true)}
+        onOpenSubscription={openMissaoPaywall}
         onOpenHelp={() => setHelpVisible(true)}
       />
       <HelpFaqSheet

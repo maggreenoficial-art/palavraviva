@@ -372,16 +372,36 @@ export function trackMetaPageView() {
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
   persistMetaTestEventCodeInUrl();
-  void ensureMetaClickIds();
   const eventId = createEventId('PageView');
   const testCode = readMetaTestEventCode();
-  // Em teste: event_id diferente no CAPI para a aba mostrar Servidor (não só Desduplicado)
   const capiId = testCode ? `${eventId}_srv` : eventId;
-  void sendCapi('PageView', capiId);
-  if (!canUsePixel()) return;
+  if (!canUsePixel()) {
+    void sendCapi('PageView', capiId);
+    return;
+  }
   initMetaPixel();
   applyPixelTestEventCode();
+  // Pixel primeiro (síncrono) — CAPI em seguida
   callFbq('track', 'PageView', {}, { eventID: eventId });
+  void sendCapi('PageView', capiId);
+}
+
+/** Params seguros para o Pixel (sem arrays — alguns browsers engolem o evento). */
+function toPixelParams(
+  params?: Record<string, string | number | boolean | string[]>,
+): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  if (!params) return out;
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      if (key === 'content_ids' && value[0] != null) {
+        out.content_name = out.content_name ?? String(value[0]);
+      }
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export function trackMetaEvent(
@@ -391,30 +411,40 @@ export function trackMetaEvent(
   if (Platform.OS !== 'web') return;
   captureMetaTestEventCode();
   persistMetaTestEventCodeInUrl();
-  void ensureMetaClickIds();
   const eventId = createEventId(event);
   const testCode = readMetaTestEventCode();
-  // Produção: mesmo event_id (dedup). Teste: sufixo _srv para aparecer como Servidor.
   const capiId = testCode ? `${eventId}_srv` : eventId;
-  void sendCapi(event, capiId, params);
-  if (!canUsePixel()) return;
-  initMetaPixel();
-  applyPixelTestEventCode();
-  const pixelParams: Record<string, unknown> = {};
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      if (key === 'content_ids' && Array.isArray(value)) {
-        pixelParams[key] = value.map(String);
-      } else {
-        pixelParams[key] = value;
-      }
-    }
-  }
-  if (Object.keys(pixelParams).length) {
+  const pixelParams = toPixelParams(params);
+
+  if (canUsePixel()) {
+    initMetaPixel();
+    applyPixelTestEventCode();
+    // Dispara Pixel ANTES do CAPI — se CAPI falhar, o evento ainda aparece na aba
     callFbq('track', event, pixelParams, { eventID: eventId });
-  } else {
-    callFbq('track', event, {}, { eventID: eventId });
   }
+  void sendCapi(event, capiId, params);
+}
+
+/** Atalhos do funil Missão+ — use nos cliques (abrir paywall / pagar). */
+export function trackMissaoInitiateCheckout() {
+  trackMetaEvent('InitiateCheckout', {
+    content_name: 'missao_plus',
+    content_category: 'subscription',
+    currency: 'BRL',
+    value: 19.9,
+    num_items: 1,
+  });
+}
+
+export function trackMissaoAddPaymentInfo(paymentType: 'pix' | 'card') {
+  trackMetaEvent('AddPaymentInfo', {
+    content_name: 'missao_plus',
+    content_category: 'subscription',
+    currency: 'BRL',
+    value: 19.9,
+    payment_type: paymentType,
+    num_items: 1,
+  });
 }
 
 /**

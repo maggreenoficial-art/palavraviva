@@ -22,6 +22,8 @@ import { trackAnalytics } from '../services/analytics';
 import {
   captureMetaTestEventCode,
   trackMetaEvent,
+  trackMissaoAddPaymentInfo,
+  trackMissaoInitiateCheckout,
 } from '../services/metaPixel';
 import {
   formatCpf,
@@ -87,6 +89,14 @@ export function SubscriptionPaywall({
 
   const checkoutTrackedRef = useRef(false);
 
+  function fireInitiateCheckout() {
+    if (alreadySubscribed) return;
+    if (checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
+    captureMetaTestEventCode();
+    trackMissaoInitiateCheckout();
+  }
+
   useEffect(() => {
     if (!visible) {
       checkoutTrackedRef.current = false;
@@ -101,31 +111,9 @@ export function SubscriptionPaywall({
     setCopied(false);
     setSuccess(false);
     setCardOwner((prev) => prev || displayName || '');
-  }, [visible, displayName]);
-
-  useEffect(() => {
-    if (!visible) return;
-    if (
-      computeAccessKind(
-        useUserStore.getState().trialStartedAt,
-        useUserStore.getState().subscriptionExpiresAt,
-      ) === 'subscribed'
-    ) {
-      return;
-    }
-    if (checkoutTrackedRef.current) return;
-    checkoutTrackedRef.current = true;
-    captureMetaTestEventCode();
-    trackMetaEvent('InitiateCheckout', {
-      content_name: 'missao_plus',
-      content_ids: ['missao_plus'],
-      content_type: 'product',
-      content_category: 'subscription',
-      currency: 'BRL',
-      value: 19.9,
-      num_items: 1,
-    });
-  }, [visible]);
+    // Dispara no mesmo tick em que o modal abre (não depende só de onShow)
+    fireInitiateCheckout();
+  }, [visible, displayName, alreadySubscribed]);
 
   // Polling automático após gerar Pix (backoff)
   useEffect(() => {
@@ -164,8 +152,6 @@ export function SubscriptionPaywall({
   async function handleSuccess() {
     trackMetaEvent('Subscribe', {
       content_name: 'missao_plus',
-      content_ids: ['missao_plus'],
-      content_type: 'product',
       content_category: 'subscription',
       currency: 'BRL',
       value: 19.9,
@@ -195,16 +181,8 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'card' },
       });
-      trackMetaEvent('AddPaymentInfo', {
-        content_name: 'missao_plus',
-        content_ids: ['missao_plus'],
-        content_type: 'product',
-        content_category: 'subscription',
-        currency: 'BRL',
-        value: 19.9,
-        payment_type: 'card',
-        num_items: 1,
-      });
+      trackMissaoInitiateCheckout();
+      trackMissaoAddPaymentInfo('card');
       const result = await payWithCard({
         userId,
         displayName,
@@ -270,16 +248,8 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'pix' },
       });
-      trackMetaEvent('AddPaymentInfo', {
-        content_name: 'missao_plus',
-        content_ids: ['missao_plus'],
-        content_type: 'product',
-        content_category: 'subscription',
-        currency: 'BRL',
-        value: 19.9,
-        payment_type: 'pix',
-        num_items: 1,
-      });
+      trackMissaoInitiateCheckout();
+      trackMissaoAddPaymentInfo('pix');
       const result = await payWithPix({
         userId,
         displayName: displayName || 'Assinante Palavra Viva',
@@ -350,6 +320,7 @@ export function SubscriptionPaywall({
       visible={visible}
       transparent
       animationType="slide"
+      onShow={fireInitiateCheckout}
       onRequestClose={() => {
         if (!blocking) onClose();
       }}
