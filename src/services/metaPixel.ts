@@ -153,7 +153,11 @@ async function sendCapi(
         eventName,
         eventId,
         eventSourceUrl:
-          typeof window !== 'undefined' ? window.location.href : undefined,
+          typeof window !== 'undefined'
+            ? window.location.href.startsWith('http')
+              ? window.location.href
+              : 'https://www.oucapalavra.com.br/'
+            : 'https://www.oucapalavra.com.br/',
         userId,
         displayName,
         whatsapp,
@@ -161,7 +165,9 @@ async function sendCapi(
         fbp: readCookie('_fbp'),
         fbc: readCookie('_fbc'),
         userAgent:
-          typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+          typeof navigator !== 'undefined'
+            ? navigator.userAgent
+            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         testEventCode: readMetaTestEventCode() || undefined,
         customData: params || {},
       }),
@@ -173,23 +179,25 @@ async function sendCapi(
 }
 
 export function trackMetaPageView() {
+  if (Platform.OS !== 'web') return;
+  captureMetaTestEventCode();
+  const eventId = createEventId('PageView');
+  void sendCapi('PageView', eventId);
   if (!canUsePixel()) return;
   initMetaPixel();
-  const eventId = createEventId('PageView');
   // eventID compartilhado com CAPI = deduplicação no Events Manager
   callFbq('track', 'PageView', {}, { eventID: eventId });
-  void sendCapi('PageView', eventId);
 }
 
 export function trackMetaEvent(
   event: string,
   params?: Record<string, string | number | boolean>,
 ) {
+  if (Platform.OS !== 'web') return;
+  captureMetaTestEventCode();
   const eventId = createEventId(event);
-  // CAPI mesmo se o Pixel do browser falhar (adblock) — essencial na aba de teste
-  if (Platform.OS === 'web') {
-    void sendCapi(event, eventId, params);
-  }
+  // CAPI primeiro (adblock não bloqueia nosso /api) — essencial na aba de teste
+  void sendCapi(event, eventId, params);
   if (!canUsePixel()) return;
   initMetaPixel();
   if (params) {

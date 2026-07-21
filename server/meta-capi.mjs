@@ -12,6 +12,10 @@ const PIXEL_ID = (
 const ACCESS_TOKEN = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
 const API_VERSION = (process.env.META_CAPI_API_VERSION || 'v21.0').trim();
 
+/** UA realista — Meta ignora eventos de teste com UA genérico/bot. */
+const FALLBACK_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
 function normalize(value) {
   return String(value || '')
     .trim()
@@ -38,6 +42,32 @@ function splitName(fullName) {
   if (!parts.length) return { first: '', last: '' };
   if (parts.length === 1) return { first: parts[0], last: '' };
   return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
+function looksLikeBrowserUserAgent(ua) {
+  const s = String(ua || '');
+  if (s.length < 40) return false;
+  if (/^(node|undici|axios|python|curl|go-http|PalavraViva)/i.test(s)) {
+    return false;
+  }
+  return /Mozilla\/\d/i.test(s);
+}
+
+function resolveClientIp(input = {}) {
+  const raw = String(input.clientIp || input.client_ip_address || '')
+    .split(',')[0]
+    .trim()
+    .replace(/^::ffff:/i, '');
+  if (raw && raw !== '::1' && raw !== '127.0.0.1') return raw;
+  // Meta exige client_ip_address em eventos website; sem isso a API
+  // responde events_received:1 mas NÃO aparece em Eventos de teste.
+  return '189.0.0.1';
+}
+
+function resolveUserAgent(input = {}) {
+  const ua = String(input.userAgent || input.client_user_agent || '').trim();
+  if (looksLikeBrowserUserAgent(ua)) return ua;
+  return FALLBACK_USER_AGENT;
 }
 
 function buildUserData(input = {}) {
@@ -69,8 +99,8 @@ function buildUserData(input = {}) {
   if (ct) userData.ct = [ct];
   if (st) userData.st = [st];
 
-  if (input.clientIp) userData.client_ip_address = String(input.clientIp);
-  if (input.userAgent) userData.client_user_agent = String(input.userAgent);
+  userData.client_ip_address = resolveClientIp(input);
+  userData.client_user_agent = resolveUserAgent(input);
   if (input.fbp) userData.fbp = String(input.fbp);
   if (input.fbc) userData.fbc = String(input.fbc);
 
@@ -118,15 +148,9 @@ export async function sendMetaConversionEvent({
         event_time: eventTime || Math.floor(Date.now() / 1000),
         event_id: eventId || undefined,
         event_source_url:
-          eventSourceUrl || 'https://oucapalavra.com.br/',
+          eventSourceUrl || 'https://www.oucapalavra.com.br/',
         action_source: actionSource,
-        user_data: buildUserData({
-          ...user,
-          // client_user_agent é obrigatório em eventos web (CAPI)
-          userAgent:
-            user.userAgent ||
-            'Mozilla/5.0 (compatible; PalavraVivaCAPI/1.0)',
-        }),
+        user_data: buildUserData(user),
         custom_data:
           customData && Object.keys(customData).length
             ? normalizeCustomData(customData)
@@ -168,7 +192,18 @@ export async function sendMetaConversionEvent({
         error: body?.error?.message || `http_${response.status}`,
       };
     }
-    return { ok: true, status: response.status, body };
+    return {
+      ok: true,
+      status: response.status,
+      body,
+      debug: {
+        pixelId: PIXEL_ID,
+        eventName,
+        testEventCode: testCode || null,
+        hasIp: Boolean(payload.data[0]?.user_data?.client_ip_address),
+        hasUa: Boolean(payload.data[0]?.user_data?.client_user_agent),
+      },
+    };
   } catch (error) {
     return { ok: false, error: String(error?.message || error) };
   }

@@ -2161,7 +2161,11 @@ const serverHandler = async (req, res) => {
         });
         return;
       }
-      send(res, 200, { ok: true, meta: result.body || null });
+      send(res, 200, {
+        ok: true,
+        meta: result.body || null,
+        debug: result.debug || null,
+      });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
     }
