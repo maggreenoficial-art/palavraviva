@@ -117,6 +117,28 @@ function normalizeCustomData(input = {}) {
   if (out.currency && typeof out.currency === 'string') {
     out.currency = out.currency.toUpperCase();
   }
+
+  const contentId =
+    (typeof out.content_name === 'string' && out.content_name.trim()) ||
+    (Array.isArray(out.content_ids) && out.content_ids[0]) ||
+    null;
+
+  if (contentId) {
+    if (!Array.isArray(out.content_ids) || !out.content_ids.length) {
+      out.content_ids = [String(contentId)];
+    }
+    if (!out.content_type) out.content_type = 'product';
+    if (!Array.isArray(out.contents) || !out.contents.length) {
+      const qty = Number(out.num_items);
+      out.contents = [
+        {
+          id: String(contentId),
+          quantity: Number.isFinite(qty) && qty > 0 ? qty : 1,
+        },
+      ];
+    }
+  }
+
   return out;
 }
 

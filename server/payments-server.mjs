@@ -1305,6 +1305,9 @@ const serverHandler = async (req, res) => {
         currency: 'BRL',
         value: product.price,
         content_name: product.productKey,
+        content_ids: [product.productKey],
+        content_type: 'product',
+        contents: [{ id: product.productKey, quantity: 1 }],
         content_category:
           product.kind === 'subscription' ? 'subscription' : 'tool',
         num_items: 1,

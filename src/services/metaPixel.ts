@@ -217,8 +217,8 @@ export function trackMetaTestCheckoutProbe() {
   const code = captureMetaTestEventCode();
   if (!code) return;
   try {
-    if (window.sessionStorage.getItem('meta_test_probe_done') === '1') return;
-    window.sessionStorage.setItem('meta_test_probe_done', '1');
+    if (window.sessionStorage.getItem('meta_test_probe_v2') === '1') return;
+    window.sessionStorage.setItem('meta_test_probe_v2', '1');
   } catch {
     // segue mesmo se sessionStorage falhar
   }
@@ -229,12 +229,17 @@ export function trackMetaTestCheckoutProbe() {
     value: 19.9,
     num_items: 1,
   };
+  // Espaça os envios — a aba de teste às vezes só mostra o 1º de um burst
   trackMetaEvent('ViewContent', params);
-  trackMetaEvent('InitiateCheckout', params);
-  trackMetaEvent('AddPaymentInfo', {
-    ...params,
-    payment_type: 'pix',
-  });
+  setTimeout(() => trackMetaEvent('InitiateCheckout', params), 800);
+  setTimeout(
+    () =>
+      trackMetaEvent('AddPaymentInfo', {
+        ...params,
+        payment_type: 'pix',
+      }),
+    1600,
+  );
 }
 
 export function getMetaPixelId() {
