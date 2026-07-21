@@ -50,12 +50,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginBottom: spacing.sm,
     marginTop: 4,
+    maxWidth: '100%',
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 4,
     borderRadius: radius.sm,
-    minWidth: 52,
+    minWidth: 48,
     alignItems: 'center',
     opacity: 0.55,
   },
@@ -68,8 +69,8 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });

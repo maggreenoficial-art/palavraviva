@@ -47,6 +47,7 @@ export async function fetchSignedStreamUrl(mediaId: string): Promise<string> {
 
   const userId = useUserStore.getState().userId;
   const trialStartedAt = useUserStore.getState().trialStartedAt;
+  const subscriptionExpiresAt = useUserStore.getState().subscriptionExpiresAt;
   if (!userId) {
     throw new Error('Faça o onboarding para ouvir o áudio.');
   }
@@ -59,6 +60,7 @@ export async function fetchSignedStreamUrl(mediaId: string): Promise<string> {
       userId,
       mediaId: id,
       trialStartedAt,
+      subscriptionExpiresAt,
     }),
   });
 

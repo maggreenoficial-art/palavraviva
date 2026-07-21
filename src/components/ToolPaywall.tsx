@@ -314,15 +314,19 @@ export function ToolPaywall({
           lineHeight: Math.round(type.body.fontSize * 1.45),
         },
         priceCard: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
           backgroundColor: colors.backgroundSoft,
           borderRadius: radius.md,
           borderWidth: 1,
           borderColor: colors.accentMuted,
           padding: spacing.lg,
           marginBottom: spacing.sm,
+          overflow: 'hidden',
+        },
+        priceInfo: {
+          width: '100%',
         },
         priceLabel: {
           ...type.caption,
@@ -334,6 +338,8 @@ export function ToolPaywall({
           marginTop: 2,
         },
         badge: {
+          alignSelf: 'flex-start',
+          maxWidth: '100%',
           backgroundColor: colors.accentSoft,
           borderRadius: 8,
           paddingHorizontal: 10,
@@ -583,9 +589,19 @@ export function ToolPaywall({
         'Pagamento em análise. Aguarde alguns segundos e toque em “Já paguei”.',
       );
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Não foi possível pagar com cartão.',
-      );
+      const raw =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível pagar com cartão.';
+      if (/retentativ|bloqueado após várias/i.test(raw)) {
+        setError(raw);
+        setMessage(
+          'Dica: use a aba Pix — libera na hora sem risco de bloqueio do cartão.',
+        );
+        setMethod('pix');
+      } else {
+        setError(raw);
+      }
     } finally {
       setLoading(false);
     }
@@ -790,7 +806,7 @@ export function ToolPaywall({
             </Text>
 
             <View style={styles.priceCard}>
-              <View>
+              <View style={styles.priceInfo}>
                 <Text style={styles.priceLabel}>
                   {tool?.title ?? 'Ferramenta'}
                 </Text>

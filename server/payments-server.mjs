@@ -337,6 +337,13 @@ function throwWivenError(response, data) {
   if (/permiss/i.test(msg)) {
     msg =
       'Na Wiven, abra a credencial da API e ative a permissão “Criar/Consultar Transações”. Depois tente de novo.';
+  } else if (/retentativ|excess(o|ive).*(attempt|retry|tentativ)|too many/i.test(msg)) {
+    msg =
+      'Cartão temporariamente bloqueado após várias tentativas. Aguarde 15–30 min ou pague com Pix agora.';
+  } else if (/recusad|denied|declined|não autorizad|nao autorizad/i.test(msg)) {
+    msg =
+      msg ||
+      'Pagamento recusado pelo banco. Confira os dados do cartão ou tente Pix.';
   } else if (!msg) {
     msg = `Wiven retornou ${response.status}. Tente novamente em instantes.`;
   }
@@ -1789,6 +1796,10 @@ const serverHandler = async (req, res) => {
       const mediaId = String(body.mediaId || body.id || '').trim();
       const trialStartedAt =
         typeof body.trialStartedAt === 'string' ? body.trialStartedAt : null;
+      const subscriptionExpiresAt =
+        typeof body.subscriptionExpiresAt === 'string'
+          ? body.subscriptionExpiresAt
+          : null;
       if (!userId || !mediaId) {
         send(res, 400, {
           ok: false,
@@ -1815,8 +1826,10 @@ const serverHandler = async (req, res) => {
         mediaId,
         userId,
         trialStartedAt,
+        subscriptionExpiresAt,
         publicBaseUrl: requestBase || PUBLIC_BASE_URL,
         readSubscriptions,
+        writeSubscriptions,
       });
       send(res, result.status, result.body);
     } catch (error) {

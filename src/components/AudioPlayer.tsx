@@ -56,6 +56,7 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
   const [ambient, setAmbient] = useState<Audio.Sound | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [voiceVolume, setVoiceVolume] = useState(1);
   const [ambientVolume, setAmbientVolume] = useState(
     Math.min(session.ambientVolume ?? 0.15, 0.2),
@@ -102,6 +103,7 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
     async function load() {
       setLoading(true);
       setLoadError(false);
+      setLoadErrorMessage(null);
       reset();
 
       await Audio.setAudioModeAsync({
@@ -191,9 +193,14 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
       setLoading(false);
     }
 
-    load().catch(() => {
+    load().catch((err) => {
       if (mounted) {
         setLoadError(true);
+        setLoadErrorMessage(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Não foi possível carregar o áudio. Tente novamente.',
+        );
         setLoading(false);
       }
     });
@@ -410,7 +417,8 @@ export function AudioPlayer({ session, onFinished }: AudioPlayerProps) {
 
         {loadError ? (
           <Text style={styles.error} accessibilityLiveRegion="assertive">
-            Não foi possível carregar o áudio. Tente novamente.
+            {loadErrorMessage ||
+              'Não foi possível carregar o áudio. Tente novamente.'}
           </Text>
         ) : null}
 

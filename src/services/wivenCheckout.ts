@@ -98,6 +98,11 @@ async function postCheckout<T>(
         'API de pagamentos indisponível neste ambiente. Confira o deploy das rotas /api no Vercel.',
       );
     }
+    if (/retentativ|excess(o|ive).*(attempt|retry|tentativ)|too many/i.test(raw)) {
+      throw new Error(
+        'Cartão temporariamente bloqueado após várias tentativas. Aguarde 15–30 min ou pague com Pix agora.',
+      );
+    }
     throw new Error(raw || 'Não foi possível processar o pagamento.');
   }
   return data;

@@ -152,6 +152,62 @@ function hasActiveSubscription(userId, readSubscriptions) {
   }
 }
 
+/** Claim do app (Zustand) — necessário no Vercel onde /tmp não persiste assinaturas. */
+export function isClientSubscriptionClaimValid(expiresAt) {
+  if (!expiresAt || typeof expiresAt !== 'string') return false;
+  const ms = Date.parse(expiresAt);
+  if (!Number.isFinite(ms)) return false;
+  const now = Date.now();
+  if (ms <= now) return false;
+  // Limite anti-abuso: no máximo ~13 meses à frente
+  if (ms > now + 400 * 24 * 60 * 60 * 1000) return false;
+  return true;
+}
+
+function hasEntitlement(userId, readSubscriptions, clientExpiresAt) {
+  if (hasActiveSubscription(userId, readSubscriptions)) return true;
+  return isClientSubscriptionClaimValid(clientExpiresAt);
+}
+
+/**
+ * Espelha a assinatura local no disco do servidor (best-effort).
+ * No Vercel (/tmp) ajuda na mesma instância; o claim do cliente continua sendo a fonte.
+ */
+export function persistClientSubscriptionClaim(
+  userId,
+  expiresAt,
+  writeSubscriptions,
+  readSubscriptions,
+) {
+  if (
+    !userId ||
+    !isClientSubscriptionClaimValid(expiresAt) ||
+    typeof writeSubscriptions !== 'function' ||
+    typeof readSubscriptions !== 'function'
+  ) {
+    return false;
+  }
+  try {
+    const subs = readSubscriptions() || {};
+    const current = subs[userId];
+    const currentMs = current?.expiresAt ? Date.parse(current.expiresAt) : 0;
+    const claimMs = Date.parse(expiresAt);
+    if (currentMs >= claimMs) return false;
+    subs[userId] = {
+      ...(current || {}),
+      userId,
+      expiresAt,
+      updatedAt: new Date().toISOString(),
+      source: current?.source || 'client_claim',
+      cancelledAt: null,
+    };
+    writeSubscriptions(subs);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function hasActiveTrial(_trialStartedAt) {
   // Trial de Missão+ desativado — conteúdo free vs pago sem janela de teste.
   return false;
@@ -160,7 +216,10 @@ function hasActiveTrial(_trialStartedAt) {
 /**
  * Regras freemium espelhadas (simplificadas) de contentAccess.ts
  */
-export function canAccessMedia(mediaId, { userId, trialStartedAt, readSubscriptions }) {
+export function canAccessMedia(
+  mediaId,
+  { userId, trialStartedAt, readSubscriptions, subscriptionExpiresAt },
+) {
   const id = String(mediaId || '');
   if (!id) return { ok: false, reason: 'mediaId_ausente' };
 
@@ -168,15 +227,14 @@ export function canAccessMedia(mediaId, { userId, trialStartedAt, readSubscripti
     return { ok: true, reason: 'biblical_free' };
   }
 
+  const entitled = () =>
+    hasEntitlement(userId, readSubscriptions, subscriptionExpiresAt) ||
+    hasActiveTrial(trialStartedAt);
+
   if (id.startsWith('ot/')) {
     const otId = id.slice('ot/'.length);
     if (FREE_OT_IDS.has(otId)) return { ok: true, reason: 'ot_free' };
-    if (
-      hasActiveSubscription(userId, readSubscriptions) ||
-      hasActiveTrial(trialStartedAt)
-    ) {
-      return { ok: true, reason: 'entitled' };
-    }
+    if (entitled()) return { ok: true, reason: 'entitled' };
     return { ok: false, reason: 'ot_locked' };
   }
 
@@ -223,10 +281,7 @@ export function canAccessMedia(mediaId, { userId, trialStartedAt, readSubscripti
     return { ok: true, reason: 'ambient_teaser' };
   }
 
-  if (
-    hasActiveSubscription(userId, readSubscriptions) ||
-    hasActiveTrial(trialStartedAt)
-  ) {
+  if (entitled()) {
     return { ok: true, reason: 'entitled' };
   }
 
@@ -239,6 +294,8 @@ export function createMediaTokenResponse({
   trialStartedAt,
   publicBaseUrl,
   readSubscriptions,
+  writeSubscriptions,
+  subscriptionExpiresAt,
 }) {
   const relativePath = mediaIdToRelativePath(mediaId);
   if (!relativePath) {
@@ -253,10 +310,23 @@ export function createMediaTokenResponse({
     return { status: 404, body: { ok: false, error: 'media_nao_encontrada' } };
   }
 
+  if (
+    isClientSubscriptionClaimValid(subscriptionExpiresAt) &&
+    typeof writeSubscriptions === 'function'
+  ) {
+    persistClientSubscriptionClaim(
+      userId,
+      subscriptionExpiresAt,
+      writeSubscriptions,
+      readSubscriptions,
+    );
+  }
+
   const access = canAccessMedia(mediaId, {
     userId,
     trialStartedAt,
     readSubscriptions,
+    subscriptionExpiresAt,
   });
   if (!access.ok) {
     return {

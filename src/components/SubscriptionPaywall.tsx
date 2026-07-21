@@ -176,9 +176,19 @@ export function SubscriptionPaywall({
         'Pagamento em análise. Toque em “Já paguei” em alguns segundos.',
       );
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Não foi possível pagar com cartão.',
-      );
+      const raw =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível pagar com cartão.';
+      if (/retentativ|bloqueado após várias/i.test(raw)) {
+        setError(raw);
+        setMessage(
+          'Dica: use a aba Pix — libera na hora sem risco de bloqueio do cartão.',
+        );
+        setMethod('pix');
+      } else {
+        setError(raw);
+      }
     } finally {
       setLoading(false);
     }
@@ -334,7 +344,7 @@ export function SubscriptionPaywall({
             </View>
 
             <View style={styles.priceCard}>
-              <View>
+              <View style={styles.priceInfo}>
                 <Text style={styles.priceLabel}>Assinatura mensal</Text>
                 <Text style={styles.price}>{SUBSCRIPTION_PRICE_LABEL}</Text>
               </View>
@@ -616,7 +626,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl + spacing.lg,
     gap: spacing.xs,
   },
   kicker: {
@@ -631,6 +641,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: colors.textPrimary,
     marginTop: 2,
+    paddingRight: spacing.sm,
   },
   body: {
     ...typography.body,
@@ -690,15 +701,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   priceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     backgroundColor: colors.backgroundSoft,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.accentMuted,
     padding: spacing.lg,
     marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  priceInfo: {
+    width: '100%',
   },
   priceLabel: {
     ...typography.caption,
@@ -710,6 +725,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   badge: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
     backgroundColor: colors.accentSoft,
     borderRadius: 999,
     paddingHorizontal: 10,
