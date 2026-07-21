@@ -480,6 +480,7 @@ async function fireMetaCapiSafe({
   clientIp,
   userAgent,
   customData,
+  testEventCode,
 }) {
   if (!metaCapiConfigured()) {
     return { ok: false, skipped: true, error: 'meta_capi_nao_configurado' };
@@ -504,6 +505,7 @@ async function fireMetaCapiSafe({
         userAgent,
       },
       customData: customData || {},
+      testEventCode,
     });
   } catch (error) {
     return { ok: false, error: String(error?.message || error) };
@@ -1239,6 +1241,12 @@ const serverHandler = async (req, res) => {
         typeof body.eventSourceUrl === 'string' && body.eventSourceUrl.trim()
           ? body.eventSourceUrl.trim()
           : `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`;
+      const testEventCode =
+        typeof body.testEventCode === 'string'
+          ? body.testEventCode.trim()
+          : typeof body.test_event_code === 'string'
+            ? body.test_event_code.trim()
+            : '';
 
       const productKey =
         typeof body.product === 'string' ? body.product.trim() : '';
@@ -1291,6 +1299,7 @@ const serverHandler = async (req, res) => {
         clientIp,
         userAgent,
         eventSourceUrl,
+        testEventCode: testEventCode || undefined,
       };
       const metaCheckoutData = {
         currency: 'BRL',
@@ -1414,7 +1423,7 @@ const serverHandler = async (req, res) => {
         return;
       }
 
-      void fireMetaCapiSafe({
+      await fireMetaCapiSafe({
         eventName: 'AddPaymentInfo',
         ...metaUser,
         customData: {
@@ -1585,7 +1594,7 @@ const serverHandler = async (req, res) => {
         providerRef,
       });
 
-      void fireMetaCapiSafe({
+      await fireMetaCapiSafe({
         eventName: 'Subscribe',
         userId,
         eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
@@ -2119,6 +2128,11 @@ const serverHandler = async (req, res) => {
         eventName,
         eventId: eventId || undefined,
         eventSourceUrl: eventSourceUrl || undefined,
+        testEventCode:
+          (typeof body.testEventCode === 'string' && body.testEventCode.trim()) ||
+          (typeof body.test_event_code === 'string' &&
+            body.test_event_code.trim()) ||
+          undefined,
         user: {
           userId: body.userId || body.externalId,
           displayName: body.displayName || body.name,

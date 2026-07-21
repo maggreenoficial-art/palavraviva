@@ -27,6 +27,24 @@ function readCookie(name: string) {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+/** Código da aba Eventos de teste (?test_event_code=TEST94275). */
+function readMetaTestEventCode() {
+  if (typeof window === 'undefined') return '';
+  try {
+    const fromQuery = new URLSearchParams(window.location.search).get(
+      'test_event_code',
+    );
+    if (fromQuery?.trim()) {
+      const code = fromQuery.trim();
+      window.sessionStorage.setItem('meta_test_event_code', code);
+      return code;
+    }
+    return (window.sessionStorage.getItem('meta_test_event_code') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 function paymentsBaseUrl() {
   const fromEnv = (process.env.EXPO_PUBLIC_PAYMENTS_URL || '').replace(/\/$/, '');
   if (fromEnv) return fromEnv;
@@ -140,6 +158,7 @@ async function sendCapi(
         fbc: readCookie('_fbc'),
         userAgent:
           typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        testEventCode: readMetaTestEventCode() || undefined,
         customData: params || {},
       }),
       keepalive: true,
