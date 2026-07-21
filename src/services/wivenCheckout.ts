@@ -154,6 +154,8 @@ export async function payWithCard(
     generationToken: input.generationToken ?? null,
     card: input.card,
     clientIp: Platform.OS === 'web' ? undefined : '127.0.0.1',
+    eventSourceUrl:
+      typeof window !== 'undefined' ? window.location.href : undefined,
   });
 }
 
@@ -171,6 +173,8 @@ export async function payWithPix(
     generationId: input.generationId ?? null,
     inputUrl: input.inputUrl ?? null,
     generationToken: input.generationToken ?? null,
+    eventSourceUrl:
+      typeof window !== 'undefined' ? window.location.href : undefined,
   });
 }
 

@@ -469,6 +469,45 @@ function tomorrowDate() {
   return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+/** CAPI no servidor — não depende do Pixel do navegador (adblock/atraso). */
+async function fireMetaCapiSafe({
+  eventName,
+  eventId,
+  eventSourceUrl,
+  userId,
+  displayName,
+  whatsapp,
+  clientIp,
+  userAgent,
+  customData,
+}) {
+  if (!metaCapiConfigured()) return;
+  try {
+    await sendMetaConversionEvent({
+      eventName,
+      eventId:
+        eventId ||
+        `${eventName}_${Date.now().toString(36)}_${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+      eventSourceUrl:
+        eventSourceUrl || `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+      actionSource: 'website',
+      user: {
+        userId,
+        displayName,
+        whatsapp,
+        country: 'br',
+        clientIp,
+        userAgent,
+      },
+      customData: customData || {},
+    });
+  } catch {
+    // nunca quebrar checkout por falha de analytics
+  }
+}
+
 function isHttpsPublicUrl(url) {
   return /^https:\/\//i.test(url || '') && !/localhost|127\.0\.0\.1/i.test(url);
 }
@@ -1193,6 +1232,11 @@ const serverHandler = async (req, res) => {
               .trim() ||
             req.socket.remoteAddress?.replace('::ffff:', '') ||
             '127.0.0.1';
+      const userAgent = String(req.headers['user-agent'] || '');
+      const eventSourceUrl =
+        typeof body.eventSourceUrl === 'string' && body.eventSourceUrl.trim()
+          ? body.eventSourceUrl.trim()
+          : `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`;
 
       const productKey =
         typeof body.product === 'string' ? body.product.trim() : '';
@@ -1278,8 +1322,39 @@ const serverHandler = async (req, res) => {
               displayName: displayName || null,
               whatsapp: whatsapp || null,
             });
+            void fireMetaCapiSafe({
+              eventName: 'Subscribe',
+              userId,
+              displayName,
+              whatsapp,
+              clientIp,
+              userAgent,
+              eventSourceUrl,
+              customData: {
+                currency: 'BRL',
+                value: product.price,
+                content_name: product.productKey,
+                content_category: 'subscription',
+              },
+            });
           }
         }
+
+        void fireMetaCapiSafe({
+          eventName: 'AddPaymentInfo',
+          userId,
+          displayName,
+          whatsapp,
+          clientIp,
+          userAgent,
+          eventSourceUrl,
+          customData: {
+            currency: 'BRL',
+            value: product.price,
+            content_name: product.productKey,
+            payment_type: 'card',
+          },
+        });
 
         saveCheckoutRecord({
           id: checkoutId,
@@ -1346,6 +1421,40 @@ const serverHandler = async (req, res) => {
         transactionId: wiven.transactionId,
         status: 'opened',
         createdAt: new Date().toISOString(),
+      });
+
+      // Servidor dispara na geração do Pix (Visão geral / CAPI) — não depende só do browser
+      void fireMetaCapiSafe({
+        eventName: 'InitiateCheckout',
+        userId,
+        displayName,
+        whatsapp,
+        clientIp,
+        userAgent,
+        eventSourceUrl,
+        customData: {
+          currency: 'BRL',
+          value: product.price,
+          content_name: product.productKey,
+          content_category:
+            product.kind === 'subscription' ? 'subscription' : 'tool',
+          num_items: 1,
+        },
+      });
+      void fireMetaCapiSafe({
+        eventName: 'AddPaymentInfo',
+        userId,
+        displayName,
+        whatsapp,
+        clientIp,
+        userAgent,
+        eventSourceUrl,
+        customData: {
+          currency: 'BRL',
+          value: product.price,
+          content_name: product.productKey,
+          payment_type: 'pix',
+        },
       });
 
       send(res, 201, {
@@ -1478,6 +1587,18 @@ const serverHandler = async (req, res) => {
       const sub = grantSubscription(userId, {
         lastWebhookAt: new Date().toISOString(),
         providerRef,
+      });
+
+      void fireMetaCapiSafe({
+        eventName: 'Subscribe',
+        userId,
+        eventSourceUrl: `${PUBLIC_BASE_URL || 'https://oucapalavra.com.br'}/`,
+        customData: {
+          currency: 'BRL',
+          value: PRODUCT_PRICE,
+          content_name: 'subscription',
+          content_category: 'subscription',
+        },
       });
 
       send(res, 200, { ok: true, subscription: sub });
