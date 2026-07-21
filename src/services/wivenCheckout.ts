@@ -53,6 +53,11 @@ export type PixCheckoutResult = {
   identifier?: string | null;
   pixCode: string | null;
   pixImage: string | null;
+  meta?: {
+    testEventCode?: string | null;
+    initiateCheckout?: { ok?: boolean; skipped?: boolean; error?: string | null };
+    addPaymentInfo?: { ok?: boolean; skipped?: boolean; error?: string | null };
+  };
 };
 
 export type AccessStatus = {
@@ -163,29 +168,33 @@ function readMetaClickIds() {
   }
 }
 
+/** Só da URL — checkout em produção não herda sessionStorage de teste. */
 function readMetaTestEventCode() {
   if (typeof window === 'undefined') return '';
   try {
-    const fromQuery = new URLSearchParams(window.location.search).get(
-      'test_event_code',
-    );
-    if (fromQuery?.trim()) {
-      const code = fromQuery.trim();
-      window.sessionStorage.setItem('meta_test_event_code', code);
-      try {
-        window.localStorage.setItem('meta_test_event_code', code);
-      } catch {
-        // ignore
-      }
-      return code;
-    }
-    const fromSession = (
-      window.sessionStorage.getItem('meta_test_event_code') || ''
+    const params = new URLSearchParams(window.location.search);
+    return (
+      params.get('test_event_code') ||
+      params.get('testEventCode') ||
+      ''
     ).trim();
-    if (fromSession) return fromSession;
-    return (window.localStorage.getItem('meta_test_event_code') || '').trim();
   } catch {
     return '';
+  }
+}
+
+/** URL limpa para CAPI de produção (sem ?test_event_code=). */
+function metaEventSourceUrl() {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('test_event_code');
+    url.searchParams.delete('testEventCode');
+    url.searchParams.delete('clear_test_event');
+    url.searchParams.delete('clearTestEvent');
+    return url.toString();
+  } catch {
+    return window.location.href;
   }
 }
 
@@ -206,8 +215,7 @@ export async function payWithCard(
     generationToken: input.generationToken ?? null,
     card: input.card,
     clientIp: Platform.OS === 'web' ? undefined : '127.0.0.1',
-    eventSourceUrl:
-      typeof window !== 'undefined' ? window.location.href : undefined,
+    eventSourceUrl: metaEventSourceUrl(),
     testEventCode: readMetaTestEventCode() || undefined,
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,
@@ -229,8 +237,7 @@ export async function payWithPix(
     generationId: input.generationId ?? null,
     inputUrl: input.inputUrl ?? null,
     generationToken: input.generationToken ?? null,
-    eventSourceUrl:
-      typeof window !== 'undefined' ? window.location.href : undefined,
+    eventSourceUrl: metaEventSourceUrl(),
     testEventCode: readMetaTestEventCode() || undefined,
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,

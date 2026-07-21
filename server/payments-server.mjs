@@ -1425,9 +1425,6 @@ const serverHandler = async (req, res) => {
         customData: metaCheckoutData,
       });
 
-      // Espaça ~1s — burst InitiateCheckout+AddPaymentInfo some da aba Eventos de teste
-      await new Promise((r) => setTimeout(r, 1000));
-
       let metaAddPayment = null;
       if (method === 'card') {
         metaAddPayment = await fireMetaCapiSafe({

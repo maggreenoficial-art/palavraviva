@@ -265,6 +265,9 @@ export function SubscriptionPaywall({
         whatsapp,
         document,
       });
+      if (typeof console !== 'undefined') {
+        console.info('[meta-checkout] pix_server_meta', result.meta ?? null);
+      }
       setPixCode(result.pixCode);
       setPixImage(result.pixImage);
       setMessage(
