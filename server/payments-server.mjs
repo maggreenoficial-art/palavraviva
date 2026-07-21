@@ -2505,38 +2505,23 @@ const serverHandler = async (req, res) => {
         );
         const debugBody = await debugRes.json().catch(() => ({}));
         const data = debugBody?.data || {};
+        const scopes = Array.isArray(data.scopes) ? data.scopes : [];
+        const onlyQualityScope =
+          scopes.length === 1 && scopes[0] === 'read_ads_dataset_quality';
+        // Tokens do Events Manager (CAPI) costumam listar só read_ads_dataset_quality
+        // e ainda enviam events_received:1 — não tratar isso como token inválido.
         tokenInfo = {
           isValid: Boolean(data.is_valid),
           application: data.application || null,
-          scopes: Array.isArray(data.scopes) ? data.scopes : [],
-          /** Token só com read_ads_dataset_quality NÃO grava eventos de verdade */
-          canSendConversions: Array.isArray(data.scopes)
-            ? data.scopes.some(
-                (s) =>
-                  s === 'ads_management' ||
-                  s === 'business_management' ||
-                  s.includes('ads'),
-              ) && !data.scopes.every((s) => s === 'read_ads_dataset_quality')
-            : false,
-          warning:
-            Array.isArray(data.scopes) &&
-            data.scopes.length === 1 &&
-            data.scopes[0] === 'read_ads_dataset_quality'
-              ? 'TOKEN_INVALIDO_PARA_CAPI: gere um novo em Eventos → Configurações → API de Conversões → Gerar token de acesso'
-              : null,
+          scopes,
+          canSendConversions: Boolean(data.is_valid),
+          note: onlyQualityScope
+            ? 'Escopo read_ads_dataset_quality é normal em tokens gerados no Events Manager; valide pelo POST /events e pela aba Eventos de teste.'
+            : null,
+          warning: !data.is_valid
+            ? 'TOKEN_INVALIDO: regenere em Eventos → Configurações → API de Conversões → Gerar token de acesso'
+            : null,
         };
-        // Heurística: se só tem read_ads_dataset_quality, marcar claramente
-        if (
-          Array.isArray(data.scopes) &&
-          data.scopes.length === 1 &&
-          data.scopes[0] === 'read_ads_dataset_quality'
-        ) {
-          tokenInfo.canSendConversions = false;
-        } else if (data.is_valid && Array.isArray(data.scopes)) {
-          // Tokens gerados no Events Manager para CAPI costumam listar só quality,
-          // mas ainda assim enviam — o problema é quando NÃO aparecem no dataset.
-          tokenInfo.canSendConversions = true;
-        }
       } catch {
         tokenInfo = { error: 'debug_token_falhou' };
       }
@@ -2574,7 +2559,7 @@ const serverHandler = async (req, res) => {
       tokenInfo,
       datasetEvents,
       hint:
-        'Se datasetEvents só tem PageView/AddPaymentInfo e a aba Eventos de teste não mostra Servidor, regenere o token CAPI no Events Manager.',
+        'Tokens do Events Manager costumam listar só read_ads_dataset_quality e ainda enviam. Para ver Servidor na aba Eventos de teste, abra o site com ?test_event_code= e dispare checkout.',
     });
     return;
   }

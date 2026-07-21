@@ -353,6 +353,8 @@ export function trackMetaPageView() {
   captureMetaTestEventCode();
   void ensureMetaClickIds();
   const eventId = createEventId('PageView');
+  // Dual Pixel+CAPI com o mesmo event_id (dedup na Meta; Servidor na aba de teste)
+  void sendCapi('PageView', eventId);
   if (!canUsePixel()) return;
   initMetaPixel();
   applyPixelTestEventCode();
@@ -367,8 +369,8 @@ export function trackMetaEvent(
   captureMetaTestEventCode();
   void ensureMetaClickIds();
   const eventId = createEventId(event);
-  // Checkout/conversão: só Pixel no navegador. CAPI vem do servidor (/api/checkout).
-  // Enviar CAPI daqui com token fraco na Vercel faz a Meta deduplicar e sumir o evento.
+  // Dual Pixel+CAPI com o mesmo event_id — origem Servidor vem do POST /api/meta/capi
+  void sendCapi(event, eventId, params);
   if (!canUsePixel()) return;
   initMetaPixel();
   applyPixelTestEventCode();
