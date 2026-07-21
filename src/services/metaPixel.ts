@@ -4,8 +4,6 @@ import { paymentsBaseUrl } from './paymentsUrl';
 
 declare global {
   interface Window {
-    fbq?: (...args: unknown[]) => void;
-    _fbq?: unknown;
     clientParamBuilder?: {
       processAndCollectAllParams?: (
         url?: string,
@@ -21,11 +19,16 @@ declare global {
 const PIXEL_ID =
   (process.env.EXPO_PUBLIC_META_PIXEL_ID || '4474411989514975').trim();
 
+/** Pixel do navegador desativado — só Conversions API. */
+const META_BROWSER_PIXEL_ENABLED = false;
+
 let bootstrapped = false;
 let clickIdsReady: Promise<void> | null = null;
 
-function canUsePixel() {
-  return Platform.OS === 'web' && typeof window !== 'undefined' && Boolean(PIXEL_ID);
+function canUseWebMeta() {
+  return (
+    Platform.OS === 'web' && typeof window !== 'undefined' && Boolean(PIXEL_ID)
+  );
 }
 
 function createEventId(event: string) {
@@ -98,7 +101,9 @@ function ensureFbcCookie() {
     const fbclid = params.get('fbclid');
     if (fbclid) {
       const existing = readCookie('_fbc');
-      const existingClick = existing ? existing.split('.').slice(3).join('.') : '';
+      const existingClick = existing
+        ? existing.split('.').slice(3).join('.')
+        : '';
       if (!(existing && existingClick === fbclid)) {
         const value = `fb.${subdomainIndex()}.${Date.now()}.${fbclid}`;
         writeCookie('_fbc', value);
@@ -169,9 +174,7 @@ export function ensureMetaClickIds() {
 
 /**
  * Código da aba Eventos de teste.
- * Só na URL ou sessionStorage (mesma aba / SPA). NÃO usa localStorage —
- * senão um único teste deixa o browser mandando test_event_code para sempre
- * e o Ads Manager não libera objetivos de conversão.
+ * Só na URL ou sessionStorage (mesma aba / SPA). NÃO usa localStorage.
  */
 export function getTestEventCodeNow(): string {
   if (typeof window === 'undefined') return '';
@@ -200,7 +203,6 @@ export function getTestEventCodeNow(): string {
     if (fromQuery) {
       try {
         window.sessionStorage.setItem('meta_test_event_code', fromQuery);
-        // Limpa legado que prendia o browser em modo teste
         window.localStorage.removeItem('meta_test_event_code');
       } catch {
         // ignore
@@ -208,16 +210,13 @@ export function getTestEventCodeNow(): string {
       return fromQuery;
     }
 
-    // Sem param na URL: produção. Não herdar localStorage antigo.
     try {
       window.localStorage.removeItem('meta_test_event_code');
     } catch {
       // ignore
     }
 
-    return (
-      window.sessionStorage.getItem('meta_test_event_code') || ''
-    ).trim();
+    return (window.sessionStorage.getItem('meta_test_event_code') || '').trim();
   } catch {
     return '';
   }
@@ -225,21 +224,7 @@ export function getTestEventCodeNow(): string {
 
 /** @deprecated use getTestEventCodeNow — mantido para imports existentes */
 export function captureMetaTestEventCode() {
-  const code = getTestEventCodeNow();
-  if (code) applyPixelTestEventCode(code);
-  return code;
-}
-
-/** Faz o Pixel do navegador marcar eventos na aba Eventos de teste. */
-function applyPixelTestEventCode(code?: string) {
-  const resolved = (code || getTestEventCodeNow()).trim();
-  if (!resolved || typeof window === 'undefined') return '';
-  try {
-    callFbq('set', 'test_event_code', resolved);
-  } catch {
-    // fbq pode ainda não existir
-  }
-  return resolved;
+  return getTestEventCodeNow();
 }
 
 /** Mantém ?test_event_code= na URL ao navegar (SPA). */
@@ -261,7 +246,11 @@ function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
   if (typeof console === 'undefined') return;
   if (event !== 'InitiateCheckout' && event !== 'AddPaymentInfo') return;
   const testCode = getTestEventCodeNow();
-  if (!testCode && detail.stage !== 'capi_response' && detail.stage !== 'capi_error') {
+  if (
+    !testCode &&
+    detail.stage !== 'capi_response' &&
+    detail.stage !== 'capi_error'
+  ) {
     return;
   }
   console.info('[meta-checkout]', event, detail);
@@ -269,95 +258,22 @@ function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
     console.warn(
       '[meta-checkout] Modo TESTE ativo (' +
         testCode +
-        '). Isso aparece no console e em Eventos de teste, ' +
-        'mas NÃO libera objetivo no Gerenciador de Anúncios. ' +
-        'Para liberar: abra o site SEM ?test_event_code= (ou com ?clear_test_event=1) e gere o Pix de novo.',
+        '). Eventos vão para Eventos de teste via CAPI; ' +
+        'para Ads use o site SEM ?test_event_code=.',
     );
   }
 }
 
-function splitName(fullName: string) {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return { fn: '', ln: '' };
-  if (parts.length === 1) return { fn: parts[0], ln: '' };
-  return { fn: parts[0], ln: parts.slice(1).join(' ') };
-}
-
-function advancedMatching() {
-  const { userId, displayName, whatsapp } = useUserStore.getState();
-  const { fn, ln } = splitName(displayName || '');
-  const advanced: Record<string, string> = { country: 'br' };
-  if (userId) advanced.external_id = userId;
-  if (fn) advanced.fn = fn.toLowerCase();
-  if (ln) advanced.ln = ln.toLowerCase();
-  if (whatsapp) {
-    const digits = whatsapp.replace(/\D/g, '');
-    advanced.ph = digits.startsWith('55') ? digits : `55${digits}`;
-  }
-  return advanced;
-}
-
-function callFbq(...args: unknown[]) {
-  const fbq = window.fbq as ((...a: unknown[]) => void) | undefined;
-  if (typeof fbq === 'function') fbq(...args);
-}
-
 /**
- * Injeta o Meta Pixel uma vez (web).
- * NÃO dispara PageView aqui — evita triplicar com index.html + trackMetaPageView.
+ * Bootstrap Meta (CAPI only) — cookies fbp/fbc para matching; sem fbq.
  */
 export function initMetaPixel() {
-  if (!canUsePixel() || bootstrapped) return;
+  if (!canUseWebMeta() || bootstrapped) return;
   bootstrapped = true;
   void ensureMetaClickIds();
-
-  const advanced = advancedMatching();
-
-  if (typeof window.fbq === 'function') {
-    // index.html já fez init — não reinicializar (resetaria test_event_code)
-    applyPixelTestEventCode();
-    return;
-  }
-
-  const f = window;
-  const b = document;
-  const e = 'script';
-  const v = 'https://connect.facebook.net/en_US/fbevents.js';
-
-  type FbqFn = ((...args: unknown[]) => void) & {
-    callMethod?: (...args: unknown[]) => void;
-    queue: unknown[];
-    push: (...args: unknown[]) => void;
-    loaded: boolean;
-    version: string;
-  };
-
-  const n = function (...args: unknown[]) {
-    if (n.callMethod) {
-      n.callMethod(...args);
-    } else {
-      n.queue.push(args);
-    }
-  } as FbqFn;
-  if (!f._fbq) f._fbq = n;
-  f.fbq = n;
-  n.push = n;
-  n.loaded = true;
-  n.version = '2.0';
-  n.queue = [];
-
-  const t = b.createElement(e) as HTMLScriptElement;
-  t.async = true;
-  t.src = v;
-  const s = b.getElementsByTagName(e)[0];
-  s?.parentNode?.insertBefore(t, s);
-
-  callFbq('init', PIXEL_ID, advanced);
-  const testCode = captureMetaTestEventCode();
-  if (testCode) callFbq('set', 'test_event_code', testCode);
 }
 
-/** Endpoint CAPI: em web online sempre same-origin (evita localhost do bundle). */
+/** Endpoint CAPI: em web online sempre same-origin. */
 function metaCapiUrl() {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const host = window.location.hostname || '';
@@ -390,7 +306,6 @@ async function sendCapi(
 
   const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
-  // Releia no instante do POST (URL pode ter mudado)
   const testEventCode = getTestEventCodeNow() || undefined;
   const body = {
     eventName,
@@ -449,77 +364,31 @@ async function sendCapi(
 }
 
 export function trackMetaPageView() {
-  if (Platform.OS !== 'web') return;
+  if (!canUseWebMeta()) return;
   persistMetaTestEventCodeInUrl();
-  const testCode = getTestEventCodeNow();
-  const eventId = createEventId('PageView');
-  const capiId = testCode ? `${eventId}_srv` : eventId;
-  if (!canUsePixel()) {
-    void sendCapi('PageView', capiId);
-    return;
-  }
   initMetaPixel();
-  if (testCode) applyPixelTestEventCode(testCode);
-  callFbq('track', 'PageView', {}, { eventID: eventId });
-  void sendCapi('PageView', capiId);
-}
-
-/** Params seguros para o Pixel (sem arrays). */
-function toPixelParams(
-  params?: Record<string, string | number | boolean | string[]>,
-): Record<string, string | number | boolean> {
-  const out: Record<string, string | number | boolean> = {};
-  if (!params) return out;
-  for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      if (key === 'content_ids' && value[0] != null) {
-        out.content_name = out.content_name ?? String(value[0]);
-      }
-      continue;
-    }
-    out[key] = value;
-  }
-  return out;
+  void sendCapi('PageView', createEventId('PageView'));
 }
 
 export function trackMetaEvent(
   event: string,
   params?: Record<string, string | number | boolean | string[]>,
 ) {
-  if (Platform.OS !== 'web') return;
+  if (!canUseWebMeta()) return;
   persistMetaTestEventCodeInUrl();
-  // Sempre relê da URL no instante do disparo
-  const testCode = getTestEventCodeNow();
   const eventId = createEventId(event);
-  const capiId = testCode ? `${eventId}_srv` : eventId;
-  const pixelParams = toPixelParams(params);
 
   debugMetaCheckout(event, {
     stage: 'track_start',
     eventId,
-    capiId,
-    testEventCode: testCode || null,
-    href:
-      typeof window !== 'undefined' ? window.location.href : null,
-    pixelParams,
+    testEventCode: getTestEventCodeNow() || null,
+    href: typeof window !== 'undefined' ? window.location.href : null,
+    browserPixel: META_BROWSER_PIXEL_ENABLED,
+    params: params || {},
   });
 
-  if (canUsePixel()) {
-    initMetaPixel();
-    // Obrigatório: set test_event_code imediatamente antes do track
-    if (testCode) {
-      callFbq('set', 'test_event_code', testCode);
-    }
-    callFbq('track', event, pixelParams, { eventID: eventId });
-    debugMetaCheckout(event, {
-      stage: 'pixel_tracked',
-      eventId,
-      testEventCode: testCode || null,
-    });
-  } else {
-    debugMetaCheckout(event, { stage: 'pixel_skip', reason: 'canUsePixel_false' });
-  }
-  void sendCapi(event, capiId, params);
+  initMetaPixel();
+  void sendCapi(event, eventId, params);
 }
 
 /** Atalhos do funil Missão+ — use nos cliques (abrir paywall / pagar). */
@@ -544,21 +413,9 @@ export function trackMissaoAddPaymentInfo(paymentType: 'pix' | 'card') {
   });
 }
 
-/**
- * Com ?test_event_code= — não dispara ViewContent (confundia com checkout).
- * Mantido só para debug manual se precisar.
- */
+/** Probe desativado — eventos reais vêm do paywall / CAPI. */
 export function trackMetaTestCheckoutProbe() {
-  if (Platform.OS !== 'web') return;
-  const code = captureMetaTestEventCode();
-  if (!code) return;
-  try {
-    if (window.sessionStorage.getItem('meta_test_probe_v3') === '1') return;
-    window.sessionStorage.setItem('meta_test_probe_v3', '1');
-  } catch {
-    // ignore
-  }
-  // Probe desativado automaticamente — eventos reais vêm do paywall.
+  // no-op
 }
 
 export function getMetaPixelId() {

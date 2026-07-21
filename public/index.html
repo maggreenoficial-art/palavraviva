@@ -138,32 +138,8 @@
         } catch (e) {}
       })();
     </script>
-    <!-- Meta Pixel Code — só init; PageView/eventos vêm do app com event_id (dedup CAPI) -->
+    <!-- Meta CAPI only — sem Pixel do navegador (fbq). Eventos via /api/meta/capi -->
     <script>
-      !(function (f, b, e, v, n, t, s) {
-        if (f.fbq) return;
-        n = f.fbq = function () {
-          n.callMethod
-            ? n.callMethod.apply(n, arguments)
-            : n.queue.push(arguments);
-        };
-        if (!f._fbq) f._fbq = n;
-        n.push = n;
-        n.loaded = !0;
-        n.version = '2.0';
-        n.queue = [];
-        t = b.createElement(e);
-        t.async = !0;
-        t.src = v;
-        s = b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t, s);
-      })(
-        window,
-        document,
-        'script',
-        'https://connect.facebook.net/en_US/fbevents.js',
-      );
-      fbq('init', '4474411989514975');
       (function () {
         var code = '';
         try {
@@ -185,44 +161,33 @@
             try {
               localStorage.removeItem('meta_test_event_code');
             } catch (e) {}
-            fbq('set', 'test_event_code', code);
-            // CAPI imediato (origem Servidor) — não depende do React/bundle
-            try {
-              var eid =
-                'PageView_boot_' +
-                Date.now().toString(36) +
-                '_' +
-                Math.random().toString(36).slice(2, 8) +
-                '_srv';
-              fetch('/api/meta/capi', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                keepalive: true,
-                body: JSON.stringify({
-                  eventName: 'PageView',
-                  eventId: eid,
-                  eventSourceUrl: location.href,
-                  testEventCode: code,
-                  userAgent: navigator.userAgent,
-                  country: 'br',
-                }),
-              }).catch(function () {});
-            } catch (e) {}
           }
         } catch (e) {}
-        // PageView imediato (antes do React) — essencial em aba anônima / SW cache
-        fbq('track', 'PageView');
+
+        // PageView CAPI imediato (antes do React)
+        try {
+          var eid =
+            'PageView_boot_' +
+            Date.now().toString(36) +
+            '_' +
+            Math.random().toString(36).slice(2, 8);
+          var body = {
+            eventName: 'PageView',
+            eventId: eid,
+            eventSourceUrl: location.href,
+            userAgent: navigator.userAgent,
+            country: 'br',
+          };
+          if (code) body.testEventCode = code;
+          fetch('/api/meta/capi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            keepalive: true,
+            body: JSON.stringify(body),
+          }).catch(function () {});
+        } catch (e) {}
       })();
     </script>
-    <noscript
-      ><img
-        height="1"
-        width="1"
-        style="display: none"
-        src="https://www.facebook.com/tr?id=4474411989514975&ev=PageView&noscript=1"
-        alt=""
-    /></noscript>
-    <!-- End Meta Pixel Code -->
   </head>
   <body>
     <noscript>Ative o JavaScript para usar o Palavra Viva.</noscript>

@@ -15,7 +15,7 @@ import { syncSubscriptionAccess } from '../services/wivenCheckout';
 import { useUserStore } from '../store/useUserStore';
 import { usePathname } from 'expo-router';
 
-/** Inicializa analytics, Pixel Meta, presença online, pageviews e sync de assinatura. */
+/** Inicializa analytics, Meta CAPI, presença online, pageviews e sync de assinatura. */
 export function AnalyticsBootstrap() {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
