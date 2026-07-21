@@ -7,6 +7,7 @@ import { colors, MIN_TAP, radius, spacing, useTypography } from '../theme';
 
 const COVER_WIDTH = 168;
 const COVER_HEIGHT = 112;
+const FALLBACK_COVER = require('../../assets/thumbnails/sos-paz.jpg');
 
 interface SessionCardProps {
   session: Session;
@@ -29,9 +30,14 @@ function categoryLabel(session: Session) {
   return 'Sessão';
 }
 
-export function SessionCard({ session, onPress, locked = false }: SessionCardProps) {
+export function SessionCard({
+  session,
+  onPress,
+  locked = false,
+}: SessionCardProps) {
   const type = useTypography();
   const offline = !isRemoteAudio(session.audioSource);
+  const coverSource = session.coverImage ?? FALLBACK_COVER;
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -48,66 +54,51 @@ export function SessionCard({ session, onPress, locked = false }: SessionCardPro
           top: spacing.sm,
           right: spacing.sm,
           backgroundColor: 'rgba(18,26,33,0.9)',
-          borderRadius: 6,
-          paddingHorizontal: 8,
+          borderRadius: radius.sm,
+          paddingHorizontal: spacing.sm,
           paddingVertical: 4,
-          minHeight: 28,
-          justifyContent: 'center',
+          zIndex: 2,
         },
         lockBadgeText: {
           ...type.caption,
           color: colors.accent,
           fontFamily: 'DMSans_600SemiBold',
-          fontSize: Math.max(12, type.caption.fontSize - 2),
+          fontSize: Math.max(11, type.caption.fontSize - 1),
         },
         pressed: {
-          opacity: 0.85,
+          opacity: 0.88,
         },
         cover: {
           width: COVER_WIDTH,
           height: COVER_HEIGHT,
           borderRadius: radius.md,
-          marginBottom: spacing.sm,
           overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: colors.border,
+          marginBottom: spacing.sm,
         },
         coverImage: {
           width: COVER_WIDTH,
           height: COVER_HEIGHT,
         },
         coverOverlay: {
-          ...StyleSheet.absoluteFill,
-          paddingHorizontal: spacing.sm,
-          paddingBottom: spacing.sm,
+          ...StyleSheet.absoluteFillObject,
           justifyContent: 'flex-end',
-        },
-        coverGlow: {
-          position: 'absolute',
-          bottom: -20,
-          left: -10,
-          width: 90,
-          height: 90,
-          borderRadius: 45,
-          backgroundColor: colors.accentSoft,
+          padding: spacing.sm,
+          backgroundColor: 'rgba(0,0,0,0.25)',
         },
         category: {
           ...type.caption,
-          color: colors.accent,
+          color: colors.white,
           fontFamily: 'DMSans_600SemiBold',
-          textShadowColor: 'rgba(0,0,0,0.55)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
         },
         title: {
           ...type.bodyMedium,
           color: colors.textPrimary,
-          marginBottom: 4,
-          minHeight: 44,
+          minHeight: Math.round(type.bodyMedium.fontSize * 2.4),
         },
         meta: {
           ...type.caption,
           color: colors.textSecondary,
+          marginTop: 2,
         },
       }),
     [type],
@@ -116,7 +107,7 @@ export function SessionCard({ session, onPress, locked = false }: SessionCardPro
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${session.title}. ${formatDuration(session.durationSeconds)}${locked ? '. Assinatura necessária' : ''}`}
+      accessibilityLabel={`${session.title}. ${formatDuration(session.durationSeconds)}${locked ? '. Missão+' : ''}`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
@@ -125,20 +116,16 @@ export function SessionCard({ session, onPress, locked = false }: SessionCardPro
       ]}
     >
       <View style={[styles.cover, { backgroundColor: session.coverColor }]}>
-        {session.coverImage != null ? (
-          <Image
-            source={session.coverImage}
-            style={styles.coverImage}
-            contentFit="cover"
-            contentPosition="center"
-            recyclingKey={session.id}
-            cachePolicy="memory-disk"
-            transition={120}
-            accessibilityIgnoresInvertColors
-          />
-        ) : (
-          <View style={styles.coverGlow} />
-        )}
+        <Image
+          source={coverSource}
+          style={styles.coverImage}
+          contentFit="cover"
+          contentPosition="center"
+          recyclingKey={session.id}
+          cachePolicy="memory-disk"
+          transition={120}
+          accessibilityIgnoresInvertColors
+        />
         <View style={styles.coverOverlay} pointerEvents="none">
           <Text style={styles.category}>{categoryLabel(session)}</Text>
         </View>

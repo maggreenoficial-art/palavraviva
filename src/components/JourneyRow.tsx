@@ -193,18 +193,19 @@ export function JourneyRow({
                   focused && styles.posterFocused,
                 ]}
               >
-                {item.coverImage != null ? (
-                  <Image
-                    source={item.coverImage}
-                    style={{ width: cardWidth, height: imageHeight }}
-                    contentFit="cover"
-                    contentPosition="center"
-                    recyclingKey={item.id}
-                    cachePolicy="memory-disk"
-                    transition={120}
-                    accessibilityIgnoresInvertColors
-                  />
-                ) : null}
+                <Image
+                  source={
+                    item.coverImage ??
+                    require('../../assets/thumbnails/jornada-sete-dias.jpg')
+                  }
+                  style={{ width: cardWidth, height: imageHeight }}
+                  contentFit="cover"
+                  contentPosition="center"
+                  recyclingKey={item.id}
+                  cachePolicy="memory-disk"
+                  transition={120}
+                  accessibilityIgnoresInvertColors
+                />
 
                 <View style={styles.dayBadge}>
                   <Text style={styles.dayBadgeText}>DIA {item.journeyDay}</Text>

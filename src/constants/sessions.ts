@@ -37,6 +37,7 @@ export const baseSessions: Session[] = [
     biblicalPrayerId: 'PSALM_23_1_4',
     biblicalPrayerIds: ['PSALM_23_1_4'],
     coverColor: '#1A3340',
+    coverImage: require('../../assets/thumbnails/manha-esperanca-01.jpg'),
   },
   {
     id: 'noite-01',
@@ -52,6 +53,7 @@ export const baseSessions: Session[] = [
     biblicalPrayerId: 'salmo-46',
     biblicalPrayerIds: ['salmo-46'],
     coverColor: '#172536',
+    coverImage: require('../../assets/thumbnails/noite-ansiedade-01.jpg'),
   },
   {
     id: 'noite-02',
@@ -67,6 +69,7 @@ export const baseSessions: Session[] = [
     biblicalPrayerId: 'PSALM_4_8',
     biblicalPrayerIds: ['PSALM_4_8'],
     coverColor: '#141F2C',
+    coverImage: require('../../assets/thumbnails/noite-ansiedade-01.jpg'),
   },
 ];
 
@@ -533,5 +536,12 @@ export function getRecommendedSessions(feeling: string | null | undefined) {
       ...morningSessions,
     ].filter(Boolean);
   }
-  return sessions;
+  // Sem feeling: recomendações com capa (evita manhã/noite sem thumbnail na home)
+  return [
+    sosAnxietySessions[0],
+    journeySessions.find((s) => s.id === 'manha-esperanca-01')!,
+    meditationSessions.find((s) => s.id === 'amor-acalma-01')!,
+    ecosystemSessions.find((s) => s.id === 'eco-ansiedade-01')!,
+    journeySessions.find((s) => s.id === 'ansiedade-01')!,
+  ].filter(Boolean);
 }

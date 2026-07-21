@@ -43,7 +43,6 @@ interface SubscriptionPaywallProps {
   visible: boolean;
   onClose: () => void;
   blocking?: boolean;
-  onDonate?: () => void;
 }
 
 type PayMethod = 'card' | 'pix';
@@ -52,7 +51,6 @@ export function SubscriptionPaywall({
   visible,
   onClose,
   blocking = false,
-  onDonate,
 }: SubscriptionPaywallProps) {
   const userId = useUserStore((s) => s.userId);
   const displayName = useUserStore((s) => s.displayName);
@@ -74,6 +72,7 @@ export function SubscriptionPaywall({
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [pixImage, setPixImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { isDesktop, shellMaxWidth } = useResponsive();
   const cardBrand = useMemo(
     () => detectCardBrand(cardNumber),
@@ -90,6 +89,7 @@ export function SubscriptionPaywall({
     setPixCode(null);
     setPixImage(null);
     setCopied(false);
+    setSuccess(false);
     setCardOwner((prev) => prev || displayName || '');
     captureMetaTestEventCode();
     trackMetaEvent('InitiateCheckout', {
@@ -141,11 +141,10 @@ export function SubscriptionPaywall({
       currency: 'BRL',
       value: 19.9,
     });
-    setMessage('Pagamento confirmado. Assinatura ativa!');
-    setTimeout(() => {
-      setMessage(null);
-      onClose();
-    }, 900);
+    setError(null);
+    setMessage(null);
+    setLoading(false);
+    setSuccess(true);
   }
 
   async function handlePayCard() {
@@ -342,6 +341,49 @@ export function SubscriptionPaywall({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scroll}
           >
+            {success ? (
+              <View style={styles.successBox}>
+                <Text style={styles.successKicker}>Pagamento confirmado</Text>
+                <Text style={styles.successTitle}>
+                  {firstName
+                    ? `${firstName}, você agora é Missão+`
+                    : 'Você agora é Missão+'}
+                </Text>
+                <Text style={styles.successBody}>
+                  Sua assinatura está ativa. Todos os áudios premium já estão
+                  liberados neste aparelho.
+                </Text>
+
+                <View style={styles.successBenefits}>
+                  <Text style={styles.benefitsTitle}>O que você liberou</Text>
+                  <Text style={styles.benefitItem}>
+                    · Todos os áudios e séries premium
+                  </Text>
+                  <Text style={styles.benefitItem}>
+                    · Jornada de 7 dias completa
+                  </Text>
+                  <Text style={styles.benefitItem}>
+                    · Novos conteúdos sem bloqueio
+                  </Text>
+                  <Text style={styles.benefitItem}>
+                    · SOS, Bíblia e conteúdos gratuitos continuam iguais
+                  </Text>
+                </View>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Começar a ouvir"
+                  onPress={onClose}
+                  style={({ pressed }) => [
+                    styles.cta,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.ctaText}>Começar a ouvir</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
             <Text style={styles.kicker}>Missão+</Text>
             <Text style={styles.title}>
               {firstName
@@ -659,19 +701,6 @@ export function SubscriptionPaywall({
               </Pressable>
             ) : null}
 
-            {onDonate ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  onClose();
-                  onDonate();
-                }}
-                style={styles.linkBtn}
-              >
-                <Text style={styles.linkText}>Apoiar a missão (doação)</Text>
-              </Pressable>
-            ) : null}
-
             <Pressable
               accessibilityRole="button"
               onPress={onClose}
@@ -690,6 +719,8 @@ export function SubscriptionPaywall({
               Pagamento seguro processado pela Wiven. Seus dados de cartão não
               ficam salvos no app.
             </Text>
+              </>
+            )}
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -1027,5 +1058,34 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.7,
+  },
+  successBox: {
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  successKicker: {
+    ...typography.caption,
+    color: colors.accent,
+    fontFamily: 'DMSans_700Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  successTitle: {
+    ...typography.title,
+    color: colors.textPrimary,
+  },
+  successBody: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: Math.round(typography.body.fontSize * 1.45),
+  },
+  successBenefits: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.backgroundSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
 });

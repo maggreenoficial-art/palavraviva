@@ -5,6 +5,7 @@ import type { Session } from '../types';
 import { colors, MIN_TAP, radius, spacing, useTypography } from '../theme';
 
 const COVER_HEIGHT = 148;
+const FALLBACK_COVER = require('../../assets/thumbnails/sos-paz.jpg');
 
 interface FeaturedSessionCardProps {
   session: Session;
@@ -17,6 +18,7 @@ export function FeaturedSessionCard({
 }: FeaturedSessionCardProps) {
   const type = useTypography();
   const minutes = Math.round(session.durationSeconds / 60);
+  const coverSource = session.coverImage ?? FALLBACK_COVER;
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -84,18 +86,16 @@ export function FeaturedSessionCard({
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={[styles.cover, { backgroundColor: session.coverColor }]}>
-        {session.coverImage != null ? (
-          <Image
-            source={session.coverImage}
-            style={styles.coverImage}
-            contentFit="cover"
-            contentPosition="center"
-            recyclingKey={session.id}
-            cachePolicy="memory-disk"
-            transition={120}
-            accessibilityIgnoresInvertColors
-          />
-        ) : null}
+        <Image
+          source={coverSource}
+          style={styles.coverImage}
+          contentFit="cover"
+          contentPosition="center"
+          recyclingKey={session.id}
+          cachePolicy="memory-disk"
+          transition={120}
+          accessibilityIgnoresInvertColors
+        />
       </View>
       <View style={styles.body}>
         <Text style={styles.kicker}>Recomendado</Text>

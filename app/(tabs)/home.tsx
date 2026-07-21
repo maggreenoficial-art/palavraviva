@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { DonationModal } from '../../src/components/DonationModal';
 import { FeelingPickerModal } from '../../src/components/FeelingPickerModal';
 import { BrandMark } from '../../src/components/BrandMark';
 import { FeaturedSessionCard } from '../../src/components/FeaturedSessionCard';
@@ -97,7 +96,6 @@ export default function HomeScreen() {
   const continueId = useContinueStore((s) => s.sessionId);
   const positionMs = useContinueStore((s) => s.positionMs);
   const durationMs = useContinueStore((s) => s.durationMs);
-  const [donationVisible, setDonationVisible] = useState(false);
   const [feelingVisible, setFeelingVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -311,25 +309,6 @@ export default function HomeScreen() {
         linkText: {
           ...type.bodyMedium,
           color: colors.cyan,
-        },
-        supportBanner: {
-          marginHorizontal: spacing.screen,
-          marginBottom: spacing.lg,
-          padding: spacing.lg,
-          borderRadius: radius.md,
-          backgroundColor: colors.backgroundSoft,
-          borderWidth: 1,
-          borderColor: colors.border,
-          minHeight: MIN_TAP,
-        },
-        supportText: {
-          ...type.bodyMedium,
-          color: colors.textPrimary,
-        },
-        supportHint: {
-          ...type.caption,
-          color: colors.textSecondary,
-          marginTop: 4,
         },
         toolsBanner: {
           borderRadius: radius.md,
@@ -639,27 +618,8 @@ export default function HomeScreen() {
             <Text style={styles.linkText}>Ver todas as passagens</Text>
           </Pressable>
         </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Apoie a Missão"
-          style={({ pressed }) => [
-            styles.supportBanner,
-            pressed && styles.pressed,
-          ]}
-          onPress={() => setDonationVisible(true)}
-        >
-          <Text style={styles.supportText}>Apoie a Missão</Text>
-          <Text style={styles.supportHint}>
-            Contribuição voluntária, quando quiser
-          </Text>
-        </Pressable>
       </ScrollView>
 
-      <DonationModal
-        visible={donationVisible}
-        onClose={() => setDonationVisible(false)}
-      />
       <FeelingPickerModal
         visible={feelingVisible}
         onClose={() => setFeelingVisible(false)}
@@ -680,7 +640,6 @@ export default function HomeScreen() {
         visible={paywallVisible}
         blocking={accessKind === 'locked'}
         onClose={() => setPaywallVisible(false)}
-        onDonate={() => setDonationVisible(true)}
       />
     </SafeAreaView>
   );
