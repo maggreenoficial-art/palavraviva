@@ -20,9 +20,9 @@ import {
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
 import {
-  trackMetaEvent,
   trackMissaoAddPaymentInfo,
   trackMissaoInitiateCheckout,
+  trackMissaoSubscribe,
 } from '../services/metaPixel';
 import {
   formatCpf,
@@ -159,14 +159,7 @@ export function SubscriptionPaywall({
   }
 
   async function handleSuccess() {
-    trackMetaEvent('Subscribe', {
-      content_name: 'missao_plus',
-      content_category: 'subscription',
-      currency: 'BRL',
-      value: 19.9,
-      predicted_ltv: 19.9,
-      num_items: 1,
-    });
+    trackMissaoSubscribe();
     setError(null);
     setMessage(null);
     setLoading(false);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,6 +10,7 @@ import {
   canAccessSession,
   gateMessage,
 } from '../../src/services/contentAccess';
+import { trackMetaViewContent } from '../../src/services/metaPixel';
 import { useFavoritesStore } from '../../src/store/useFavoritesStore';
 import { useJourneyProgressStore } from '../../src/store/useJourneyProgressStore';
 import {
@@ -37,6 +38,11 @@ export default function PlayerScreen() {
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const [checkInVisible, setCheckInVisible] = useState(false);
   const [paywallVisible, setPaywallVisible] = useState(false);
+
+  useEffect(() => {
+    if (!session?.id) return;
+    trackMetaViewContent(session.id, 'audio_session');
+  }, [session?.id]);
 
   if (!session) {
     return (

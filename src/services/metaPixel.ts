@@ -231,8 +231,35 @@ async function sendCapi(
         customData: params || {},
       }),
     });
-    if (!res.ok && typeof console !== 'undefined') {
-      console.warn('[meta-capi]', eventName, res.status, await res.text());
+    const text = await res.text();
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+    if (!res.ok) {
+      if (typeof console !== 'undefined') {
+        console.warn('[meta-capi]', eventName, res.status, parsed);
+      }
+      return;
+    }
+    if (
+      typeof console !== 'undefined' &&
+      ['Lead', 'InitiateCheckout', 'AddPaymentInfo', 'Subscribe', 'Purchase', 'ViewContent'].includes(
+        eventName,
+      )
+    ) {
+      const received =
+        parsed &&
+        typeof parsed === 'object' &&
+        'meta' in parsed &&
+        parsed.meta &&
+        typeof parsed.meta === 'object' &&
+        'events_received' in parsed.meta
+          ? (parsed.meta as { events_received?: number }).events_received
+          : null;
+      console.info('[meta-capi]', eventName, 'enviado', { events_received: received });
     }
   } catch (err) {
     if (typeof console !== 'undefined') {
@@ -266,6 +293,7 @@ export function trackMetaEvent(
 export function trackMissaoInitiateCheckout() {
   trackMetaEvent('InitiateCheckout', {
     content_name: 'missao_plus',
+    content_ids: ['missao_plus'],
     content_category: 'subscription',
     currency: 'BRL',
     value: 19.9,
@@ -276,11 +304,34 @@ export function trackMissaoInitiateCheckout() {
 export function trackMissaoAddPaymentInfo(paymentType: 'pix' | 'card') {
   trackMetaEvent('AddPaymentInfo', {
     content_name: 'missao_plus',
+    content_ids: ['missao_plus'],
     content_category: 'subscription',
     currency: 'BRL',
     value: 19.9,
     payment_type: paymentType,
     num_items: 1,
+  });
+}
+
+export function trackMissaoSubscribe() {
+  trackMetaEvent('Subscribe', {
+    content_name: 'missao_plus',
+    content_ids: ['missao_plus'],
+    content_category: 'subscription',
+    currency: 'BRL',
+    value: 19.9,
+    predicted_ltv: 19.9,
+    num_items: 1,
+  });
+}
+
+export function trackMetaViewContent(contentName: string, category = 'content') {
+  trackMetaEvent('ViewContent', {
+    content_name: contentName,
+    content_ids: [contentName],
+    content_category: category,
+    currency: 'BRL',
+    value: 0,
   });
 }
 

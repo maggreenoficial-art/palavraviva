@@ -1408,10 +1408,19 @@ const serverHandler = async (req, res) => {
       const metaCheckoutData = {
         currency: 'BRL',
         value: product.price,
-        content_name: product.productKey,
-        content_ids: [product.productKey],
+        content_name:
+          product.kind === 'subscription' ? 'missao_plus' : product.productKey,
+        content_ids: [
+          product.kind === 'subscription' ? 'missao_plus' : product.productKey,
+        ],
         content_type: 'product',
-        contents: [{ id: product.productKey, quantity: 1 }],
+        contents: [
+          {
+            id:
+              product.kind === 'subscription' ? 'missao_plus' : product.productKey,
+            quantity: 1,
+          },
+        ],
         content_category:
           product.kind === 'subscription' ? 'subscription' : 'tool',
         num_items: 1,
