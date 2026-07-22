@@ -129,9 +129,6 @@ function buildUserData(input = {}) {
   userData.client_user_agent = resolveUserAgent(input);
   if (input.fbp) {
     userData.fbp = String(input.fbp);
-  } else {
-    // Sem fbp a aba Eventos de teste omite conversões com mais frequência
-    userData.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
   }
   if (input.fbc) userData.fbc = String(input.fbc);
 

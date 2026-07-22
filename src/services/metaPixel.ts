@@ -4,6 +4,12 @@ import { paymentsBaseUrl } from './paymentsUrl';
 
 declare global {
   interface Window {
+    fbq?: (
+      action: string,
+      event: string,
+      params?: Record<string, unknown>,
+      options?: { eventID?: string },
+    ) => void;
     clientParamBuilder?: {
       processAndCollectAllParams?: (
         url?: string,
@@ -198,6 +204,25 @@ function metaCapiUrl() {
   return base ? `${base.replace(/\/$/, '')}/api/meta/capi` : '';
 }
 
+function trackBrowserPixel(
+  eventName: string,
+  eventId: string,
+  params?: Record<string, string | number | boolean | string[]>,
+) {
+  if (typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  try {
+    const pixelParams: Record<string, unknown> = {};
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) pixelParams[key] = value;
+      }
+    }
+    window.fbq('track', eventName, pixelParams, { eventID: eventId });
+  } catch {
+    // Pixel opcional — CAPI segue
+  }
+}
+
 async function sendCapi(
   eventName: string,
   eventId: string,
@@ -211,6 +236,8 @@ async function sendCapi(
   } catch {
     // segue sem Parameter Builder
   }
+
+  trackBrowserPixel(eventName, eventId, params);
 
   const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
@@ -274,7 +301,7 @@ async function sendCapi(
   }
 }
 
-/** Bootstrap CAPI — cookies fbp/fbc para matching. Sem Pixel do navegador. */
+/** Bootstrap Pixel + CAPI — cookies fbp/fbc e deduplicação por eventID. */
 export function initMetaPixel() {
   if (!canUseWebMeta() || bootstrapped) return;
   bootstrapped = true;

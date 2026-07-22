@@ -138,7 +138,26 @@
         } catch (e) {}
       })();
     </script>
-    <!-- Meta Conversions API — produção, sem Pixel do navegador -->
+    <!-- Meta Pixel + CAPI (mesmo eventID = deduplicação) -->
+    <script>
+      !(function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = '2.0';
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '4474411989514975');
+    </script>
     <script>
       (function () {
         try {
@@ -147,6 +166,11 @@
             Date.now().toString(36) +
             '_' +
             Math.random().toString(36).slice(2, 8);
+          try {
+            if (typeof fbq === 'function') {
+              fbq('track', 'PageView', {}, { eventID: eid });
+            }
+          } catch (e) {}
           var body = {
             eventName: 'PageView',
             eventId: eid,

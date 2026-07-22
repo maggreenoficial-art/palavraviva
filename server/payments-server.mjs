@@ -507,6 +507,25 @@ function tomorrowDate() {
   return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+function resolveRequestClientIp(req, bodyIp) {
+  const fromBody =
+    typeof bodyIp === 'string' && bodyIp.trim() ? bodyIp.trim() : '';
+  const fromHeader = String(
+    req.headers['x-forwarded-for'] ||
+      req.headers['x-vercel-forwarded-for'] ||
+      req.headers['x-real-ip'] ||
+      '',
+  )
+    .split(',')[0]
+    .trim()
+    .replace(/^::ffff:/i, '');
+  const raw = fromBody || fromHeader || req.socket?.remoteAddress || '';
+  const ip = String(raw).split(',')[0].trim().replace(/^::ffff:/i, '');
+  if (!ip || ip === '::1' || ip === '127.0.0.1') return undefined;
+  if (ip === '189.18.44.10' || ip === '189.0.0.1') return undefined;
+  return ip;
+}
+
 /** CAPI no servidor — não depende do Pixel do navegador (adblock/atraso). */
 async function fireMetaCapiSafe({
   eventName,
@@ -1321,15 +1340,7 @@ const serverHandler = async (req, res) => {
       const email = typeof body.email === 'string' ? body.email.trim() : '';
       const document =
         typeof body.document === 'string' ? onlyDigits(body.document) : '';
-      const clientIp =
-        typeof body.clientIp === 'string' && body.clientIp.trim()
-          ? body.clientIp.trim()
-          : (req.headers['x-forwarded-for'] || '')
-              .toString()
-              .split(',')[0]
-              .trim() ||
-            req.socket.remoteAddress?.replace('::ffff:', '') ||
-            '127.0.0.1';
+      const clientIp = resolveRequestClientIp(req, body.clientIp);
       const userAgent = String(req.headers['user-agent'] || '');
       const eventSourceUrl =
         typeof body.eventSourceUrl === 'string' && body.eventSourceUrl.trim()
@@ -2354,18 +2365,7 @@ const serverHandler = async (req, res) => {
       const eventSourceUrl = String(
         body.eventSourceUrl || body.event_source_url || '',
       ).trim();
-      const clientIp =
-        (typeof body.clientIp === 'string' && body.clientIp.trim()) ||
-        String(
-          req.headers['x-forwarded-for'] ||
-            req.headers['x-vercel-forwarded-for'] ||
-            req.headers['x-real-ip'] ||
-            '',
-        )
-          .split(',')[0]
-          .trim() ||
-        req.socket?.remoteAddress ||
-        '';
+      const clientIp = resolveRequestClientIp(req, body.clientIp);
       const userAgent =
         (typeof body.userAgent === 'string' && body.userAgent.trim()) ||
         String(req.headers['user-agent'] || '');
@@ -2542,6 +2542,7 @@ const serverHandler = async (req, res) => {
     }
 
     let datasetEvents = null;
+    let datasetEventsDetail = null;
     if (token) {
       try {
         const qRes = await fetch(
@@ -2554,11 +2555,13 @@ const serverHandler = async (req, res) => {
           )}&fields=web&access_token=${encodeURIComponent(token)}`,
         );
         const qBody = await qRes.json().catch(() => ({}));
+        datasetEventsDetail = Array.isArray(qBody?.web) ? qBody.web : qBody;
         datasetEvents = Array.isArray(qBody?.web)
           ? qBody.web.map((e) => e.event_name).filter(Boolean)
           : qBody;
       } catch {
         datasetEvents = null;
+        datasetEventsDetail = null;
       }
     }
 
@@ -2572,8 +2575,9 @@ const serverHandler = async (req, res) => {
       ).trim(),
       tokenInfo,
       datasetEvents,
+      datasetEventsDetail,
       hint:
-        'Eventos de produção aparecem em Events Manager → Atividade de eventos (não use test_event_code em produção).',
+        'Eventos de produção aparecem em Events Manager → Atividade de eventos. O gráfico principal mostra só o evento com mais volume (geralmente PageView).',
     });
     return;
   }
