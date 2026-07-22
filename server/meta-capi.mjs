@@ -44,6 +44,31 @@ function splitName(fullName) {
   return { first: parts[0], last: parts.slice(1).join(' ') };
 }
 
+/** URL canônica www — Meta agrega melhor no conjunto de dados. */
+function canonicalEventSourceUrl(raw) {
+  const fallback = 'https://www.oucapalavra.com.br/home';
+  try {
+    const url = new URL(String(raw || '').trim() || fallback);
+    url.protocol = 'https:';
+    if (/oucapalavra\.com\.br$/i.test(url.hostname)) {
+      url.hostname = 'www.oucapalavra.com.br';
+    }
+    for (const key of [
+      'test_event_code',
+      'testEventCode',
+      'clear_test_event',
+      'fbclid',
+      'meta_debug',
+    ]) {
+      url.searchParams.delete(key);
+    }
+    url.hash = '';
+    return `${url.origin}${url.pathname || '/home'}`;
+  } catch {
+    return fallback;
+  }
+}
+
 function looksLikeBrowserUserAgent(ua) {
   const s = String(ua || '');
   if (s.length < 40) return false;
@@ -58,10 +83,10 @@ function resolveClientIp(input = {}) {
     .split(',')[0]
     .trim()
     .replace(/^::ffff:/i, '');
-  if (raw && raw !== '::1' && raw !== '127.0.0.1') return raw;
-  // IP brasileiro realista — Meta dropa eventos de teste com IP claramente fake
-  // (ex.: 189.0.0.1) mesmo com events_received:1.
-  return '189.18.44.10';
+  if (!raw || raw === '::1' || raw === '127.0.0.1') return undefined;
+  // IP fixo compartilhado faz a Meta aceitar (events_received:1) mas não agregar no conjunto
+  if (raw === '189.18.44.10' || raw === '189.0.0.1') return undefined;
+  return raw;
 }
 
 function resolveUserAgent(input = {}) {
@@ -99,7 +124,8 @@ function buildUserData(input = {}) {
   if (ct) userData.ct = [ct];
   if (st) userData.st = [st];
 
-  userData.client_ip_address = resolveClientIp(input);
+  const clientIp = resolveClientIp(input);
+  if (clientIp) userData.client_ip_address = clientIp;
   userData.client_user_agent = resolveUserAgent(input);
   if (input.fbp) {
     userData.fbp = String(input.fbp);
@@ -198,7 +224,8 @@ export async function sendMetaConversionEvent({
         event_time: eventTime || Math.floor(Date.now() / 1000),
         event_id: eventId || undefined,
         event_source_url:
-          eventSourceUrl || 'https://www.oucapalavra.com.br/',
+          canonicalEventSourceUrl(eventSourceUrl) ||
+          'https://www.oucapalavra.com.br/home',
         action_source: actionSource,
         user_data: buildUserData(user),
         custom_data:

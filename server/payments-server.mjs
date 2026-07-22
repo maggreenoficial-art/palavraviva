@@ -2356,7 +2356,12 @@ const serverHandler = async (req, res) => {
       ).trim();
       const clientIp =
         (typeof body.clientIp === 'string' && body.clientIp.trim()) ||
-        String(req.headers['x-forwarded-for'] || '')
+        String(
+          req.headers['x-forwarded-for'] ||
+            req.headers['x-vercel-forwarded-for'] ||
+            req.headers['x-real-ip'] ||
+            '',
+        )
           .split(',')[0]
           .trim() ||
         req.socket?.remoteAddress ||

@@ -159,23 +159,29 @@ export function ensureMetaClickIds() {
   return clickIdsReady;
 }
 
-/** URL canônica para CAPI (sem params de teste/debug). */
+/** URL canônica para CAPI (www + sem query). */
 export function metaEventSourceUrl() {
-  if (typeof window === 'undefined') return PRODUCTION_ORIGIN;
+  if (typeof window === 'undefined') return `${PRODUCTION_ORIGIN}/home`;
   try {
     const url = new URL(window.location.href);
+    url.protocol = 'https:';
+    if (/oucapalavra\.com\.br$/i.test(url.hostname)) {
+      url.hostname = 'www.oucapalavra.com.br';
+    }
     for (const key of [
       'test_event_code',
       'testEventCode',
       'clear_test_event',
       'clearTestEvent',
       'meta_debug',
+      'fbclid',
     ]) {
       url.searchParams.delete(key);
     }
-    return url.toString();
+    url.hash = '';
+    return `${url.origin}${url.pathname || '/home'}`;
   } catch {
-    return PRODUCTION_ORIGIN;
+    return `${PRODUCTION_ORIGIN}/home`;
   }
 }
 
