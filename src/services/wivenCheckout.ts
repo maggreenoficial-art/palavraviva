@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { getTestEventCodeNow } from './metaPixel';
+import { metaEventSourceUrl } from './metaPixel';
 import { paymentsBaseUrl } from './paymentsUrl';
 
 export type CardCheckoutInput = {
@@ -55,7 +55,6 @@ export type PixCheckoutResult = {
   pixCode: string | null;
   pixImage: string | null;
   meta?: {
-    testEventCode?: string | null;
     initiateCheckout?: { ok?: boolean; skipped?: boolean; error?: string | null };
     addPaymentInfo?: { ok?: boolean; skipped?: boolean; error?: string | null };
   };
@@ -169,24 +168,9 @@ function readMetaClickIds() {
   }
 }
 
-/** Mesma fonte do metaPixel (URL + sessionStorage na mesma aba). */
-function readMetaTestEventCode() {
-  return getTestEventCodeNow();
-}
-
-/** URL limpa para CAPI de produção (sem ?test_event_code=). */
-function metaEventSourceUrl() {
-  if (typeof window === 'undefined') return undefined;
-  try {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('test_event_code');
-    url.searchParams.delete('testEventCode');
-    url.searchParams.delete('clear_test_event');
-    url.searchParams.delete('clearTestEvent');
-    return url.toString();
-  } catch {
-    return window.location.href;
-  }
+/** Mesma fonte do metaPixel — URL canônica sem params de teste. */
+function checkoutEventSourceUrl() {
+  return metaEventSourceUrl();
 }
 
 export async function payWithCard(
@@ -206,8 +190,7 @@ export async function payWithCard(
     generationToken: input.generationToken ?? null,
     card: input.card,
     clientIp: Platform.OS === 'web' ? undefined : '127.0.0.1',
-    eventSourceUrl: metaEventSourceUrl(),
-    testEventCode: readMetaTestEventCode() || undefined,
+    eventSourceUrl: checkoutEventSourceUrl(),
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,
   });
@@ -228,8 +211,7 @@ export async function payWithPix(
     generationId: input.generationId ?? null,
     inputUrl: input.inputUrl ?? null,
     generationToken: input.generationToken ?? null,
-    eventSourceUrl: metaEventSourceUrl(),
-    testEventCode: readMetaTestEventCode() || undefined,
+    eventSourceUrl: checkoutEventSourceUrl(),
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,
   });

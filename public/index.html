@@ -138,38 +138,9 @@
         } catch (e) {}
       })();
     </script>
-    <!-- Meta: produção = só CAPI. Com ?test_event_code= também carrega Pixel (aba Eventos de teste). -->
+    <!-- Meta Conversions API — produção, sem Pixel do navegador -->
     <script>
       (function () {
-        var code = '';
-        try {
-          var params = new URLSearchParams(location.search);
-          if (
-            params.get('clear_test_event') === '1' ||
-            params.get('clearTestEvent') === '1'
-          ) {
-            try {
-              sessionStorage.removeItem('meta_test_event_code');
-              localStorage.removeItem('meta_test_event_code');
-            } catch (e) {}
-          }
-          code =
-            params.get('test_event_code') || params.get('testEventCode') || '';
-          code = (code && code.trim()) || '';
-          if (!code) {
-            try {
-              code = (sessionStorage.getItem('meta_test_event_code') || '').trim();
-            } catch (e) {}
-          }
-          if (code) {
-            sessionStorage.setItem('meta_test_event_code', code);
-            try {
-              localStorage.removeItem('meta_test_event_code');
-            } catch (e) {}
-          }
-        } catch (e) {}
-
-        // CAPI PageView (sempre) — origem Servidor
         try {
           var eid =
             'PageView_boot_' +
@@ -178,12 +149,11 @@
             Math.random().toString(36).slice(2, 8);
           var body = {
             eventName: 'PageView',
-            eventId: code ? eid + '_srv' : eid,
-            eventSourceUrl: location.href,
+            eventId: eid,
+            eventSourceUrl: location.origin + location.pathname,
             userAgent: navigator.userAgent,
             country: 'br',
           };
-          if (code) body.testEventCode = code;
           try {
             var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/);
             if (fbpMatch) body.fbp = decodeURIComponent(fbpMatch[1]);
@@ -193,49 +163,8 @@
             headers: { 'Content-Type': 'application/json' },
             keepalive: true,
             body: JSON.stringify(body),
-          })
-            .then(function (r) {
-              return r.json().then(function (j) {
-                if (code) {
-                  console.info('[meta] boot PageView CAPI', {
-                    testCode: code,
-                    ok: j && j.ok,
-                    events_received: j && j.meta && j.meta.events_received,
-                  });
-                }
-              });
-            })
-            .catch(function () {});
+          }).catch(function () {});
         } catch (e) {}
-
-        // Pixel só no modo teste (Eventos de teste da Meta)
-        if (!code) return;
-        !(function (f, b, e, v, n, t, s) {
-          if (f.fbq) return;
-          n = f.fbq = function () {
-            n.callMethod
-              ? n.callMethod.apply(n, arguments)
-              : n.queue.push(arguments);
-          };
-          if (!f._fbq) f._fbq = n;
-          n.push = n;
-          n.loaded = !0;
-          n.version = '2.0';
-          n.queue = [];
-          t = b.createElement(e);
-          t.async = !0;
-          t.src = v;
-          s = b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t, s);
-        })(
-          window,
-          document,
-          'script',
-          'https://connect.facebook.net/en_US/fbevents.js',
-        );
-        fbq('init', '4474411989514975');
-        fbq('set', 'test_event_code', code);
-        fbq('track', 'PageView');
       })();
     </script>
   </head>

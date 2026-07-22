@@ -2559,7 +2559,7 @@ const serverHandler = async (req, res) => {
       tokenInfo,
       datasetEvents,
       hint:
-        'Tokens do Events Manager costumam listar só read_ads_dataset_quality e ainda enviam. Para ver Servidor na aba Eventos de teste, abra o site com ?test_event_code= e dispare checkout.',
+        'Eventos de produção aparecem em Events Manager → Atividade de eventos (não use test_event_code em produção).',
     });
     return;
   }

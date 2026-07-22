@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { trackAnalytics } from '../src/services/analytics';
-import {
-  captureMetaTestEventCode,
-  trackMetaEvent,
-} from '../src/services/metaPixel';
+import { trackMetaEvent } from '../src/services/metaPixel';
 import { useUserStore } from '../src/store/useUserStore';
 
 /**
  * Entrada direta no app — sem telas de nome/WhatsApp/humor.
  * Garante userId local e dispara Lead na primeira visita.
- * Preserva query (ex.: ?test_event_code=) no redirect para /home.
  */
 export default function Index() {
   const [hydrated, setHydrated] = useState(() =>
@@ -20,10 +16,6 @@ export default function Index() {
   const hasTrackedFirstOpen = useUserStore((s) => s.hasTrackedFirstOpen);
   const markFirstOpenTracked = useUserStore((s) => s.markFirstOpenTracked);
   const params = useLocalSearchParams<Record<string, string | string[]>>();
-
-  useEffect(() => {
-    captureMetaTestEventCode();
-  }, []);
 
   useEffect(() => {
     const unsub = useUserStore.persist.onFinishHydration(() => {

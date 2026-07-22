@@ -209,11 +209,7 @@ export async function sendMetaConversionEvent({
     ],
   };
 
-  const testCode = (
-    testEventCode ||
-    process.env.META_CAPI_TEST_EVENT_CODE ||
-    ''
-  ).trim();
+  const testCode = (testEventCode || '').trim();
   if (testCode) {
     payload.test_event_code = testCode;
   }

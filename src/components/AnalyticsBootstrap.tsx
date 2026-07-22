@@ -5,12 +5,8 @@ import {
   trackAnalytics,
 } from '../services/analytics';
 import {
-  captureMetaTestEventCode,
   ensureMetaClickIds,
-  getTestEventCodeNow,
   initMetaPixel,
-  persistMetaTestEventCodeInUrl,
-  pingMetaCapiTest,
   trackMetaPageView,
 } from '../services/metaPixel';
 import { syncSubscriptionAccess } from '../services/wivenCheckout';
@@ -28,20 +24,10 @@ export function AnalyticsBootstrap() {
   const pathname = usePathname();
 
   useEffect(() => {
-    captureMetaTestEventCode();
     void ensureMetaClickIds();
     useUserStore.getState().ensureGuestAccess();
     initMetaPixel();
     void bootstrapAnalytics();
-    const testCode = getTestEventCodeNow();
-    if (testCode && typeof console !== 'undefined') {
-      console.info(
-        '[meta] Modo teste ativo:',
-        testCode,
-        '— se não aparecer no Events Manager, gere um código NOVO na aba Eventos de teste (o antigo expira).',
-      );
-      void pingMetaCapiTest();
-    }
     return startPresenceHeartbeat();
   }, [userId, displayName, whatsapp]);
 
@@ -52,7 +38,6 @@ export function AnalyticsBootstrap() {
 
   useEffect(() => {
     if (!pathname) return;
-    persistMetaTestEventCodeInUrl();
     trackMetaPageView();
     void trackAnalytics({
       name: 'screen_view',
