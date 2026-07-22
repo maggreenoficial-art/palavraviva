@@ -30,6 +30,20 @@ const PRODUCTION_ORIGIN = 'https://www.oucapalavra.com.br';
 let bootstrapped = false;
 let clickIdsReady: Promise<void> | null = null;
 
+/** Só estes vão pelo fbq — conversões são restritas sem domínio verificado na Meta. */
+const PIXEL_BROWSER_EVENTS = new Set(['PageView', 'ViewContent']);
+
+const recentCapiEvents = new Map<string, number>();
+const CAPI_DEDUP_MS = 8000;
+
+function shouldSkipDuplicateCapi(eventName: string) {
+  const now = Date.now();
+  const last = recentCapiEvents.get(eventName) ?? 0;
+  if (now - last < CAPI_DEDUP_MS) return true;
+  recentCapiEvents.set(eventName, now);
+  return false;
+}
+
 function canUseWebMeta() {
   return (
     Platform.OS === 'web' && typeof window !== 'undefined' && Boolean(PIXEL_ID)
@@ -209,6 +223,7 @@ function trackBrowserPixel(
   eventId: string,
   params?: Record<string, string | number | boolean | string[]>,
 ) {
+  if (!PIXEL_BROWSER_EVENTS.has(eventName)) return;
   if (typeof window === 'undefined' || typeof window.fbq !== 'function') return;
   try {
     const pixelParams: Record<string, unknown> = {};
@@ -227,9 +242,14 @@ async function sendCapi(
   eventName: string,
   eventId: string,
   params?: Record<string, string | number | boolean | string[]>,
+  options?: { allowDuplicate?: boolean },
 ) {
   const url = metaCapiUrl();
   if (!url) return;
+
+  if (!options?.allowDuplicate && shouldSkipDuplicateCapi(eventName)) {
+    return;
+  }
 
   try {
     await ensureMetaClickIds();
@@ -301,7 +321,7 @@ async function sendCapi(
   }
 }
 
-/** Bootstrap Pixel + CAPI — cookies fbp/fbc e deduplicação por eventID. */
+/** Bootstrap Pixel (PageView) + CAPI (todo o funil). */
 export function initMetaPixel() {
   if (!canUseWebMeta() || bootstrapped) return;
   bootstrapped = true;

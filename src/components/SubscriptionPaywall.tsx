@@ -183,7 +183,6 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'card' },
       });
-      trackMissaoInitiateCheckout();
       trackMissaoAddPaymentInfo('card');
       const result = await payWithCard({
         userId,
@@ -250,7 +249,6 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'pix' },
       });
-      trackMissaoInitiateCheckout();
       trackMissaoAddPaymentInfo('pix');
       const result = await payWithPix({
         userId,
@@ -325,7 +323,6 @@ export function SubscriptionPaywall({
       visible={visible}
       transparent
       animationType="slide"
-      onShow={fireInitiateCheckout}
       onRequestClose={() => {
         if (!blocking) onClose();
       }}
