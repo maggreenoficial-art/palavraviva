@@ -193,7 +193,19 @@
             headers: { 'Content-Type': 'application/json' },
             keepalive: true,
             body: JSON.stringify(body),
-          }).catch(function () {});
+          })
+            .then(function (r) {
+              return r.json().then(function (j) {
+                if (code) {
+                  console.info('[meta] boot PageView CAPI', {
+                    testCode: code,
+                    ok: j && j.ok,
+                    events_received: j && j.meta && j.meta.events_received,
+                  });
+                }
+              });
+            })
+            .catch(function () {});
         } catch (e) {}
 
         // Pixel só no modo teste (Eventos de teste da Meta)

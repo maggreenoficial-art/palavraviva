@@ -248,6 +248,26 @@ export function persistMetaTestEventCodeInUrl() {
   }
 }
 
+function metaDebugEnabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (getTestEventCodeNow()) return true;
+    const p = new URLSearchParams(window.location.search);
+    return p.get('meta_debug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function logMeta(event: string, detail: Record<string, unknown>) {
+  if (!metaDebugEnabled() && event !== 'InitiateCheckout' && event !== 'AddPaymentInfo') {
+    return;
+  }
+  if (typeof console !== 'undefined') {
+    console.info('[meta]', event, detail);
+  }
+}
+
 function debugMetaCheckout(event: string, detail: Record<string, unknown>) {
   if (typeof console === 'undefined') return;
   if (event !== 'InitiateCheckout' && event !== 'AddPaymentInfo') return;
@@ -420,6 +440,7 @@ async function sendCapi(
     testEventCode: testEventCode || null,
     url,
   });
+  logMeta(eventName, { stage: 'capi_post', eventId, testEventCode: testEventCode || null });
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -440,11 +461,18 @@ async function sendCapi(
       ok: res.ok,
       body: parsed,
     });
+    logMeta(eventName, {
+      stage: 'capi_response',
+      status: res.status,
+      ok: res.ok,
+      body: parsed,
+    });
   } catch (err) {
     debugMetaCheckout(eventName, {
       stage: 'capi_error',
       error: String(err),
     });
+    logMeta(eventName, { stage: 'capi_error', error: String(err) });
   }
 }
 
@@ -521,4 +549,36 @@ export function trackMetaTestCheckoutProbe() {
 
 export function getMetaPixelId() {
   return PIXEL_ID;
+}
+
+/** Ping CAPI — use no console ou boot para validar código de teste atual. */
+export async function pingMetaCapiTest() {
+  if (!canUseWebMeta()) return null;
+  const testCode = getTestEventCodeNow();
+  const eventId = `PageView_ping_${Date.now()}`;
+  const url = metaCapiUrl();
+  if (!url) return { ok: false, error: 'no_capi_url' };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventName: 'PageView',
+        eventId,
+        eventSourceUrl: window.location.href,
+        userAgent: navigator.userAgent,
+        country: 'br',
+        testEventCode: testCode || undefined,
+        fbp: getMetaClickIds().fbp || undefined,
+      }),
+    });
+    const body = await res.json();
+    const out = { ok: res.ok, status: res.status, testCode: testCode || null, body };
+    logMeta('ping', out);
+    return out;
+  } catch (err) {
+    const out = { ok: false, error: String(err) };
+    logMeta('ping', out);
+    return out;
+  }
 }

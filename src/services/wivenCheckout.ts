@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getTestEventCodeNow } from './metaPixel';
 import { paymentsBaseUrl } from './paymentsUrl';
 
 export type CardCheckoutInput = {
@@ -168,19 +169,9 @@ function readMetaClickIds() {
   }
 }
 
-/** Só da URL — checkout em produção não herda sessionStorage de teste. */
+/** Mesma fonte do metaPixel (URL + sessionStorage na mesma aba). */
 function readMetaTestEventCode() {
-  if (typeof window === 'undefined') return '';
-  try {
-    const params = new URLSearchParams(window.location.search);
-    return (
-      params.get('test_event_code') ||
-      params.get('testEventCode') ||
-      ''
-    ).trim();
-  } catch {
-    return '';
-  }
+  return getTestEventCodeNow();
 }
 
 /** URL limpa para CAPI de produção (sem ?test_event_code=). */
