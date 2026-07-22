@@ -14,6 +14,8 @@ export type CardCheckoutInput = {
   generationId?: string | null;
   inputUrl?: string | null;
   generationToken?: string | null;
+  /** Mesmo eventID do Pixel/CAPI no cliente — deduplica no servidor. */
+  metaAddPaymentEventId?: string | null;
   card: {
     number: string;
     owner: string;
@@ -32,6 +34,8 @@ export type PixCheckoutInput = {
   generationId?: string | null;
   inputUrl?: string | null;
   generationToken?: string | null;
+  /** Mesmo eventID do Pixel/CAPI no cliente — deduplica no servidor. */
+  metaAddPaymentEventId?: string | null;
 };
 
 export type CardCheckoutResult = {
@@ -193,6 +197,7 @@ export async function payWithCard(
     eventSourceUrl: checkoutEventSourceUrl(),
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,
+    metaAddPaymentEventId: input.metaAddPaymentEventId ?? null,
   });
 }
 
@@ -214,6 +219,7 @@ export async function payWithPix(
     eventSourceUrl: checkoutEventSourceUrl(),
     fbp: clickIds.fbp || undefined,
     fbc: clickIds.fbc || undefined,
+    metaAddPaymentEventId: input.metaAddPaymentEventId ?? null,
   });
 }
 

@@ -20,6 +20,7 @@ import {
 } from '../store/useUserStore';
 import { trackAnalytics } from '../services/analytics';
 import {
+  createMetaEventId,
   trackMissaoAddPaymentInfo,
   trackMissaoInitiateCheckout,
   trackMissaoSubscribe,
@@ -183,12 +184,14 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'card' },
       });
-      trackMissaoAddPaymentInfo('card');
+      const addPaymentEventId = createMetaEventId('AddPaymentInfo');
+      trackMissaoAddPaymentInfo('card', addPaymentEventId);
       const result = await payWithCard({
         userId,
         displayName,
         whatsapp,
         document,
+        metaAddPaymentEventId: addPaymentEventId,
         card: {
           number: cardNumber,
           owner: cardOwner,
@@ -249,12 +252,14 @@ export function SubscriptionPaywall({
         name: 'subscription_start',
         meta: { method: 'pix' },
       });
-      trackMissaoAddPaymentInfo('pix');
+      const addPaymentEventId = createMetaEventId('AddPaymentInfo');
+      trackMissaoAddPaymentInfo('pix', addPaymentEventId);
       const result = await payWithPix({
         userId,
         displayName: displayName || 'Assinante Palavra Viva',
         whatsapp,
         document,
+        metaAddPaymentEventId: addPaymentEventId,
       });
       if (typeof console !== 'undefined') {
         console.info('[meta-checkout] pix_server_meta', result.meta ?? null);

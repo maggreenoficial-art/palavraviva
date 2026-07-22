@@ -1360,6 +1360,11 @@ const serverHandler = async (req, res) => {
         typeof body.fbc === 'string' && body.fbc.trim()
           ? body.fbc.trim()
           : undefined;
+      const metaAddPaymentEventId =
+        typeof body.metaAddPaymentEventId === 'string' &&
+        body.metaAddPaymentEventId.trim()
+          ? body.metaAddPaymentEventId.trim()
+          : undefined;
 
       const productKey =
         typeof body.product === 'string' ? body.product.trim() : '';
@@ -1437,18 +1442,13 @@ const serverHandler = async (req, res) => {
         num_items: 1,
       };
 
-      // Dispara ANTES da Wiven — mesmo se cartão/Pix falhar, o Meta registra o funil
-      // await obrigatório no Vercel (sem await a lambda morre antes do envio)
-      const metaInitiate = await fireMetaCapiSafe({
-        eventName: 'InitiateCheckout',
-        ...metaUser,
-        customData: metaCheckoutData,
-      });
-
+      // InitiateCheckout só no browser (paywall) — Pixel+CAPI com mesmo eventID.
+      // Servidor envia só AddPaymentInfo com eventID compartilhado (deduplicação).
       let metaAddPayment = null;
       if (method === 'card') {
         metaAddPayment = await fireMetaCapiSafe({
           eventName: 'AddPaymentInfo',
+          eventId: metaAddPaymentEventId,
           ...metaUser,
           customData: {
             ...metaCheckoutData,
@@ -1569,11 +1569,6 @@ const serverHandler = async (req, res) => {
           subscriptionExpiresAt: subscription?.expiresAt || null,
           meta: {
             testEventCode: testEventCode || null,
-            initiateCheckout: {
-              ok: Boolean(metaInitiate?.ok),
-              skipped: Boolean(metaInitiate?.skipped),
-              error: metaInitiate?.error || null,
-            },
             addPaymentInfo: {
               ok: Boolean(metaAddPayment?.ok),
               skipped: Boolean(metaAddPayment?.skipped),
@@ -1586,6 +1581,7 @@ const serverHandler = async (req, res) => {
 
       metaAddPayment = await fireMetaCapiSafe({
         eventName: 'AddPaymentInfo',
+        eventId: metaAddPaymentEventId,
         ...metaUser,
         customData: {
           ...metaCheckoutData,
@@ -1636,11 +1632,6 @@ const serverHandler = async (req, res) => {
         pixImage: wiven.pixImage,
         meta: {
           testEventCode: testEventCode || null,
-          initiateCheckout: {
-            ok: Boolean(metaInitiate?.ok),
-            skipped: Boolean(metaInitiate?.skipped),
-            error: metaInitiate?.error || null,
-          },
           addPaymentInfo: {
             ok: Boolean(metaAddPayment?.ok),
             skipped: Boolean(metaAddPayment?.skipped),

@@ -30,17 +30,15 @@ const PRODUCTION_ORIGIN = 'https://www.oucapalavra.com.br';
 let bootstrapped = false;
 let clickIdsReady: Promise<void> | null = null;
 
-/** Só estes vão pelo fbq — conversões são restritas sem domínio verificado na Meta. */
-const PIXEL_BROWSER_EVENTS = new Set(['PageView', 'ViewContent']);
-
 const recentCapiEvents = new Map<string, number>();
-const CAPI_DEDUP_MS = 8000;
+const CAPI_DEDUP_MS = 3000;
 
-function shouldSkipDuplicateCapi(eventName: string) {
+function shouldSkipDuplicateCapi(eventName: string, eventId: string) {
+  const key = `${eventName}:${eventId}`;
   const now = Date.now();
-  const last = recentCapiEvents.get(eventName) ?? 0;
+  const last = recentCapiEvents.get(key) ?? 0;
   if (now - last < CAPI_DEDUP_MS) return true;
-  recentCapiEvents.set(eventName, now);
+  recentCapiEvents.set(key, now);
   return false;
 }
 
@@ -52,6 +50,11 @@ function canUseWebMeta() {
 
 function createEventId(event: string) {
   return `${event}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** ID compartilhado entre Pixel e CAPI (deduplicação Meta). */
+export function createMetaEventId(event: string) {
+  return createEventId(event);
 }
 
 function readCookie(name: string) {
@@ -223,7 +226,6 @@ function trackBrowserPixel(
   eventId: string,
   params?: Record<string, string | number | boolean | string[]>,
 ) {
-  if (!PIXEL_BROWSER_EVENTS.has(eventName)) return;
   if (typeof window === 'undefined' || typeof window.fbq !== 'function') return;
   try {
     const pixelParams: Record<string, unknown> = {};
@@ -247,7 +249,7 @@ async function sendCapi(
   const url = metaCapiUrl();
   if (!url) return;
 
-  if (!options?.allowDuplicate && shouldSkipDuplicateCapi(eventName)) {
+  if (!options?.allowDuplicate && shouldSkipDuplicateCapi(eventName, eventId)) {
     return;
   }
 
@@ -337,45 +339,66 @@ export function trackMetaPageView() {
 export function trackMetaEvent(
   event: string,
   params?: Record<string, string | number | boolean | string[]>,
+  eventId?: string,
 ) {
   if (!canUseWebMeta()) return;
   initMetaPixel();
-  void sendCapi(event, createEventId(event), params);
+  void sendCapi(event, eventId || createEventId(event), params);
 }
 
 export function trackMissaoInitiateCheckout() {
-  trackMetaEvent('InitiateCheckout', {
-    content_name: 'missao_plus',
-    content_ids: ['missao_plus'],
-    content_category: 'subscription',
-    currency: 'BRL',
-    value: 19.9,
-    num_items: 1,
-  });
+  const eventId = createEventId('InitiateCheckout');
+  trackMetaEvent(
+    'InitiateCheckout',
+    {
+      content_name: 'missao_plus',
+      content_ids: ['missao_plus'],
+      content_type: 'product',
+      content_category: 'subscription',
+      currency: 'BRL',
+      value: 19.9,
+      num_items: 1,
+    },
+    eventId,
+  );
+  return eventId;
 }
 
-export function trackMissaoAddPaymentInfo(paymentType: 'pix' | 'card') {
-  trackMetaEvent('AddPaymentInfo', {
-    content_name: 'missao_plus',
-    content_ids: ['missao_plus'],
-    content_category: 'subscription',
-    currency: 'BRL',
-    value: 19.9,
-    payment_type: paymentType,
-    num_items: 1,
-  });
+export function trackMissaoAddPaymentInfo(
+  paymentType: 'pix' | 'card',
+  eventId?: string,
+) {
+  trackMetaEvent(
+    'AddPaymentInfo',
+    {
+      content_name: 'missao_plus',
+      content_ids: ['missao_plus'],
+      content_type: 'product',
+      content_category: 'subscription',
+      currency: 'BRL',
+      value: 19.9,
+      payment_type: paymentType,
+      num_items: 1,
+    },
+    eventId || createEventId('AddPaymentInfo'),
+  );
 }
 
 export function trackMissaoSubscribe() {
-  trackMetaEvent('Subscribe', {
-    content_name: 'missao_plus',
-    content_ids: ['missao_plus'],
-    content_category: 'subscription',
-    currency: 'BRL',
-    value: 19.9,
-    predicted_ltv: 19.9,
-    num_items: 1,
-  });
+  trackMetaEvent(
+    'Subscribe',
+    {
+      content_name: 'missao_plus',
+      content_ids: ['missao_plus'],
+      content_type: 'product',
+      content_category: 'subscription',
+      currency: 'BRL',
+      value: 19.9,
+      predicted_ltv: 19.9,
+      num_items: 1,
+    },
+    createEventId('Subscribe'),
+  );
 }
 
 export function trackMetaViewContent(contentName: string, category = 'content') {
