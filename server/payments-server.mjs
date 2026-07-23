@@ -21,14 +21,15 @@ import {
   verifyMediaToken,
 } from './media-access.mjs';
 import { sendMetaConversionEvent, metaCapiConfigured } from './meta-capi.mjs';
-import {
-  getAdminPanelHtml,
-  getAnalyticsStats,
-  handleAdminSubscriptionAction,
-  ingestAnalyticsEvent,
-  isAdminAuthorized,
-  syncAnalyticsPayload,
-} from './analytics-store.mjs';
+
+let analyticsModulePromise;
+
+function loadAnalyticsModule() {
+  if (!analyticsModulePromise) {
+    analyticsModulePromise = import('./analytics-store.mjs');
+  }
+  return analyticsModulePromise;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -278,6 +279,7 @@ function grantSubscription(userId, meta = {}) {
 
 async function notifyAnalyticsSync(payload) {
   try {
+    const { syncAnalyticsPayload } = await loadAnalyticsModule();
     syncAnalyticsPayload(payload);
   } catch {
     // Sync local nunca deve quebrar o checkout
@@ -2702,6 +2704,7 @@ const serverHandler = async (req, res) => {
   }
 
   if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/api/admin')) {
+    const { getAdminPanelHtml } = await loadAnalyticsModule();
     send(res, 200, getAdminPanelHtml(), 'text/html');
     return;
   }
@@ -2710,6 +2713,7 @@ const serverHandler = async (req, res) => {
     req.method === 'GET' &&
     (url.pathname === '/api/admin/stats' || url.pathname === '/api/stats')
   ) {
+    const { isAdminAuthorized, getAnalyticsStats } = await loadAnalyticsModule();
     if (!isAdminAuthorized(req, url)) {
       send(res, 401, { error: 'unauthorized' });
       return;
@@ -2719,6 +2723,8 @@ const serverHandler = async (req, res) => {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/admin/subscriptions') {
+    const { isAdminAuthorized, handleAdminSubscriptionAction } =
+      await loadAnalyticsModule();
     if (!isAdminAuthorized(req, url)) {
       send(res, 401, { ok: false, error: 'unauthorized' });
       return;
@@ -2742,6 +2748,7 @@ const serverHandler = async (req, res) => {
   ) {
     try {
       const { json: body } = await readBody(req);
+      const { ingestAnalyticsEvent } = await loadAnalyticsModule();
       await ingestAnalyticsEvent(body, req);
       send(res, 201, { ok: true });
     } catch (error) {
