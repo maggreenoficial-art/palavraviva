@@ -23,7 +23,7 @@ declare global {
 }
 
 const PIXEL_ID =
-  (process.env.EXPO_PUBLIC_META_PIXEL_ID || '4474411989514975').trim();
+  (process.env.EXPO_PUBLIC_META_PIXEL_ID || '1168978568102199').trim();
 
 const PRODUCTION_ORIGIN = 'https://www.oucapalavra.com.br';
 

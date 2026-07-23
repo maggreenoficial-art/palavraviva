@@ -24,7 +24,7 @@ loadEnvFile('.env');
 const PIXEL_ID = (
   process.env.META_PIXEL_ID ||
   process.env.EXPO_PUBLIC_META_PIXEL_ID ||
-  '4474411989514975'
+  '1168978568102199'
 ).trim();
 const TOKEN = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
 const TEST_CODE = 'TEST94275';
@@ -113,7 +113,7 @@ async function sendDirectGraph(eventName) {
 }
 
 const html = await (await fetch('https://www.oucapalavra.com.br/')).text();
-const pixelMatches = html.match(/447441\d+/g) || [];
+const pixelMatches = html.match(/1168978568102199/g) || [];
 const scriptMatch = html.match(/\/_expo\/static\/js\/web\/entry-[^"']+\.js/);
 let bundleFlags = null;
 if (scriptMatch) {

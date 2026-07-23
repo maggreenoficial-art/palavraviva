@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 const PIXEL_ID = (
   process.env.META_PIXEL_ID ||
   process.env.EXPO_PUBLIC_META_PIXEL_ID ||
-  '4474411989514975'
+  '1168978568102199'
 ).trim();
 
 const ACCESS_TOKEN = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();

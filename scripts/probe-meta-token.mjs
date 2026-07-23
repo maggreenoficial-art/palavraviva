@@ -16,7 +16,7 @@ function loadEnv() {
 }
 loadEnv();
 
-const PIXEL_ID = (process.env.META_PIXEL_ID || '4474411989514975').trim();
+const PIXEL_ID = (process.env.META_PIXEL_ID || '1168978568102199').trim();
 const TOKEN = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
