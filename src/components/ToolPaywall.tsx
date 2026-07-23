@@ -21,7 +21,7 @@ import {
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
 import { trackMetaEvent } from '../services/metaPixel';
-import { checkFotoJesusPayment, confirmFotoJesusPayment } from '../services/fotoJesus';
+import { confirmFotoJesusPayment } from '../services/fotoJesus';
 import {
   formatCpf,
   formatExpiry,
