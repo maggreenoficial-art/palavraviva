@@ -297,6 +297,15 @@ async function notifyAnalyticsSync(payload) {
   }
 }
 
+function userIdFromPvIdentifier(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('pv_')) return null;
+  const parts = trimmed.split('_');
+  if (parts.length < 3) return null;
+  return parts.slice(1, -1).join('_') || null;
+}
+
 function extractUserId(payload) {
   if (!payload || typeof payload !== 'object') return null;
   const candidates = [
@@ -304,7 +313,6 @@ function extractUserId(payload) {
     payload.user_id,
     payload.external_id,
     payload.externalId,
-    payload.identifier,
     payload.metadata_user_id,
     payload.metadata?.userId,
     payload.metadata?.user_id,
@@ -312,7 +320,6 @@ function extractUserId(payload) {
     payload.data?.userId,
     payload.data?.user_id,
     payload.data?.external_id,
-    payload.data?.identifier,
     payload.data?.metadata?.userId,
     payload.data?.metadata?.user_id,
     payload.customer?.external_id,
@@ -322,6 +329,13 @@ function extractUserId(payload) {
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
+  for (const key of ['clientIdentifier', 'identifier']) {
+    const parsed = userIdFromPvIdentifier(payload[key]);
+    if (parsed) return parsed;
+    const nested = payload.data?.[key];
+    const parsedNested = userIdFromPvIdentifier(nested);
+    if (parsedNested) return parsedNested;
+  }
   return null;
 }
 
@@ -330,6 +344,8 @@ function isApprovedEvent(payload) {
     payload?.status ||
       payload?.event ||
       payload?.type ||
+      payload?.eventType ||
+      payload?.event_type ||
       payload?.data?.status ||
       payload?.payment_status ||
       '',
@@ -342,6 +358,13 @@ function isApprovedEvent(payload) {
     status.includes('aprovad') ||
     status.includes('completed') ||
     status.includes('success') ||
+    status.includes('confirmed') ||
+    status.includes('confirmad') ||
+    status.includes('liquid') ||
+    status.includes('received') ||
+    status.includes('receb') ||
+    status.includes('available') ||
+    status.includes('dispon') ||
     status === 'ok' ||
     payload?.paid === true ||
     payload?.approved === true
@@ -702,13 +725,15 @@ function isPaidStatus(status) {
   return (
     value === 'PAID' ||
     value === 'APPROVED' ||
+    value === 'CONFIRMED' ||
+    value === 'CONFIRMADO' ||
     value === 'ACTIVE' ||
     value === 'COMPLETED' ||
     value === 'COMPLETE' ||
     value === 'SUCCESS' ||
     value === 'SUCCEEDED' ||
-    value === 'CONFIRMED' ||
-    value === 'CONFIRMADO' ||
+    value === 'AVAILABLE' ||
+    value === 'DISPONIVEL' ||
     value === 'RECEIVED' ||
     value === 'RECEBIDO' ||
     value === 'CAPTURED' ||
@@ -716,14 +741,13 @@ function isPaidStatus(status) {
     value === 'LIQUIDATED' ||
     value === 'FINISHED' ||
     value === 'DONE' ||
-    value === 'OK' ||
     value === 'LIQUIDADO' ||
     value === 'LIQUIDADA' ||
     value === 'PAGA' ||
-    value === 'RECEBIDO' ||
     value.includes('PAGO') ||
     value.includes('LIQUID') ||
-    value.includes('APPROV')
+    value.includes('APPROV') ||
+    value.includes('CONFIRM')
   );
 }
 
@@ -743,20 +767,23 @@ function isPaidTransaction(tx) {
     tx.paidAt ||
     tx.paymentSettlementDate ||
     tx.paid_at ||
+    tx.processedAt ||
+    tx.pixInformation?.payedAt ||
+    tx.pixInformation?.paidAt ||
     nested?.payedAt ||
     nested?.paidAt ||
+    nested?.processedAt ||
     null;
   if (paidAt) return true;
-  // alguns retornos marcam e2e / endToEnd só após liquidar
+  // Pix liquidado: endToEnd presente costuma indicar pagamento confirmado
   const e2e =
     tx.endToEnd ||
     tx.e2eId ||
+    tx.endToEndId ||
     tx.pixInformation?.endToEnd ||
     tx.pixInformation?.e2eId ||
     null;
-  if (e2e && String(extractTxStatus(tx) || '').toUpperCase() !== 'PENDING') {
-    return true;
-  }
+  if (e2e) return true;
   return false;
 }
 
@@ -778,12 +805,20 @@ async function createWivenPixCharge(input) {
     generationToken: input.generationToken || null,
   });
   const data = await wivenPost('/gateway/pix/receive', payload);
+  const tx = unwrapWivenTransaction(data);
   return {
     identifier: payload.identifier,
-    transactionId: data.transactionId || data.id || null,
-    status: data.status || null,
-    pixCode: data.pix?.code || null,
-    pixImage: data.pix?.image || null,
+    transactionId:
+      tx?.id ||
+      tx?.transactionId ||
+      data.transactionId ||
+      data.id ||
+      data.data?.transactionId ||
+      data.data?.id ||
+      null,
+    status: tx?.status || data.status || null,
+    pixCode: data.pix?.code || tx?.pix?.code || null,
+    pixImage: data.pix?.image || tx?.pix?.image || null,
     product,
     raw: data,
   };
@@ -877,35 +912,54 @@ function pickPreferredTransaction(list) {
   return paid || list[0] || null;
 }
 
+async function wivenGetTransaction(path) {
+  try {
+    const data = await wivenGet(path);
+    return unwrapWivenTransaction(data);
+  } catch {
+    return null;
+  }
+}
+
+function pixQrMatches(tx, pixCode) {
+  const expected = String(pixCode || '').trim();
+  if (!expected) return true;
+  const actual = String(
+    tx?.pixInformation?.qrCode ||
+      tx?.pix?.code ||
+      tx?.pixCode ||
+      tx?.qrCode ||
+      '',
+  ).trim();
+  return actual === expected;
+}
+
 async function fetchWivenTransaction(transactionId, clientIdentifier = null) {
-  let byId = null;
-  let byClient = null;
+  const paths = [];
+  const externalId = String(clientIdentifier || '').trim();
+
+  // clientIdentifier é o campo estável (pv_userId_xxx) — consultar primeiro
+  if (externalId) {
+    paths.push(
+      `/gateway/transactions?clientIdentifier=${encodeURIComponent(externalId)}`,
+    );
+  }
 
   if (transactionId) {
-    try {
-      const data = await wivenGet(
-        `/gateway/transactions?id=${encodeURIComponent(transactionId)}`,
-      );
-      byId = unwrapWivenTransaction(data);
-      if (isPaidTransaction(byId)) return byId;
-    } catch {
-      // tenta clientIdentifier
-    }
+    const id = encodeURIComponent(transactionId);
+    paths.push(`/gateway/transactions?id=${id}`);
   }
 
-  if (clientIdentifier) {
-    try {
-      const data = await wivenGet(
-        `/gateway/transactions?clientIdentifier=${encodeURIComponent(clientIdentifier)}`,
-      );
-      byClient = unwrapWivenTransaction(data);
-      if (isPaidTransaction(byClient)) return byClient;
-    } catch {
-      // segue com o que tiver
+  let lastTx = null;
+  for (const path of paths) {
+    const tx = await wivenGetTransaction(path);
+    if (!tx) continue;
+    lastTx = tx;
+    if (isPaidTransaction(tx)) {
+      return tx;
     }
   }
-
-  return byId || byClient || null;
+  return lastTx;
 }
 
 /** Extrai status de pagamento de respostas variadas da Wiven. */
@@ -918,11 +972,22 @@ function extractTxStatus(tx) {
   }
   const nested = tx.data ?? tx.transaction ?? tx.result ?? null;
   if (Array.isArray(nested)) return extractTxStatus(nested[0]);
+
+  if (Array.isArray(tx.history) && tx.history.length) {
+    for (let i = tx.history.length - 1; i >= 0; i -= 1) {
+      const entry = tx.history[i];
+      const histStatus = entry?.status || entry?.name || entry?.state;
+      if (histStatus) return histStatus;
+    }
+  }
+
   return (
     tx.status ||
     tx.payment_status ||
     tx.paymentStatus ||
     tx.operationStatus ||
+    tx.pixStatus ||
+    tx.pix?.status ||
     nested?.status ||
     nested?.payment_status ||
     nested?.paymentStatus ||
@@ -947,18 +1012,44 @@ async function tryConfirmGenerationPayment({
   startGeneration = false,
   kieTaskId = null,
   clientIdentifier = null,
+  pixCode = null,
 }) {
   if (!transactionId && !clientIdentifier) {
     return { generation: null, paymentCheck: { error: 'transactionId_ausente' } };
   }
   const tx = await fetchWivenTransaction(transactionId, clientIdentifier);
   const wivenStatus = extractTxStatus(tx);
+  if (pixCode && tx && !pixQrMatches(tx, pixCode)) {
+    return {
+      generation: null,
+      paymentCheck: {
+        transactionId: transactionId || tx?.id || tx?.transactionId || null,
+        clientIdentifier:
+          clientIdentifier || tx?.clientIdentifier || tx?.identifier || null,
+        wivenStatus,
+        paid: false,
+        payedAt: tx?.payedAt || tx?.paidAt || null,
+        wivenFound: true,
+        pixMismatch: true,
+        hint: 'O Pix consultado não é o mesmo código desta tela.',
+      },
+    };
+  }
+  const paid = isPaidTransaction(tx);
   const paymentCheck = {
-    transactionId: transactionId || tx?.id || null,
-    clientIdentifier: clientIdentifier || tx?.clientIdentifier || null,
+    transactionId: transactionId || tx?.id || tx?.transactionId || null,
+    clientIdentifier:
+      clientIdentifier || tx?.clientIdentifier || tx?.identifier || null,
     wivenStatus,
-    paid: isPaidTransaction(tx),
+    paid,
     payedAt: tx?.payedAt || tx?.paidAt || null,
+    wivenFound: Boolean(tx),
+    endToEnd:
+      tx?.endToEnd ||
+      tx?.e2eId ||
+      tx?.pixInformation?.endToEnd ||
+      tx?.pixInformation?.e2eId ||
+      null,
   };
   if (!paymentCheck.paid) {
     return { generation: null, paymentCheck };
@@ -2085,6 +2176,9 @@ const serverHandler = async (req, res) => {
           url.searchParams.get('clientIdentifier') ||
           '',
       ).trim();
+      const pixCode = String(
+        body.pixCode || url.searchParams.get('pixCode') || '',
+      ).trim();
       const transactionIdsRaw = Array.isArray(body.transactionIds)
         ? body.transactionIds
         : typeof body.transactionIds === 'string'
@@ -2197,18 +2291,18 @@ const serverHandler = async (req, res) => {
       // Sem kieTaskId: confirma pagamento; só cria job se startGeneration=true
       if (generation.status === 'awaiting_payment' || generation.status === 'paid') {
         const txCandidates = [];
-        for (const tid of transactionIds) {
-          txCandidates.push({
-            transactionId: tid,
-            checkoutId: null,
-            clientIdentifier: null,
-          });
-        }
         if (clientIdentifier) {
           txCandidates.push({
             transactionId: null,
             checkoutId: null,
             clientIdentifier,
+          });
+        }
+        for (const tid of transactionIds) {
+          txCandidates.push({
+            transactionId: tid,
+            checkoutId: null,
+            clientIdentifier: null,
           });
         }
 
@@ -2261,13 +2355,16 @@ const serverHandler = async (req, res) => {
               transactionId: candidate.transactionId,
               checkoutId: candidate.checkoutId,
               clientIdentifier: candidate.clientIdentifier,
+              pixCode: pixCode || null,
               source: startGeneration ? 'status_start' : 'status_poll',
               startGeneration,
               kieTaskId: null,
             });
             paymentCheck = confirmed.paymentCheck;
             if (confirmed.paymentCheck && !confirmed.paymentCheck.paid) {
-              lastPendingCheck = confirmed.paymentCheck;
+              if (!confirmed.paymentCheck.pixMismatch) {
+                lastPendingCheck = confirmed.paymentCheck;
+              }
             }
             if (confirmed.generation) {
               generation = confirmed.generation;
@@ -2508,6 +2605,62 @@ const serverHandler = async (req, res) => {
         ok: true,
         meta: result.body || null,
         debug: result.debug || null,
+      });
+    } catch (error) {
+      send(res, 400, { ok: false, error: String(error.message || error) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/admin/foto-jesus/confirm') {
+    const password =
+      process.env.ADMIN_PASSWORD ||
+      process.env.ANALYTICS_SYNC_SECRET ||
+      'palavraviva';
+    const header = req.headers['x-admin-password'];
+    if (header !== password) {
+      send(res, 401, { ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      const { json: body } = await readBody(req);
+      const generationId =
+        typeof body.generationId === 'string' ? body.generationId.trim() : '';
+      const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+      const transactionId =
+        typeof body.transactionId === 'string' ? body.transactionId.trim() : '';
+      const clientIdentifier =
+        typeof body.clientIdentifier === 'string'
+          ? body.clientIdentifier.trim()
+          : '';
+      if (!generationId || !userId) {
+        send(res, 400, {
+          ok: false,
+          error: 'generationId_e_userId_obrigatorios',
+        });
+        return;
+      }
+      if (!transactionId && !clientIdentifier) {
+        send(res, 400, {
+          ok: false,
+          error: 'transactionId_ou_clientIdentifier_obrigatorio',
+        });
+        return;
+      }
+      const confirmed = await tryConfirmGenerationPayment({
+        generationId,
+        userId,
+        inputUrl: body.inputUrl || null,
+        token: body.generationToken || body.token || null,
+        transactionId: transactionId || null,
+        clientIdentifier: clientIdentifier || null,
+        source: 'admin_confirm',
+        startGeneration: true,
+      });
+      send(res, 200, {
+        ok: true,
+        generation: confirmed.generation,
+        paymentCheck: confirmed.paymentCheck,
       });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });

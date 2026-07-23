@@ -20,6 +20,7 @@ import { trackAnalytics } from '../src/services/analytics';
 import {
   checkFotoJesusPayment,
   confirmFotoJesusPayment,
+  isFotoJesusPaymentConfirmed,
   pollFotoJesusResult,
   prepareFotoJesus,
 } from '../src/services/fotoJesus';
@@ -549,7 +550,10 @@ export default function FotoJesusScreen() {
       void startPolling({ kieTaskId: open.kieTaskId });
       return;
     }
-    if (open.transactionId && (step === 'paying' || step === 'generating')) {
+    if (
+      (open.transactionId || open.clientIdentifier) &&
+      (step === 'paying' || step === 'generating')
+    ) {
       void (async () => {
         setBusy(true);
         setStatusText('Verificando seu pagamento…');
@@ -562,16 +566,10 @@ export default function FotoJesusScreen() {
             transactionId: open.transactionId,
             transactionIds: open.transactionIds,
             clientIdentifier: open.clientIdentifier,
+            pixCode: open.pixCode,
             kieTaskId: open.kieTaskId,
           });
-          if (
-            payment &&
-            (payment.paymentCheck?.paid ||
-              payment.status === 'paid' ||
-              payment.status === 'generating' ||
-              payment.status === 'success' ||
-              payment.kieTaskId)
-          ) {
+          if (payment && isFotoJesusPaymentConfirmed(payment)) {
             if (payment.kieTaskId) {
               setKieTaskId(payment.kieTaskId);
               patchPending({ kieTaskId: payment.kieTaskId });
@@ -602,6 +600,7 @@ export default function FotoJesusScreen() {
           (activeTx ? [activeTx] : []);
     const activeIdentifier =
       clientIdentifier || open?.clientIdentifier || null;
+    const activePixCode = pixCode || open?.pixCode || null;
     const activeKie = kieTaskId || open?.kieTaskId || null;
 
     if (!userId || !activeGenerationId) {
@@ -649,6 +648,7 @@ export default function FotoJesusScreen() {
         transactionId: activeTx,
         transactionIds: activeTxIds,
         clientIdentifier: activeIdentifier,
+        pixCode: activePixCode,
       });
 
       if (!payment) {
@@ -659,13 +659,7 @@ export default function FotoJesusScreen() {
         return;
       }
 
-      if (
-        payment.paymentCheck?.paid ||
-        payment.status === 'paid' ||
-        payment.status === 'generating' ||
-        payment.status === 'success' ||
-        payment.kieTaskId
-      ) {
+      if (payment && isFotoJesusPaymentConfirmed(payment)) {
         if (payment.kieTaskId) {
           setKieTaskId(payment.kieTaskId);
           patchPending({ kieTaskId: payment.kieTaskId });
@@ -679,6 +673,10 @@ export default function FotoJesusScreen() {
       if (payment.paymentCheck?.error === 'transactionId_ausente') {
         setStatusText(
           'Abra o Pix desta foto e pague. Depois toque em Verificar pagamento.',
+        );
+      } else if (payment.paymentCheck?.wivenFound === false) {
+        setStatusText(
+          'Não achamos este Pix no gateway. Feche e abra o app; se persistir, use o mesmo código Pix da tela.',
         );
       } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
         setStatusText(
@@ -696,6 +694,7 @@ export default function FotoJesusScreen() {
     }
   }, [
     clientIdentifier,
+    pixCode,
     generationId,
     generationToken,
     inputUrl,

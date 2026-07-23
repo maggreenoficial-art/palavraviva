@@ -21,7 +21,7 @@ import {
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
 import { trackMetaEvent } from '../services/metaPixel';
-import { confirmFotoJesusPayment } from '../services/fotoJesus';
+import { confirmFotoJesusPayment, isFotoJesusPaymentConfirmed } from '../services/fotoJesus';
 import {
   formatCpf,
   formatExpiry,
@@ -209,16 +209,11 @@ export function ToolPaywall({
         transactionId,
         transactionIds,
         clientIdentifier,
+        pixCode,
       });
       if (signal.cancelled || unlockingRef.current) return;
 
-      if (
-        status &&
-        (status.status === 'paid' ||
-          status.status === 'generating' ||
-          status.status === 'success' ||
-          status.paymentCheck?.paid)
-      ) {
+      if (status && isFotoJesusPaymentConfirmed(status)) {
         unlockingRef.current = true;
         void trackAnalytics({
           name: 'tool_purchase_activated',
@@ -659,7 +654,7 @@ export function ToolPaywall({
   }
 
   async function handlePayPix() {
-    if (pixCode && transactionId) {
+    if (pixCode && (transactionId || clientIdentifier)) {
       setMessage(
         'Este Pix já está na tela. Pague ESTE código no banco e toque em “Já paguei”. Se você pagou um Pix antigo desta mesma foto, toque só em “Já paguei” — vamos conferir todos os códigos salvos.',
       );
@@ -752,15 +747,10 @@ export function ToolPaywall({
           transactionId,
           transactionIds,
           clientIdentifier,
+          pixCode,
         });
 
-        if (
-          status &&
-          (status.status === 'paid' ||
-            status.status === 'generating' ||
-            status.status === 'success' ||
-            status.paymentCheck?.paid)
-        ) {
+        if (status && isFotoJesusPaymentConfirmed(status)) {
           void trackAnalytics({
             name: 'tool_purchase_activated',
             meta: { toolId, method: 'manual_check', consumable: true },
@@ -777,6 +767,10 @@ export function ToolPaywall({
         if (status?.paymentCheck?.error === 'transactionId_ausente') {
           setMessage(
             'Não encontramos o Pix desta sessão. Toque em “Gerar Pix” de novo, pague e depois em “Já paguei”.',
+          );
+        } else if (status?.paymentCheck?.wivenFound === false) {
+          setMessage(
+            'Não achamos este Pix na Wiven. Feche e abra o app de novo; se persistir, gere um novo código.',
           );
         } else if (wiven && String(wiven).toUpperCase() === 'PENDING') {
           setMessage(

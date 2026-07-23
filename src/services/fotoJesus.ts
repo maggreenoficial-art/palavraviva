@@ -16,12 +16,33 @@ export type FotoJesusStatus =
 
 export type FotoJesusPaymentCheck = {
   transactionId?: string;
+  clientIdentifier?: string | null;
   wivenStatus?: string | null;
   paid?: boolean;
   payedAt?: string | null;
+  wivenFound?: boolean;
+  pixMismatch?: boolean;
   error?: string;
   hint?: string;
 };
+
+export function isFotoJesusPaymentConfirmed(
+  status: FotoJesusStatusResult | null | undefined,
+): boolean {
+  if (!status) return false;
+  const wiven = String(status.paymentCheck?.wivenStatus || '').toUpperCase();
+  return Boolean(
+    status.paymentCheck?.paid ||
+      status.paymentCheck?.payedAt ||
+      wiven === 'COMPLETED' ||
+      wiven === 'PAID' ||
+      wiven === 'APPROVED' ||
+      status.status === 'paid' ||
+      status.status === 'generating' ||
+      status.status === 'success' ||
+      status.kieTaskId,
+  );
+}
 
 export type FotoJesusStatusResult = {
   ok: true;
@@ -115,6 +136,7 @@ export async function fetchFotoJesusStatus(input: {
   transactionId?: string | null;
   transactionIds?: string[] | null;
   clientIdentifier?: string | null;
+  pixCode?: string | null;
   /** true = pode criar 1 job Kie se pago e ainda não houver kieTaskId */
   startGeneration?: boolean;
 }): Promise<FotoJesusStatusResult | null> {
@@ -136,6 +158,7 @@ export async function fetchFotoJesusStatus(input: {
         transactionId: input.transactionId || ids[0] || null,
         transactionIds: ids,
         clientIdentifier: input.clientIdentifier || null,
+        pixCode: input.pixCode || null,
         startGeneration: Boolean(input.startGeneration) && !input.kieTaskId,
       }),
     });
@@ -172,6 +195,7 @@ export async function confirmFotoJesusPayment(input: {
   transactionId?: string | null;
   transactionIds?: string[] | null;
   clientIdentifier?: string | null;
+  pixCode?: string | null;
   kieTaskId?: string | null;
 }): Promise<FotoJesusStatusResult | null> {
   return fetchFotoJesusStatus({
