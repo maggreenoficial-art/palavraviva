@@ -29,7 +29,7 @@
   "rewrites": [
     {
       "source": "/admin",
-      "destination": "/api/admin"
+      "destination": "/api/painel"
     },
     {
       "source": "/((?!api/).*)",
