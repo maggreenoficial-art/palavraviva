@@ -149,11 +149,35 @@ export async function fetchFotoJesusStatus(input: {
     } catch {
       return null;
     }
-    if (!response.ok || !data.ok) return null;
+    if (!response.ok || !data.ok) {
+      if (typeof console !== 'undefined' && data?.error) {
+        console.warn('[foto-jesus/status]', data.error, data);
+      }
+      return null;
+    }
     return data;
   } catch {
     return null;
   }
+}
+
+/**
+ * Confirma pagamento e inicia geração Kie (botão "Já paguei").
+ */
+export async function confirmFotoJesusPayment(input: {
+  generationId: string;
+  userId: string;
+  inputUrl?: string | null;
+  token?: string | null;
+  transactionId?: string | null;
+  transactionIds?: string[] | null;
+  clientIdentifier?: string | null;
+  kieTaskId?: string | null;
+}): Promise<FotoJesusStatusResult | null> {
+  return fetchFotoJesusStatus({
+    ...input,
+    startGeneration: true,
+  });
 }
 
 /**

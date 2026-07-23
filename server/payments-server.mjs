@@ -716,7 +716,13 @@ function isPaidStatus(status) {
     value === 'LIQUIDATED' ||
     value === 'FINISHED' ||
     value === 'DONE' ||
+    value === 'OK' ||
+    value === 'LIQUIDADO' ||
+    value === 'LIQUIDADA' ||
+    value === 'PAGA' ||
+    value === 'RECEBIDO' ||
     value.includes('PAGO') ||
+    value.includes('LIQUID') ||
     value.includes('APPROV')
   );
 }
@@ -872,23 +878,34 @@ function pickPreferredTransaction(list) {
 }
 
 async function fetchWivenTransaction(transactionId, clientIdentifier = null) {
+  let byId = null;
+  let byClient = null;
+
   if (transactionId) {
     try {
       const data = await wivenGet(
         `/gateway/transactions?id=${encodeURIComponent(transactionId)}`,
       );
-      return unwrapWivenTransaction(data);
-    } catch (error) {
-      if (!clientIdentifier) throw error;
+      byId = unwrapWivenTransaction(data);
+      if (isPaidTransaction(byId)) return byId;
+    } catch {
+      // tenta clientIdentifier
     }
   }
+
   if (clientIdentifier) {
-    const data = await wivenGet(
-      `/gateway/transactions?clientIdentifier=${encodeURIComponent(clientIdentifier)}`,
-    );
-    return unwrapWivenTransaction(data);
+    try {
+      const data = await wivenGet(
+        `/gateway/transactions?clientIdentifier=${encodeURIComponent(clientIdentifier)}`,
+      );
+      byClient = unwrapWivenTransaction(data);
+      if (isPaidTransaction(byClient)) return byClient;
+    } catch {
+      // segue com o que tiver
+    }
   }
-  return null;
+
+  return byId || byClient || null;
 }
 
 /** Extrai status de pagamento de respostas variadas da Wiven. */
@@ -1688,14 +1705,68 @@ const serverHandler = async (req, res) => {
         null;
 
       const checkouts = readCheckouts();
+      const webhookTxId = String(
+        body.id ||
+          body.transactionId ||
+          body.transaction_id ||
+          body.data?.id ||
+          body.payment_id ||
+          '',
+      ).trim();
+      const webhookIdentifier = String(
+        body.identifier ||
+          body.clientIdentifier ||
+          body.metadata?.identifier ||
+          body.data?.identifier ||
+          '',
+      ).trim();
+
       let matched = null;
       for (let i = checkouts.length - 1; i >= 0; i -= 1) {
-        if (checkouts[i].userId === userId && checkouts[i].status === 'opened') {
-          checkouts[i].status = 'paid';
-          checkouts[i].paidAt = new Date().toISOString();
-          matched = checkouts[i];
+        const checkout = checkouts[i];
+        if (checkout.status !== 'opened') continue;
+        if (webhookTxId && checkout.transactionId === webhookTxId) {
+          matched = checkout;
           break;
         }
+        if (webhookIdentifier && checkout.identifier === webhookIdentifier) {
+          matched = checkout;
+          break;
+        }
+      }
+
+      const metaGenerationIdEarly = String(
+        body.metadata?.generationId ||
+          body.data?.metadata?.generationId ||
+          '',
+      ).trim();
+
+      if (!matched && userId && metaGenerationIdEarly) {
+        for (let i = checkouts.length - 1; i >= 0; i -= 1) {
+          const checkout = checkouts[i];
+          if (
+            checkout.userId === userId &&
+            checkout.generationId === metaGenerationIdEarly &&
+            checkout.status === 'opened'
+          ) {
+            matched = checkout;
+            break;
+          }
+        }
+      }
+
+      if (!matched) {
+        for (let i = checkouts.length - 1; i >= 0; i -= 1) {
+          if (checkouts[i].userId === userId && checkouts[i].status === 'opened') {
+            matched = checkouts[i];
+            break;
+          }
+        }
+      }
+
+      if (matched) {
+        matched.status = 'paid';
+        matched.paidAt = new Date().toISOString();
       }
       writeCheckouts(checkouts);
 
@@ -2068,6 +2139,37 @@ const serverHandler = async (req, res) => {
 
       let paymentCheck = null;
 
+      // Já pago (ex.: confirmação anterior) — inicia Kie sem depender do /tmp
+      if (
+        startGeneration &&
+        !kieTaskId &&
+        !generation.kieTaskId &&
+        (generation.status === 'paid' || generation.paidAt)
+      ) {
+        generation =
+          (await fulfillFotoJesusPayment(generationId, userId, {
+            checkoutId: null,
+            source: 'status_resume_paid',
+            inputUrl: inputUrl || generation.inputUrl || null,
+            token: token || null,
+            startGeneration: true,
+          })) || generation;
+        if (generation.kieTaskId) {
+          generation =
+            (await refreshGenerationFromKie(generationId)) || generation;
+        }
+        send(res, 200, {
+          ok: true,
+          generationId: generation.id,
+          status: generation.status,
+          resultUrl: generation.resultUrl || null,
+          kieTaskId: generation.kieTaskId || null,
+          error: generation.error || null,
+          paymentCheck: { paid: true, resumed: true },
+        });
+        return;
+      }
+
       // Já tem tarefa Kie → só consulta progresso (nunca cria outra)
       if (kieTaskId || generation.kieTaskId) {
         const taskId = kieTaskId || generation.kieTaskId;
@@ -2144,7 +2246,7 @@ const serverHandler = async (req, res) => {
         if (!txCandidates.length) {
           paymentCheck = {
             error: 'transactionId_ausente',
-            hint: 'Gere o Pix de novo e toque em Já paguei após pagar.',
+            hint: 'Gere o Pix de novo e toque em Já paguei após pagar. Se já pagou, feche e abra o app de novo na mesma foto.',
           };
         }
 

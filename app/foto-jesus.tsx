@@ -19,6 +19,7 @@ import {
 import { trackAnalytics } from '../src/services/analytics';
 import {
   checkFotoJesusPayment,
+  confirmFotoJesusPayment,
   pollFotoJesusResult,
   prepareFotoJesus,
 } from '../src/services/fotoJesus';
@@ -553,7 +554,7 @@ export default function FotoJesusScreen() {
         setBusy(true);
         setStatusText('Verificando seu pagamento…');
         try {
-          const payment = await checkFotoJesusPayment({
+          const payment = await confirmFotoJesusPayment({
             generationId: open.generationId,
             userId,
             inputUrl: open.inputUrl,
@@ -640,7 +641,7 @@ export default function FotoJesusScreen() {
         return;
       }
 
-      const payment = await checkFotoJesusPayment({
+      const payment = await confirmFotoJesusPayment({
         generationId: activeGenerationId,
         userId,
         inputUrl: activeInputUrl,

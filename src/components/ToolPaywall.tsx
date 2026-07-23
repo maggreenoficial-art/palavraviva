@@ -21,7 +21,7 @@ import {
 import { useResponsive } from '../hooks/useResponsive';
 import { trackAnalytics } from '../services/analytics';
 import { trackMetaEvent } from '../services/metaPixel';
-import { checkFotoJesusPayment } from '../services/fotoJesus';
+import { checkFotoJesusPayment, confirmFotoJesusPayment } from '../services/fotoJesus';
 import {
   formatCpf,
   formatExpiry,
@@ -201,7 +201,7 @@ export function ToolPaywall({
 
     const tick = async () => {
       if (signal.cancelled || unlockingRef.current) return;
-      const status = await checkFotoJesusPayment({
+      const status = await confirmFotoJesusPayment({
         generationId,
         userId,
         inputUrl,
@@ -744,7 +744,7 @@ export function ToolPaywall({
       setError(null);
       setMessage('Confirmando seu pagamento…');
       try {
-        const status = await checkFotoJesusPayment({
+        const status = await confirmFotoJesusPayment({
           generationId,
           userId,
           inputUrl,
