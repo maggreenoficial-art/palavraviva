@@ -2365,6 +2365,10 @@ const serverHandler = async (req, res) => {
         eventName,
         eventId: eventId || undefined,
         eventSourceUrl: eventSourceUrl || undefined,
+        referrerUrl:
+          (typeof body.referrerUrl === 'string' && body.referrerUrl.trim()) ||
+          (typeof body.referrer_url === 'string' && body.referrer_url.trim()) ||
+          undefined,
         testEventCode:
           (typeof body.testEventCode === 'string' && body.testEventCode.trim()) ||
           (typeof body.test_event_code === 'string' &&

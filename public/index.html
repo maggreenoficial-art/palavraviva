@@ -175,6 +175,22 @@
     </script>
     <script>
       (function () {
+        function ensureAnonId() {
+          try {
+            var id = localStorage.getItem('meta_anon_id');
+            if (!id) {
+              id =
+                'anon_' +
+                Date.now().toString(36) +
+                '_' +
+                Math.random().toString(36).slice(2, 8);
+              localStorage.setItem('meta_anon_id', id);
+            }
+            return id;
+          } catch (e) {
+            return '';
+          }
+        }
         try {
           var eid =
             'PageView_boot_' +
@@ -191,11 +207,15 @@
             eventId: eid,
             eventSourceUrl: 'https://www.oucapalavra.com.br' + location.pathname,
             userAgent: navigator.userAgent,
+            userId: ensureAnonId(),
             country: 'br',
           };
+          if (document.referrer) body.referrerUrl = document.referrer;
           try {
             var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/);
             if (fbpMatch) body.fbp = decodeURIComponent(fbpMatch[1]);
+            var fbcMatch = document.cookie.match(/(?:^|; )_fbc=([^;]*)/);
+            if (fbcMatch) body.fbc = decodeURIComponent(fbcMatch[1]);
           } catch (e) {}
           fetch('/api/meta/capi', {
             method: 'POST',

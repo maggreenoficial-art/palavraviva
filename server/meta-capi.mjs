@@ -95,6 +95,19 @@ function resolveUserAgent(input = {}) {
   return FALLBACK_USER_AGENT;
 }
 
+/** Meta rejeita combinações muito amplas de user_data (Graph API v13+). */
+function hasMinimumMatchSignals(userData = {}) {
+  if (userData.em?.length || userData.ph?.length) return true;
+  if (userData.external_id?.length) return true;
+  if (userData.fn?.length && userData.ln?.length) return true;
+  if (userData.fbp || userData.fbc) return true;
+  return false;
+}
+
+function createServerEventId(eventName) {
+  return `${eventName}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function buildUserData(input = {}) {
   const { first, last } = splitName(input.displayName || input.name || '');
   const phoneDigits = onlyDigits(input.phone || input.whatsapp || '');
@@ -206,6 +219,7 @@ export async function sendMetaConversionEvent({
   customData = {},
   eventTime,
   testEventCode,
+  referrerUrl,
 } = {}) {
   if (!ACCESS_TOKEN || !PIXEL_ID) {
     return { ok: false, skipped: true, error: 'meta_capi_nao_configurado' };
@@ -214,24 +228,47 @@ export async function sendMetaConversionEvent({
     return { ok: false, error: 'event_name_obrigatorio' };
   }
 
-  const payload = {
-    data: [
-      {
-        event_name: eventName,
-        event_time: eventTime || Math.floor(Date.now() / 1000),
-        event_id: eventId || undefined,
-        event_source_url:
-          canonicalEventSourceUrl(eventSourceUrl) ||
-          'https://www.oucapalavra.com.br/home',
-        action_source: actionSource,
-        user_data: buildUserData(user),
-        custom_data:
-          customData && Object.keys(customData).length
-            ? normalizeCustomData(customData, eventName)
-            : undefined,
+  const resolvedEventId = String(eventId || '').trim() || createServerEventId(eventName);
+  const canonicalUrl =
+    canonicalEventSourceUrl(eventSourceUrl) ||
+    'https://www.oucapalavra.com.br/home';
+  const userData = buildUserData(user);
+
+  if (actionSource === 'website' && !hasMinimumMatchSignals(userData)) {
+    return {
+      ok: false,
+      error: 'user_data_insuficiente_para_matching',
+      debug: {
+        hint: 'Inclua external_id, em, ph, fn+ln ou fbp/fbc — ver Conversions API best practices.',
       },
-    ],
+    };
+  }
+
+  const eventPayload = {
+    event_name: eventName,
+    event_time: eventTime || Math.floor(Date.now() / 1000),
+    event_id: resolvedEventId,
+    event_source_url: canonicalUrl,
+    action_source: actionSource,
+    user_data: userData,
+    // Brasil: não usar LDU — array vazio é explícito na documentação Meta
+    data_processing_options: [],
+    custom_data:
+      customData && Object.keys(customData).length
+        ? normalizeCustomData(customData, eventName)
+        : undefined,
   };
+
+  const ref = String(referrerUrl || user.referrerUrl || '').trim();
+  if (ref && actionSource === 'website') {
+    try {
+      eventPayload.referrer_url = new URL(ref).href;
+    } catch {
+      // ignora referrer inválido
+    }
+  }
+
+  const payload = { data: [eventPayload] };
 
   const testCode = (testEventCode || '').trim();
   if (testCode) {
@@ -269,9 +306,15 @@ export async function sendMetaConversionEvent({
       debug: {
         pixelId: PIXEL_ID,
         eventName,
+        eventId: resolvedEventId,
         testEventCode: testCode || null,
         hasIp: Boolean(payload.data[0]?.user_data?.client_ip_address),
         hasUa: Boolean(payload.data[0]?.user_data?.client_user_agent),
+        hasFbp: Boolean(payload.data[0]?.user_data?.fbp),
+        hasFbc: Boolean(payload.data[0]?.user_data?.fbc),
+        hasExternalId: Boolean(payload.data[0]?.user_data?.external_id?.length),
+        hasEmail: Boolean(payload.data[0]?.user_data?.em?.length),
+        hasPhone: Boolean(payload.data[0]?.user_data?.ph?.length),
       },
     };
   } catch (error) {

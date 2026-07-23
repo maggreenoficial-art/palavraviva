@@ -259,10 +259,15 @@ async function sendCapi(
     // segue sem Parameter Builder
   }
 
+  // Pixel antes do CAPI — mesma ordem recomendada para deduplicação (eventID igual)
   trackBrowserPixel(eventName, eventId, params);
 
   const { fbp, fbc } = getMetaClickIds();
   const { userId, displayName, whatsapp } = useUserStore.getState();
+  const referrerUrl =
+    typeof document !== 'undefined' && document.referrer
+      ? document.referrer
+      : undefined;
 
   try {
     const res = await fetch(url, {
@@ -273,6 +278,7 @@ async function sendCapi(
         eventName,
         eventId,
         eventSourceUrl: metaEventSourceUrl(),
+        referrerUrl,
         userId,
         displayName,
         whatsapp,
