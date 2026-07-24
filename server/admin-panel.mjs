@@ -180,7 +180,7 @@ export function adminPanelHtml() {
 
     async function load(password) {
       try {
-        const res = await fetch('/api/admin/stats', {
+        const res = await fetch('/api/admin-stats', {
           headers: { 'x-admin-password': password },
         });
         if (res.status === 401) {
