@@ -2626,7 +2626,11 @@ const serverHandler = async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/admin/stats') {
+  if (
+    req.method === 'GET' &&
+    (url.pathname === '/api/admin/stats' ||
+      url.pathname === '/api/admin-stats')
+  ) {
     if (
       !verifyAdminPassword(
         req.headers['x-admin-password'],
