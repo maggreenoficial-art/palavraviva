@@ -21,15 +21,12 @@ import {
   verifyMediaToken,
 } from './media-access.mjs';
 import { sendMetaConversionEvent, metaCapiConfigured } from './meta-capi.mjs';
-
-let analyticsModulePromise;
-
-function loadAnalyticsModule() {
-  if (!analyticsModulePromise) {
-    analyticsModulePromise = import('./analytics-store.mjs');
-  }
-  return analyticsModulePromise;
-}
+import {
+  buildDashboardStats,
+  recordAnalyticsEvent,
+  verifyAdminPassword,
+} from './analytics-store.mjs';
+import { adminPanelHtml } from './admin-panel.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -278,22 +275,15 @@ function grantSubscription(userId, meta = {}) {
 }
 
 async function notifyAnalyticsSync(payload) {
-  try {
-    const { syncAnalyticsPayload } = await loadAnalyticsModule();
-    syncAnalyticsPayload(payload);
-  } catch {
-    // Sync local nunca deve quebrar o checkout
-  }
-
   const base = (
     process.env.ANALYTICS_SYNC_URL ||
     process.env.EXPO_PUBLIC_ANALYTICS_URL ||
-    ''
+    'http://127.0.0.1:8787'
   )
     .trim()
     .replace(/\/$/, '');
-  if (!base || /localhost|127\.0\.0\.1/i.test(base)) {
-    return;
+  if (!base || /vercel\.app$/i.test(base)) {
+    // Sem URL de analytics dedicada, ainda tenta localhost (dev)
   }
   try {
     await fetch(`${base}/api/internal/sync`, {
@@ -309,7 +299,7 @@ async function notifyAnalyticsSync(payload) {
       }),
     });
   } catch {
-    // Sync remoto opcional (dev com painel local)
+    // Sync nunca deve quebrar o checkout
   }
 }
 
@@ -2628,6 +2618,28 @@ const serverHandler = async (req, res) => {
     return;
   }
 
+  if (
+    req.method === 'GET' &&
+    (url.pathname === '/api/admin' || url.pathname === '/admin')
+  ) {
+    send(res, 200, adminPanelHtml(), 'text/html');
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/admin/stats') {
+    if (
+      !verifyAdminPassword(
+        req.headers['x-admin-password'],
+        url.searchParams.get('password'),
+      )
+    ) {
+      send(res, 401, { ok: false, error: 'unauthorized' });
+      return;
+    }
+    send(res, 200, buildDashboardStats());
+    return;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/admin/foto-jesus/confirm') {
     const password =
       process.env.ADMIN_PASSWORD ||
@@ -2703,44 +2715,6 @@ const serverHandler = async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname === '/api/admin')) {
-    const { getAdminPanelHtml } = await loadAnalyticsModule();
-    send(res, 200, getAdminPanelHtml(), 'text/html');
-    return;
-  }
-
-  if (
-    req.method === 'GET' &&
-    (url.pathname === '/api/admin/stats' || url.pathname === '/api/stats')
-  ) {
-    const { isAdminAuthorized, getAnalyticsStats } = await loadAnalyticsModule();
-    if (!isAdminAuthorized(req, url)) {
-      send(res, 401, { error: 'unauthorized' });
-      return;
-    }
-    send(res, 200, getAnalyticsStats());
-    return;
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/admin/subscriptions') {
-    const { isAdminAuthorized, handleAdminSubscriptionAction } =
-      await loadAnalyticsModule();
-    if (!isAdminAuthorized(req, url)) {
-      send(res, 401, { ok: false, error: 'unauthorized' });
-      return;
-    }
-    try {
-      const { json: body } = await readBody(req);
-      const result = handleAdminSubscriptionAction(body);
-      send(res, 200, { ok: true, ...result });
-    } catch (error) {
-      const message = String(error.message || error);
-      const status = message === 'assinatura_nao_encontrada' ? 404 : 400;
-      send(res, status, { ok: false, error: message });
-    }
-    return;
-  }
-
   if (
     req.method === 'POST' &&
     (url.pathname === '/api/analytics/events' ||
@@ -2748,8 +2722,60 @@ const serverHandler = async (req, res) => {
   ) {
     try {
       const { json: body } = await readBody(req);
-      const { ingestAnalyticsEvent } = await loadAnalyticsModule();
-      await ingestAnalyticsEvent(body, req);
+      recordAnalyticsEvent(body);
+      if (
+        body?.userId &&
+        (body.name === 'subscription_activated' ||
+          body.name === 'subscription_start')
+      ) {
+        const when = Date.parse(body.occurredAt || Date.now());
+        const base = Number.isFinite(when) ? when : Date.now();
+        if (body.name === 'subscription_activated') {
+          grantSubscription(body.userId, {
+            source: 'app_activated',
+            displayName: body.displayName || null,
+            whatsapp: body.whatsapp || null,
+            expiresAt: new Date(
+              base + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+          });
+        }
+        saveCheckoutRecord({
+          id: `ck_app_${Date.now().toString(36)}`,
+          userId: body.userId,
+          method: body.meta?.method || '—',
+          product: 'subscription',
+          kind: 'subscription',
+          displayName: body.displayName || null,
+          whatsapp: body.whatsapp || null,
+          status:
+            body.name === 'subscription_activated' ? 'paid' : 'opened',
+          createdAt: body.occurredAt || new Date().toISOString(),
+          paidAt:
+            body.name === 'subscription_activated'
+              ? body.occurredAt || new Date().toISOString()
+              : null,
+        });
+      }
+      // Dev local: espelha no analytics-server (8787) se estiver rodando
+      if (!process.env.VERCEL) {
+        const analyticsBase = (
+          process.env.ANALYTICS_SYNC_URL ||
+          process.env.EXPO_PUBLIC_ANALYTICS_URL ||
+          'http://127.0.0.1:8787'
+        )
+          .trim()
+          .replace(/\/$/, '');
+        try {
+          await fetch(`${analyticsBase}/api/events`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } catch {
+          // ok
+        }
+      }
       send(res, 201, { ok: true });
     } catch (error) {
       send(res, 400, { ok: false, error: String(error.message || error) });
